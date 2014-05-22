@@ -25,15 +25,7 @@ class MakeModel:
         self.rT = Rsun*(self.MBH)**(1./3)
         self.r0_rT=(self.r0*pc)/self.rT
         self.tdyn0 = ((G*self.rho0*realMsun)/pc**3)**(-1./2)
-    #generate some additional parameters
-    #def gen_params(self):
-        
-        #param_dict = {'MBHnorm':MBHnorm,
-        #              'rT':rT,
-        #              'r0_rT':r0_rT,
-        #              'tdyn0':tdyn0}
-        #params = [MBHnorm, rT, r0_rT,tdyn0]
-        #return params,param_dict
+    
     #compute density
     def rho(self,r):
         return (r**-self.g)*(1+r**self.a)**((self.g-self.b)/self.a)
@@ -43,10 +35,12 @@ class MakeModel:
     #and second derivatives
     def drho2dr2(self,r):
         return(r**(-2-self.g))*((1+r**self.a)**((-2*self.a-self.b+self.g)/self.a))*(self.b*(1+self.b)*r**(2*self.a)+self.g+self.g**2+(self.b-self.a*self.b+self.g+self.a*self.g+2*self.b*self.g)*r**self.a)
+    
     #a function describing interior mass when integrated
     def Minterior(self,r):
         return self.rho(r)*r**2
-    #computes enclosed mass
+    
+    #computes enclosed mass - right now this has to cycle through r values, can this be more efficient?
     def Menc(self,r):
         try:
             t = r.shape
@@ -56,6 +50,7 @@ class MakeModel:
             return array(Mencs)
         except AttributeError:
             return 4*pi*intg.quad(self.Minterior,0,r)[0]
+    
     #function to go in the solver for finding rH (its implicit definition)
     def rHimplicit(self,r):
         return self.Mnorm-self.Menc(r)
@@ -68,7 +63,8 @@ class MakeModel:
     #    return self.rho(exp(r))*exp(2*r)
     
     #LINDA'S USES LOGS, IS THIS EQUIVALENT? (no warnings generated this way, unlike with logs)
-    #compute part 2 of psi
+    
+    #compute part 2 of psi - right now this has to cycle through r values, can this be more efficient?
     def psi2(self,r):
         try:
             t = r.shape
@@ -78,14 +74,15 @@ class MakeModel:
             return array(psi2s)
         except AttributeError:    
             return 4*pi*intg.quad(self.Minterior,r,inf)[0]
+    
     #compute psi (potential)
     def psi(self,r):
         return (self.Mnorm/r) + (self.Menc(r)/r) + self.psi2(r)
+    
     #generate rgrid
     def rgrid(self,upstep=5,downstep=-5,step=0.03):
         rmin = min([self.rH(),[1.]])
         rmax = max([self.rH(),[1.]])
-        #print 'rmin,rmax=',rmin,rmax
         rimin = log10(rmin)+downstep
         rimax = log10(rmax)+upstep
         dri = step
@@ -94,29 +91,34 @@ class MakeModel:
         rchange = rarray[len(rarray)-1]
         rstart = rarray[0]
         return rarray, rchange,rstart
-    #generate psigood via interpolation and power law approximations at extremes
+    
+    #generate a piecewise expression via interpolation and power law approximations at extremes
     def piecewise2(self,r,inter,start,end,lim1,lim2,smallrexp,largerexp,conds=False):
+        #identify three domains
         set1 = r[(r<lim1)]
         set2 = r[(r>=lim1)&(r<=lim2)]
         set3 = r[(r>lim2)]
+        #describe the function on each domain
         piece1 = start*(set1/lim1)*smallrexp
         piece2 = 10**(inter(log10(set2)))
         piece3 = end*(set3/lim2)**largerexp
+        #return function across the whole array
         return concatenate((piece1,piece2,piece3))
         
     def psigood(self,r,smallrexp=-1,largerexp = -1):
+        #generate rgrid and its outer boundaries
         rarray,rchange,rstart = self.rgrid()
-        #print 'start=',rstart,'end=',rchange
-        print r
-        print r[0]
+        #generate psi values based on rgrid
         psitab = self.psi(rarray)
+        #right now this is a useless construction, but may need it, depends on interpolator
         construct = column_stack((log10(rarray),log10(psitab)))
-        psiinter = interp1d(log10(rarray),log10(psitab))
+        #interpolate over given range
+        psiinter = interp1d(log10(rarray),log10(psitab)) #check this does what you think it does!!!! (when documentation comes back online)
+        #identify psi boundaries for power law approximations
         start = psitab[0]
         end = psitab[len(rarray)-1]
         m = self.piecewise2(r,psiinter,start,end,rstart,rchange,smallrexp,largerexp)
-        print m
-        return m
+        return m,rstart,rchange
         
 
     #******************************* def rapo(self,E,psigood):
@@ -134,9 +136,13 @@ model = MakeModel('testing',1.,4.,1.5,1.,1.e5,1000)
 #test5 = model.psi2(1)
 rtest = arange(-12,12,0.01)
 rtest = 10**rtest
-test6 = model.psigood(rtest)
-plt.plot(rtest,test6,'.')
-plt.yscale('log')
-plt.xscale('log')
+test6,lim1,lim2 = model.psigood(rtest)
+plt.clf()
+plt.loglog(rtest,test6,'.')
 plt.ylabel(r'$\psi$')
 plt.xlabel('r')
+plt.xlim(min(rtest),max(rtest))
+plt.ylim(min(test6),max(test6))
+plt.axvline(lim1, color='r')
+plt.axvline(lim2, color='r')
+plt.show()
