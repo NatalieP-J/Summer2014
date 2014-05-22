@@ -1,0 +1,12 @@
+The way this works is the following:
+
+1.  Open GalaxyFcnsRho_writtenout.nb
+Evaluation -> Evaluate Notebook.
+That runs quickly, and just defines each of the functions without making them.  There are two parts:  defining the functions, and then defining how to make the tables to approximate them in the right range.
+
+
+2.  Open GalaxyfcnsRho_runme.nb
+Evaluate step by step.
+Some of these run slowly.  Here is where you actually create a model for a given galaxy, given alpha, beta, etc., calculating tables for psi, g, mathcalG, etc.
+
+

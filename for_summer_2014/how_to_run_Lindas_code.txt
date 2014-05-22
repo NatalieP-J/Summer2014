@@ -1,0 +1,55 @@
+
+--------------------------
+
+The way this works is the following:
+
+1.  Open 1GalaxyFcnsRho_writtenout.nb
+Evaluation -> Evaluate Notebook.
+That runs quickly, and just defines each of the functions without making them.  There are two parts:  defining the functions, and then defining how to make the tables to approximate them in the right range.
+
+
+2.  Open 2GalaxyfcnsRho_runme.nb
+Copy these to scratch notebook probably easiest.
+Evaluate step by step.  Some of these run slowly.
+
+Here is where you actually create a model for a given galaxy, given alpha, beta, etc., calculating tables for psi, g, mathcalG, etc.  Then you run rate calculations at the end.
+
+----------------------------------
+----------------------------------
+Remember the difference between using rho and using I.  (That's GalaxyFcns and GalaxyFcnsRho.)  I have written up calculations to get "fcns" for both; using rho might be easier to test (and can do Sersic? and Dehnen), though doesn't compare directly with Wang & Merritt.
+
+
+
+----------------------------------
+
+The folder dgdlnrp_tables_Faber has the figure results from all Nuker calculations I did.
+
+
+When I get some calculations all set, I save them as ***.dgdlnrp and then re-open them in another notebook with (e.g., ) << 4434.dgdlnrp.  *** figure out where I did this with previous galaxies!!  docalcs_596_run1106.nb contains partial runs of 596 and 4168.
+
+The ones I've done already can be opened and plotted in previous_ratecalcplots_goodbeta.nb.
+
+----------------------------------
+
+What I was doing before:
+- Docalcs.nb was supposed to read in every galaxy and do them all as a loop.  But I've decided to run each galaxy one by one.  If I've run the parts from GalaxyfcnsRho_runme.nb already for a given galaxy, then I don't need to do this.
+
+- Doratecalcs.nb does the dg/dlnrp calculation for a particular galaxy, given the "fcns" that have already been calculated for it.
+
+
+(Extra :  try doing this for Sersic profiles)
+
+------------------------------------
+
+Tips:
+Don't bother using packages; that's only useful after fully debugging.
+
+Ways to help functions converge better:
+- re-parametrize so that you're integrating over ln r instead of over r
+- replace bottom or top bounds from 0 or infinity to epsilon or 1/eps.
+- to be most accurate, add a Taylor expansion for the remaining term (e.g., the integral from 0 to epsilon) so that I'm not just cutting it off
+- try using different integration methods, like MonteCarlo
+(- try changing accuracygoals.)
+- try to get Mathematica to output exactly where the integral isn't converging.
+
+It's important to get things to converge nicely, even if you can get some answers ignoring the problem locations, because those might be making the integrals take a super long time to converge, and/or could give more problems later.

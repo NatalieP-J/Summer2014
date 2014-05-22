@@ -1,0 +1,606 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 8.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       157,          7]
+NotebookDataLength[     19970,        597]
+NotebookOptionsPosition[     17754,        522]
+NotebookOutlinePosition[     18107,        538]
+CellTagsIndexPosition[     18064,        535]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["\<\
+Notebook to run the functions from GalaxyfcnsRho_writtenout.nb\
+\>", "Title",
+ CellChangeTimes->{{3.608478898208508*^9, 3.6084789373062487`*^9}}],
+
+Cell[CellGroupData[{
+
+Cell["\<\
+Start by creating a model for a given galaxy\
+\>", "Section",
+ CellChangeTimes->{{3.608478957566924*^9, 3.608478961278611*^9}, {
+  3.608479009945931*^9, 3.608479018729122*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"ClearAll", "[", "\"\<GalaxyFcnsRho`*\>\"", "]"}], " ", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "this", " ", "is", " ", "to", " ", "make", " ", "sure", " ", "we", " ", 
+     RowBox[{"don", "'"}], "t", " ", "have", " ", "other", " ", "definitions",
+      " ", "of", " ", "the", " ", "GalaxyFcnsRho", " ", "set", " ", 
+     "already"}], ";", " ", 
+    RowBox[{
+    "we", " ", "only", " ", "want", " ", "to", " ", "use", " ", "those", " ", 
+     "in", " ", 
+     RowBox[{"GalaxyFcnsRho_writtenout", ".", "nb"}]}]}], " ", 
+   "*)"}]}]], "Input",
+ CellChangeTimes->{{3.6082926882873173`*^9, 3.608292688472917*^9}, {
+   3.608292879767105*^9, 3.608292881182927*^9}, 3.608303780965838*^9, {
+   3.60847896589062*^9, 3.6084790036481256`*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{
+    "\[Alpha]", ",", "\[Beta]", ",", "\[Gamma]", ",", "r0pc", ",", "\[Rho]0", 
+     ",", "MBHomsun"}], "}"}], "=", 
+   RowBox[{"{", 
+    RowBox[{"1", ",", "4", ",", "1.5", ",", "1", ",", 
+     SuperscriptBox["10", "5"], ",", "1000"}], "}"}]}], ";", " ", 
+  RowBox[{"(*", " ", 
+   RowBox[{"for", " ", "example"}], " ", "*)"}]}]], "Input",
+ CellChangeTimes->{{3.6083046633478518`*^9, 3.608304724322659*^9}}],
+
+Cell[BoxData[{
+ RowBox[{"m", " ", "=", " ", 
+  RowBox[{"makemodel", "[", 
+   RowBox[{
+   "\"\<galaxyname\>\"", ",", "\[Alpha]", ",", "\[Beta]", ",", "\[Gamma]", 
+    ",", "r0pc", ",", "\[Rho]0", ",", "MBHomsun"}], 
+   "]"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"change", " ", "these", " ", "parameters", " ", "\[Alpha]"}], ",",
+     " ", "\[Beta]", ",", " ", 
+    RowBox[{"etc", "."}], ",", " ", 
+    RowBox[{"for", " ", "different", " ", "galaxies"}]}], " ", 
+   "*)"}]}]}], "Input",
+ CellChangeTimes->{{3.6082926882873173`*^9, 3.608292688472917*^9}, {
+  3.608292879767105*^9, 3.608292881182927*^9}, {3.608303780965838*^9, 
+  3.608303797247107*^9}, {3.608304116649187*^9, 3.6083041186094418`*^9}, {
+  3.608304347757962*^9, 3.608304349101177*^9}, {3.608304716483842*^9, 
+  3.6083047169488153`*^9}, {3.6084790282420807`*^9, 3.6084790550592747`*^9}}],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{
+    "modelname", ",", "\[Alpha]", ",", "\[Beta]", ",", "\[Gamma]", ",", 
+     "MBHomsun", ",", "MBHnorm", ",", "r0orT", ",", "r0pc", ",", "tdyn0", ",",
+      "\[Rho]0", ",", "sigmabsqokmps2", ",", "fscale"}], "}"}], " ", "=", " ",
+    "m"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "this", " ", "line", " ", "gives", " ", "us", " ", "access", " ", "to", 
+     " ", "all", " ", "the", " ", "internal", " ", "variables"}], ",", " ", 
+    RowBox[{"for", " ", "testing"}]}], " ", "*)"}]}]}], "Input",
+ CellChangeTimes->{{3.6082931884927387`*^9, 3.608293188749489*^9}, {
+  3.608479060715663*^9, 3.60847906081843*^9}}],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"plotfilename", " ", "=", " ", "\"\<galaxyname\>\""}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"this", " ", "is", " ", "used", " ", "in", " ", "the", " ", 
+     RowBox[{"make", "**", "good"}], " ", "functions"}], ";", " ", 
+    RowBox[{
+    "at", " ", "the", " ", "very", " ", "end", " ", "they", " ", "make", " ", 
+     "a", " ", "plot", " ", "and", " ", "save", " ", "it", " ", "with", " ", 
+     "that", " ", "prefix"}]}], " ", "*)"}]}]}], "Input",
+ CellChangeTimes->{{3.608303813730155*^9, 3.6083038336526537`*^9}, {
+  3.608304035318549*^9, 3.6083041067843733`*^9}, {3.6083043517325783`*^9, 
+  3.6083043529485683`*^9}}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["\<\
+Here we calculate the galaxy functions\
+\>", "Section",
+ CellChangeTimes->{{3.608479131602545*^9, 3.6084792211581993`*^9}}],
+
+Cell["\<\
+ Goal of this section is to calculate the functions (do the tabulations) for \
+these: q,lnRlcm,fgood,\[Psi]good,Mencgood,ggood,mathcalGgood,Jc2good\
+\>", "Subsection",
+ CellChangeTimes->{{3.6084792169182*^9, 3.6084792305007887`*^9}, {
+  3.608479374144517*^9, 3.608479384062314*^9}, {3.608479593945898*^9, 
+  3.6084796104227037`*^9}, {3.608479684610902*^9, 3.608479693153191*^9}}],
+
+Cell[CellGroupData[{
+
+Cell["\<\
+After each calculation, we make a loglogplot to make sure the shape is as we \
+expect. One check is to make sure the curves in these plots are smooth (i.e., \
+the end behavior at large and small r or E agrees with the analytic result).  \
+We can also check that by taking ratios of results for different values.  \
+Some of these loglogplots are also automatically saved when the function is \
+being run.\
+\>", "Subsection",
+ CellChangeTimes->{{3.6084797042619343`*^9, 3.6084797051288853`*^9}, {
+  3.608479791192472*^9, 3.608479933044455*^9}, {3.608480824388089*^9, 
+  3.6084808517367764`*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Mencgood", "=", "makeMencgood"}], ";"}]], "Input"],
+
+Cell[BoxData[
+ RowBox[{"LogLogPlot", "[", 
+  RowBox[{
+   RowBox[{"Mencgood", "[", "r", "]"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"r", ",", ".0001", ",", "10000"}], "}"}]}], "]"}]], "Input"],
+
+Cell[BoxData[
+ RowBox[{"LogLogPlot", "[", 
+  RowBox[{
+   RowBox[{"\[Rho]", "[", "r", "]"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"r", ",", ".0001", ",", "1000"}], "}"}]}], "]"}]], "Input"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"\[Psi]good", "=", "make\[Psi]good"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "this", " ", "will", " ", "produce", " ", "a", " ", "lot", " ", "of", " ", 
+    
+    RowBox[{"warnings", ".", " ", "We"}], " ", "should", " ", "look", " ", 
+    "to", " ", "see", " ", "if", " ", 
+    RowBox[{"it", "'"}], "s", " ", "a", " ", "problem", " ", "or", " ", 
+    RowBox[{"not", ".", " ", "but"}], " ", "it", " ", "can", " ", "still", 
+    " ", "make", " ", "the", " ", "psi", " ", "plot", " ", "next", " ", 
+    "correctly", " ", "I", " ", "think"}], " ", "*)"}]}]}], "Input",
+ CellChangeTimes->{{3.6082931646767*^9, 3.608293216362791*^9}, {
+  3.6084790742049017`*^9, 3.608479082064815*^9}}],
+
+Cell[BoxData[
+ RowBox[{"LogLogPlot", "[", 
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{"\[Psi]good", "[", "r", "]"}], "}"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"r", ",", 
+     SuperscriptBox["10", 
+      RowBox[{"-", "6"}]], ",", 
+     SuperscriptBox["10", "6"]}], "}"}]}], "]"}]], "Input"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Jc2good", "=", 
+   RowBox[{"makeJc2good", "[", 
+    RowBox[{"Mencgood", ",", "\[Psi]good"}], "]"}]}], ";"}]], "Input"],
+
+Cell[BoxData[
+ RowBox[{"LogLogPlot", "[", 
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{"Jc2good", "[", "EE", "]"}], "}"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"EE", ",", 
+     SuperscriptBox["10", 
+      RowBox[{"-", "6"}]], ",", 
+     SuperscriptBox["10", "6"]}], "}"}]}], "]"}]], "Input"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ggood", "=", 
+   RowBox[{"makeggood", "[", "\[Psi]good", "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "again", " ", "produces", " ", "tons", " ", "of", " ", "warnings"}], ",", 
+    " ", 
+    RowBox[{
+    "and", " ", "we", " ", "should", " ", "look", " ", "to", " ", "see", " ", 
+     "if", " ", 
+     RowBox[{"that", "'"}], "s", " ", 
+     RowBox[{"ok", ".", " ", "but"}], " ", "next", " ", "plot", " ", "is", 
+     " ", "still", " ", "correct", " ", "I", " ", "think"}]}], " ", 
+   "*)"}]}]}], "Input",
+ CellChangeTimes->{{3.608293883575431*^9, 3.608293915053279*^9}, {
+  3.6084790875362387`*^9, 3.608479094111575*^9}}],
+
+Cell[BoxData[
+ RowBox[{"LogLogPlot", "[", 
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{"ggood", "[", "EE", "]"}], "}"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"EE", ",", 
+     SuperscriptBox["10", 
+      RowBox[{"-", "7"}]], ",", 
+     SuperscriptBox["10", "7"]}], "}"}]}], "]"}]], "Input",
+ CellChangeTimes->{{3.608299345998678*^9, 3.608299349302063*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"mathcalGgood", "=", 
+   RowBox[{"makemathcalGgood", "[", 
+    RowBox[{"\[Psi]good", ",", "ggood"}], "]"}]}], ";"}]], "Input"],
+
+Cell[BoxData[
+ RowBox[{"LogLogPlot", "[", 
+  RowBox[{
+   RowBox[{"mathcalGgood", "[", "EE", "]"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"EE", ",", 
+     SuperscriptBox["10", 
+      RowBox[{"-", "7"}]], ",", 
+     SuperscriptBox["10", "7"]}], "}"}]}], "]"}]], "Input",
+ CellChangeTimes->{{3.608299330111067*^9, 3.6082993336052628`*^9}}],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"fgood", "=", 
+   RowBox[{"makefgood", "[", 
+    RowBox[{"Mencgood", ",", "\[Psi]good"}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "produces", " ", "lots", " ", "and", " ", "lots", " ", "of", " ", 
+     "warnings"}], ",", " ", 
+    RowBox[{
+    "but", " ", "the", " ", "plot", " ", "next", " ", "line", " ", "works", 
+     " ", 
+     RowBox[{"out", ".", " ", "Again"}]}], ",", " ", 
+    RowBox[{"we", " ", "should", " ", "look", " ", "into", " ", 
+     RowBox[{"this", "."}]}]}], " ", "*)"}]}]}], "Input",
+ CellChangeTimes->{{3.608299951316657*^9, 3.608299973435232*^9}, {
+  3.608479937219095*^9, 3.6084799486133738`*^9}}],
+
+Cell[BoxData[
+ RowBox[{"LogLogPlot", "[", 
+  RowBox[{
+   RowBox[{"fgood", "[", "EE", "]"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"EE", ",", 
+     SuperscriptBox["10", 
+      RowBox[{"-", "7"}]], ",", 
+     SuperscriptBox["10", "7"]}], "}"}]}], "]"}]], "Input"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"q", "=", " ", 
+   RowBox[{"Function", "[", 
+    RowBox[{
+     RowBox[{"4", "/", "\[Pi]"}], " ", 
+     RowBox[{"Log", "[", "\[CapitalLambda]", "]"}], " ", 
+     RowBox[{"r0orT", "/", "MBHomsun"}], " ", 
+     RowBox[{"mathcalGgood", "[", "#", "]"}]}], "]"}]}], ";"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Rlc", " ", "=", " ", 
+    RowBox[{"Function", "[", 
+     RowBox[{"2", " ", 
+      RowBox[{"MBHnorm", "/", "r0orT"}], " ", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{"Jc2good", "[", "#", "]"}], ")"}], "^", 
+       RowBox[{"-", "1"}]}]}], "]"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{"lnRlcm", " ", "=", " ", 
+   RowBox[{"Function", "[", 
+    RowBox[{"-", 
+     RowBox[{"Log", "[", 
+      RowBox[{"Rlc", "[", "#", "]"}], "]"}]}], "]"}]}], ";"}]}], "Input"],
+
+Cell[BoxData[
+ RowBox[{"LogLogPlot", "[", 
+  RowBox[{
+   RowBox[{"q", "[", "EE", "]"}], ",", 
+   RowBox[{"{", 
+    RowBox[{"EE", ",", 
+     SuperscriptBox["10", 
+      RowBox[{"-", "6"}]], ",", 
+     SuperscriptBox["10", "6"]}], "}"}]}], "]"}]], "Input"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["\<\
+Now we\[CloseCurlyQuote]ve made all the functions. Let\[CloseCurlyQuote]s \
+save them as a group into a file for later.\
+\>", "Subsection",
+ CellChangeTimes->{{3.608480345423197*^9, 3.608480372600258*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"fcns", "=", 
+   RowBox[{"{", 
+    RowBox[{
+    "q", ",", "lnRlcm", ",", "fgood", ",", "\[Psi]good", ",", "Mencgood", ",",
+      "ggood", ",", "mathcalGgood", ",", "Jc2good"}], "}"}]}], ";"}]], "Input",\
+
+ CellChangeTimes->{{3.60830364176033*^9, 3.608303647295945*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+  "filestem", "=", 
+   "\"\<~/Documents/research/tidal_dynamics/for_summer_2014/results/\>\""}], 
+  " ", ";"}]], "Input",
+ CellChangeTimes->{{3.608304372644463*^9, 3.608304382667938*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Save", "[", 
+   RowBox[{
+    RowBox[{"filestem", " ", "<>", "\"\<galaxyname.fcns\>\""}], ",", 
+    "\"\<fcns\>\""}], "]"}], ";"}]], "Input",
+ CellChangeTimes->{{3.608304400972611*^9, 3.608304407298567*^9}}]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["\<\
+Now we do rate calculations using the Galaxy functions above\
+\>", "Section",
+ CellChangeTimes->{{3.608480388897142*^9, 3.6084804084952927`*^9}}],
+
+Cell["\<\
+This should work more or less the same way with Galaxyfcns or GalaxyfcnsRho; \
+only issue might be the True/False tags for Sersic profile\
+\>", "Subsection",
+ CellChangeTimes->{{3.60848052741061*^9, 3.6084805724263287`*^9}}],
+
+Cell[CellGroupData[{
+
+Cell["First get things set up.", "Subsection",
+ CellChangeTimes->{{3.6084804492917347`*^9, 3.6084804528272657`*^9}, {
+  3.608480523380559*^9, 3.608480524371235*^9}, {3.6084809485097847`*^9, 
+  3.6084809518108673`*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"If", " ", "we", " ", 
+     RowBox[{"don", "'"}], "t", " ", "still", " ", "have", " ", "the", " ", 
+     "variable", " ", "fcns", " ", "from", " ", "above"}], ",", " ", 
+    RowBox[{
+    "we", " ", "can", " ", "load", " ", "them", " ", "in", " ", "using", " ", 
+     "the", " ", "following", " ", 
+     RowBox[{"command", ":"}]}]}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{
+   "SetDirectory", "[", 
+    "\"\<~/Documents/research/tidal_dynamics/for_summer_2014/results\>\"", 
+    "]"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"<<", "galaxyname.fcns"}], ";"}]}]}]], "Input",
+ CellChangeTimes->{{3.6084914801626472`*^9, 3.6084915076625767`*^9}, 
+   3.608491636246613*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "read", " ", "in", " ", "the", " ", "package", " ", "that", " ", 
+     "contains", " ", "all", " ", "the", " ", "functions", " ", "for", " ", 
+     RowBox[{"dgdlnrp", ".", " ", "it"}], " ", "might", " ", "be", " ", 
+     "better", " ", "to", " ", "make", " ", "these", " ", "a", " ", 
+     "separate", " ", "notebook", " ", "rather", " ", "than", " ", "a", " ", 
+     "package"}], ",", " ", 
+    RowBox[{"for", " ", "easier", " ", "testing"}]}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+   "SetDirectory", "[", 
+    "\"\<~/Documents/research/tidal_dynamics/for_summer_2014\>\"", "]"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"ClearAll", "[", "\"\<dgdlnrp`*\>\"", "]"}], "\[IndentingNewLine]", 
+   RowBox[{"<<", "dgdlnrp`"}], "\[IndentingNewLine]"}]}]], "Input",
+ CellChangeTimes->{{3.608300893661707*^9, 3.608300948813295*^9}, {
+  3.608301093008977*^9, 3.6083011116865587`*^9}, {3.608480472476219*^9, 
+  3.608480479835288*^9}, {3.6084809600361767`*^9, 3.6084809937634172`*^9}, {
+  3.6084915689572783`*^9, 3.608491570136098*^9}, {3.608491611769923*^9, 
+  3.6084916149991903`*^9}}]
+}, Open  ]],
+
+Cell["\<\
+Now we\[CloseCurlyQuote]ll do some rate calculations.  To see the full \
+contents of these functions, open the file \
+~/Documents/research/tidal_dynamics/for_summer_ 2014/dgdlnrp.m.\
+\>", "Subsection",
+ CellChangeTimes->{{3.608480486596229*^9, 3.6084804961563168`*^9}, {
+  3.608491655955414*^9, 3.608491668065359*^9}, {3.608491725400984*^9, 
+  3.608491734672052*^9}}],
+
+Cell[CellGroupData[{
+
+Cell["\<\
+This first one is a direct calculation: i.e., calculate just \[Gamma] without \
+differentiating wrt Rp first\
+\>", "Subsection",
+ CellChangeTimes->{{3.608480498723875*^9, 3.608480512875852*^9}, {
+  3.608484789905261*^9, 3.608484804206504*^9}}],
+
+Cell[BoxData[
+ RowBox[{"ratedirect", " ", "=", " ", 
+  RowBox[{"\[Gamma]direct", "[", 
+   RowBox[{"m", ",", "fcns", ",", "Null", ",", " ", "False"}], 
+   "]"}]}]], "Input",
+ CellChangeTimes->{{3.608300893661707*^9, 3.608300948813295*^9}, {
+   3.608301093008977*^9, 3.6083011116865587`*^9}, 3.608480472476219*^9}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData[{
+ "Now we do d\[Gamma]/dlnRp at u = ",
+ Cell[BoxData[
+  FormBox[
+   RowBox[{
+    SuperscriptBox[
+     RowBox[{"(", 
+      RowBox[{"Rp", "/", "RT"}], ")"}], 
+     RowBox[{"1", "/", "2"}]], "=", "0.1"}], TraditionalForm]],
+  FormatType->"TraditionalForm"],
+ " as an example.\ntolin is the tolerance; set it to Null to get default \
+tolerance\nthe last entry (False here) is whether the galaxy profile is \
+Sersic or not."
+}], "Subsection",
+ CellChangeTimes->{{3.608483771429184*^9, 3.608483843507098*^9}, {
+  3.608483919855077*^9, 3.608483970409381*^9}}],
+
+Cell[BoxData[
+ RowBox[{"dgdlnrp1", "=", 
+  RowBox[{"d\[Gamma]dlnrp", "[", 
+   RowBox[{"0.1", ",", "m", ",", "fcns", ",", "Null", ",", "False"}], 
+   "]"}]}]], "Input",
+ CellChangeTimes->{{3.6084918807474527`*^9, 3.6084918866345177`*^9}}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["\<\
+Now we do a full rate calculation for a table of u values.  It\
+\[CloseCurlyQuote]s called ratecalcsingle because it\[CloseCurlyQuote]s for a \
+single galaxy.  Here, 0.1 refers to the stepsize (how many u values for the \
+table); set it to Null to get the default stepsize (0.01).\
+\>", "Subsection",
+ CellChangeTimes->{{3.608484236390176*^9, 3.608484302772512*^9}}],
+
+Cell[BoxData[
+ RowBox[{"rategalaxyname", "=", 
+  RowBox[{"Doratecalcsingle", "[", 
+   RowBox[{"m", ",", "fcns", ",", "0.1", ",", "Null", ",", "False"}], 
+   "]"}]}]], "Input",
+ CellChangeTimes->{{3.6084918959382553`*^9, 3.6084919008129177`*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Save", "[", 
+   RowBox[{"\"\<galaxyname.dgdlnrp\>\"", ",", "\"\<rategalaxyname\>\""}], 
+   "]"}], ";"}]], "Input",
+ CellChangeTimes->{{3.6084917796987057`*^9, 3.608491783713518*^9}, {
+  3.608491907200926*^9, 3.608491916529541*^9}}]
+}, Open  ]]
+}, Open  ]]
+}, Open  ]]
+},
+WindowSize->{740, 752},
+WindowMargins->{{109, Automatic}, {Automatic, 0}},
+FrontEndVersion->"8.0 for Mac OS X x86 (32-bit, 64-bit Kernel) (July 22, \
+2012)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[579, 22, 155, 3, 123, "Title"],
+Cell[CellGroupData[{
+Cell[759, 29, 186, 4, 67, "Section"],
+Cell[948, 35, 778, 17, 58, "Input"],
+Cell[1729, 54, 470, 12, 33, "Input"],
+Cell[2202, 68, 894, 19, 58, "Input"],
+Cell[3099, 89, 730, 17, 73, "Input"],
+Cell[3832, 108, 708, 15, 58, "Input"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[4577, 128, 133, 3, 67, "Section"],
+Cell[4713, 133, 389, 6, 50, "Subsection"],
+Cell[CellGroupData[{
+Cell[5127, 143, 603, 10, 87, "Subsection"],
+Cell[5733, 155, 85, 2, 27, "Input"],
+Cell[5821, 159, 189, 5, 27, "Input"],
+Cell[6013, 166, 186, 5, 27, "Input"],
+Cell[6202, 173, 753, 15, 73, "Input"],
+Cell[6958, 190, 286, 9, 33, "Input"],
+Cell[7247, 201, 153, 4, 27, "Input"],
+Cell[7403, 207, 285, 9, 33, "Input"],
+Cell[7691, 218, 715, 19, 73, "Input"],
+Cell[8409, 239, 349, 10, 33, "Input"],
+Cell[8761, 251, 160, 4, 27, "Input"],
+Cell[8924, 257, 333, 9, 33, "Input"],
+Cell[9260, 268, 720, 19, 58, "Input"],
+Cell[9983, 289, 258, 8, 33, "Input"],
+Cell[10244, 299, 812, 24, 73, "Input"],
+Cell[11059, 325, 254, 8, 33, "Input"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[11350, 338, 215, 4, 35, "Subsection"],
+Cell[11568, 344, 303, 8, 27, "Input"],
+Cell[11874, 354, 222, 6, 27, "Input"],
+Cell[12099, 362, 241, 6, 27, "Input"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[12389, 374, 155, 3, 67, "Section"],
+Cell[12547, 379, 234, 4, 50, "Subsection"],
+Cell[CellGroupData[{
+Cell[12806, 387, 218, 3, 27, "Subsection"],
+Cell[13027, 392, 749, 19, 73, "Input"],
+Cell[13779, 413, 1176, 24, 118, "Input"]
+}, Open  ]],
+Cell[14970, 440, 377, 7, 50, "Subsection"],
+Cell[CellGroupData[{
+Cell[15372, 451, 253, 5, 27, "Subsection"],
+Cell[15628, 458, 312, 6, 27, "Input"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[15977, 469, 567, 15, 68, "Subsection"],
+Cell[16547, 486, 237, 5, 27, "Input"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[16821, 496, 376, 6, 65, "Subsection"],
+Cell[17200, 504, 245, 5, 27, "Input"],
+Cell[17448, 511, 266, 6, 27, "Input"]
+}, Open  ]]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)
