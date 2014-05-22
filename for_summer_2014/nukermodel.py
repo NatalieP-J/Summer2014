@@ -46,7 +46,13 @@ class MakeModel:
             t = r.shape
             Mencs = []
             for i in range(len(r)):
-                Mencs.append(4*pi*intg.quad(self.Minterior,0,r[i])[0])
+                temp = intg.quad(self.Minterior,0,r[i],full_output=1)
+                try:
+                    if temp[3]!='':
+                        print 'Menc, r = ',r[i],'message = ',temp[3],'\n'
+                except IndexError:
+                    pass
+                Mencs.append(4*pi*temp[0])
             return array(Mencs)
         except AttributeError:
             return 4*pi*intg.quad(self.Minterior,0,r)[0]
@@ -70,7 +76,13 @@ class MakeModel:
             t = r.shape
             psi2s = []
             for i in range(len(r)):
-                psi2s.append(4*pi*intg.quad(self.Minterior,r[i],inf)[0])
+                temp=intg.quad(self.Minterior,r[i],inf,full_output=1)
+                try:
+                    if temp[3]!='':
+                        print 'psi2, index =',i,'r = ',r[i],'message = ',temp[3],'\n'
+                except IndexError:
+                    pass
+                psi2s.append(4*pi*temp[0])
             return array(psi2s)
         except AttributeError:    
             return 4*pi*intg.quad(self.Minterior,r,inf)[0]
@@ -88,6 +100,7 @@ class MakeModel:
         dri = step
         rarray = arange(rimin,rimax,dri)
         rarray = 10**rarray
+        rarray = rarray[:389] #Come up with better handling for this!
         rchange = rarray[len(rarray)-1]
         rstart = rarray[0]
         return rarray, rchange,rstart
@@ -99,7 +112,7 @@ class MakeModel:
         set2 = r[(r>=lim1)&(r<=lim2)]
         set3 = r[(r>lim2)]
         #describe the function on each domain
-        piece1 = start*(set1/lim1)*smallrexp
+        piece1 = start*(set1/lim1)**smallrexp
         piece2 = 10**(inter(log10(set2)))
         piece3 = end*(set3/lim2)**largerexp
         #return function across the whole array
@@ -143,6 +156,9 @@ plt.ylabel(r'$\psi$')
 plt.xlabel('r')
 plt.xlim(min(rtest),max(rtest))
 plt.ylim(min(test6),max(test6))
-plt.axvline(lim1, color='r')
+#interr=53231.5270085 #identifies r value at which interpolation errors began
+plt.axvline(lim1, color='r',label='Limits of interpolation')
 plt.axvline(lim2, color='r')
+#plt.axvline(interr,color='g',label='Start of quad errors')
+plt.legend(loc='best')
 plt.show()
