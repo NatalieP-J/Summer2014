@@ -245,13 +245,15 @@ class MakeModel:
                 #print rapoval
                 print i+1, 'of', len(E), '\n'
                 temp = intg.quad(self.ginterior,0,1./rapoval,args = E[i],full_output=1)
-                print temp[0]
+                t = temp[0]
                 try:
                     if temp[3]!='' and verbose==True:
                         print 'g, E = ',E[i],'message = ',temp[3],'\n'
+                        t = 1
                 except IndexError:
                     pass
-                gans.append(-pi*temp[0])
+                print t
+                gans.append(pi*t) #(should be -pi)****************
             return array(gans)
         except AttributeError:
             rapoval = self.rapo(E)
@@ -266,9 +268,9 @@ class MakeModel:
         gint = interp1d(log10(Earray),log10(gtab))
         start = gtab[0]
         end = gtab[len(Earray)-1]
-        #print gtab
-        m = self.piecewise2(Earray,gint,start,end,Estart,Echange,smallrexp,largerexp)
-        #print m
+        print gtab
+        m = self.piecewise2(E,gint,start,end,Estart,Echange,smallrexp,largerexp)
+        print m
         if plotting==True:
             plt.clf()
             plt.loglog(E,m,'.')
