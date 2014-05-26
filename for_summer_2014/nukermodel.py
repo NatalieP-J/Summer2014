@@ -227,14 +227,10 @@ class MakeModel:
     def Jc2(self,E):
         rresult = root(self.Jc2implicit,0.01*E**-1,args=E)
         return (self.Mencgood(rresult.x)+self.Mnorm)*rresult.x
-    
-    #def ginterior1(self,r,E):
-    #    return (self.drhodr(1./r)/(r**2))*(1./sqrt(E-self.psigood(1./r)))
         
     def ginterior(self,r,E):
         return (self.drhodr(1./r)/(r**2))*(E-self.psi(1./r))**-0.5
       
-
     def funcg(self,E,verbose = False):
         print 'starting g evaluation'
         try:
@@ -242,7 +238,7 @@ class MakeModel:
             gans = []
             for i in range(len(E)):
                 rapoval = self.rapo(E[i]) #THIS STEP IS SLOW
-                #print rapoval
+                print 'rapoval=',rapoval
                 print i+1, 'of', len(E), '\n'
                 temp = intg.quad(self.ginterior,0,1./rapoval,args = E[i],full_output=1)
                 t = temp[0]
@@ -252,8 +248,8 @@ class MakeModel:
                         t = 1
                 except IndexError:
                     pass
-                print t
-                gans.append(pi*t) #(should be -pi)****************
+                #print t
+                gans.append(-pi*t)
             return array(gans)
         except AttributeError:
             rapoval = self.rapo(E)
@@ -268,9 +264,9 @@ class MakeModel:
         gint = interp1d(log10(Earray),log10(gtab))
         start = gtab[0]
         end = gtab[len(Earray)-1]
-        print gtab
+        #print gtab
         m = self.piecewise2(E,gint,start,end,Estart,Echange,smallrexp,largerexp)
-        print m
+        #print m
         if plotting==True:
             plt.clf()
             plt.loglog(E,m,'.')
