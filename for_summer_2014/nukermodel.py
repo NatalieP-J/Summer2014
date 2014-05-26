@@ -3,7 +3,7 @@ from numpy import *
 import scipy.integrate as intg
 from scipy.optimize import root
 from scipy.optimize import fsolve
-from scipy.optimize import minimize_scalar
+from scipy.optimize import minimize
 from scipy.optimize import golden
 from scipy.optimize import brenth
 from scipy.optimize import newton
@@ -46,7 +46,7 @@ class MakeModel:
         return (r**-self.g)*(1+r**self.a)**((self.g-self.b)/self.a)
     #and its first
     def drhodr(self,r):
-        return (self.g+r**(self.a*self.b))*(r**(-1-self.g))*(1+r**self.a)**((self.g-self.a-self.b)/self.a)
+        return -(self.g+r**(self.a*self.b))*(r**(-1-self.g))*(1+r**self.a)**((self.g-self.a-self.b)/self.a)
     #and second derivatives
     def drho2dr2(self,r):
         return(r**(-2-self.g))*((1+r**self.a)**((-2*self.a-self.b+self.g)/self.a))*(self.b*(1+self.b)*r**(2*self.a)+self.g+self.g**2+(self.b-self.a*self.b+self.g+self.a*self.g+2*self.b*self.g)*r**self.a)
@@ -104,7 +104,7 @@ class MakeModel:
     
     #compute psi (potential)
     def psi(self,r):
-        return (self.Mnorm/r) + (self.Menc(r)/r) + self.psi2(r)
+        return (self.Mnorm/r) + (self.Menc(r)/r) + self.psi2(r,verbose=True)
     
     #generate rgrid
     def rgrid(self,upstep=5,downstep=-5,step=0.03):
@@ -190,7 +190,7 @@ class MakeModel:
             plt.axvline(rchange, color='r')
             plt.legend(loc='best')
             plt.show()
-        return m
+        return m,psi2tab
     
     def Mencgood(self,r,smallerexp=0,largerexp = 0,plotting=False):
         rarray,rchange,rstart = self.rgrid(5,-5,0.03)
@@ -215,11 +215,23 @@ class MakeModel:
         return m
 
     def rapoimplicit(self,r,E):
-        return self.psi(abs(r))-E #needs abs, b/c occasionally guesses negative
+        return abs(self.psi(abs(r))-E) #needs abs, b/c occasionally guesses negative
 
     def rapo(self,E):
-        rresult = root(self.rapoimplicit,0.01*E**-1,args=E)
-        return abs(rresult.x) #see rapoimplicit
+        if E**-1 > 0.2:
+            rguess = 20*E**-1
+        elif E**-1 < 0.2:
+            rguess = 0.01*E**-1
+        rresult = root(self.rapoimplicit,rguess,args=E)
+        print E**-1
+        print rresult.x, ' vs ', rguess
+        print 'diff = ', self.psi(abs(rresult.x))-E
+        if rresult.success == True:
+            return abs(rresult.x) #see rapoimplicit
+        elif rresult.success == False:
+            print 'Failed to evaluate rapo'
+            print rresult.message
+            return abs(rresult.x)
 
     def Jc2implicit(self,r,E):
         return self.psigood(r)-E-((self.Mencgood(r)+self.Mnorm)/(2*r))
@@ -229,7 +241,9 @@ class MakeModel:
         return (self.Mencgood(rresult.x)+self.Mnorm)*rresult.x
         
     def ginterior(self,r,E):
-        return (self.drhodr(1./r)/(r**2))*(E-self.psi(1./r))**-0.5
+        #print 'r = ',r,'E = ',E, 'psi = ',self.psi(1./r)
+        #print 'diff = ',E-self.psi(1./r)
+        return (self.drhodr(1./r)/(r**2))*sqrt(abs(E-self.psi(1./r)))**-1
       
     def funcg(self,E,verbose = False):
         print 'starting g evaluation'
@@ -237,9 +251,10 @@ class MakeModel:
             t = E.shape
             gans = []
             for i in range(len(E)):
+                print i+1, 'of', len(E)
+                print E[i]
                 rapoval = self.rapo(E[i]) #THIS STEP IS SLOW
                 print 'rapoval=',rapoval
-                print i+1, 'of', len(E), '\n'
                 temp = intg.quad(self.ginterior,0,1./rapoval,args = E[i],full_output=1)
                 t = temp[0]
                 try:
@@ -248,15 +263,18 @@ class MakeModel:
                         t = 1
                 except IndexError:
                     pass
-                #print t
+                print'integral = ', t
                 gans.append(-pi*t)
             return array(gans)
         except AttributeError:
             rapoval = self.rapo(E)
             print rapoval
+            print E
+            print self.psi(rapoval)
+            print self.psi2(rapoval)
             return -pi*intg.quad(self.ginterior,0,1./rapoval,args = E)[0]
 
-    def ggood(self,E,smallerexp = 0,largerexp = 0,plotting=False):
+    def ggood(self,E,smallrexp = 0,largerexp = 0,plotting=False):
         smallrexp = self.b-0.5
         largerexp = self.g-0.5
         Earray,Echange,Estart = self.Egrid(5,-3,0.1)
@@ -264,12 +282,13 @@ class MakeModel:
         gint = interp1d(log10(Earray),log10(gtab))
         start = gtab[0]
         end = gtab[len(Earray)-1]
-        #print gtab
+        print gtab
         m = self.piecewise2(E,gint,start,end,Estart,Echange,smallrexp,largerexp)
-        #print m
+        print m
         if plotting==True:
             plt.clf()
             plt.loglog(E,m,'.')
+            plt.loglog(Earray,gtab,'ro',label = 'Evaluation points')
             plt.ylabel(r'g')
             plt.xlabel('E')
             plt.xlim(min(E),max(E))
@@ -279,14 +298,65 @@ class MakeModel:
             plt.legend(loc='best')
             plt.show()
         return m
+'''
+    def mathcalGinterior(self,theta,r,E):
+        return (r**2/sqrt(self.psi(r)-E)*(sqrt(theta)**-1 - np.sqrt(theta))*self.funcg(self.psi(r)*(1-theta)+E*theta)
+        
+    def mathcalG(self,E,verbose = False):
+        print 'starting G evaluation'
+        try:
+            t = E.shape
+            Gans = []
+            for i in range(len(E)):
+                raopval = self.rapo(E[i])
+                temp = intg.dblquad(self.mathcalGinterior,0,rapoval,0,1,args=E[i])
+                t = temp[0]
+                try:
+                    if temp[3]!='' and verbose==True:
+                        print 'g, E = ',E[i],'message = ',temp[3],'\n'
+                        t = 1
+                    except IndexError:
+                        pass
+                Gans.append(t)
+            return array(Gans)
+        except AttributeError:
+            rapoval = self.rapo(E)
+            print rapoval
+            return intg.dblquad(self.mathcalGinterior,0,rapoval,0,1,args = E)[0]
 
-    #******************************* 
-    #******************************* 
-    #******************************* 
-    #******************************* def mathcalG(self,E,psigood,ggood):
-    #******************************* def distribution(self,E,Mencgood,psigood):
-                                
-
+    def mathcalGgood(self,E,smallrexp = 0,largerexp = 0,plotting = False):
+        smallrexp = self.b-4
+        largerexp = self.g-4
+        Earray,Echange,Estart = self.Egrid(3,-4,0.1)
+        Gtab = self.mathcalG(Earray,verbose=True)
+        Gint = interp1d(log10(Earray),log10(Gtab))
+        start = Gtab[0]
+        end = Gtab[len(Earray)-1]
+        m = self.piecewise2(E,Gint,start,end,Estart,Echange,smallrexp,largerexp)
+        if plotting == True:
+            plt.clf()
+            plt.loglog(E,m,'.')
+            plt.ylabel(r'G')
+            plt.xlabel('E')
+            plt.xlim(min(E),max(E))
+            plt.ylim(min(m),max(m))
+            plt.axvline(Estart, color='r',label='Limits of interpolation')
+            plt.axvline(Echange, color='r')
+            plt.legend(loc='best')
+            plt.show()
+        return m
+                
+           
+    def funcf(self,E,verbose=False):
+        print 'starting f evaluation'
+        try:
+                
+    def fgood(self,E,smallrexp = 0, largerexp = 0,plotting = False):
+        smallrexp = self.b-1.5
+        largerexp = self.g-1.5
+        Earray,Echange,Estart = self.Egrid(5,-3,0.03)
+        ftab = self.funcf(Earray,verbose=True)
+'''
 model = MakeModel('testing',1.,4.,1.5,1.,1.e5,1000)
 #test1 = 0  #relied on inital dictionary definition in gen_params, now defunct
 #test2 = model.rho(1.) #calculate rho
@@ -298,5 +368,22 @@ rtest = 10**rtest
 #test6 = model.psigood(rtest,plotting=True)
 #test7 = model.Mencgood(rtest,plotting=True)
 test8 = model.ggood(rtest,plotting=True) #still broken, debugging
-#test9 = model.funcg(10) #still broken
+#test9 = model.funcg(0.744001157943) #results for rapoval converge only for large E
 #test10 = model.Jc2(1.)
+
+'''
+test12 = model.psi(1.)
+
+def rapoimplicit(r,E):
+    print abs(E-model.psi(abs(r)))
+    return abs(model.psi(abs(r))-E) #needs abs, b/c occasionally guesses negative
+
+def rapo(E):
+    rresult = root(rapoimplicit,0.01*E**-1,args=E)
+    print rresult
+    #print 'soln = ',E-model.psi(rresult.x)
+    #print 'success = ', rresult.success
+    return rresult.x
+
+test11 = rapo(1e-2)
+'''
