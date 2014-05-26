@@ -227,13 +227,9 @@ class MakeModel:
     def Jc2(self,E):
         rresult = root(self.Jc2implicit,0.01*E**-1,args=E)
         return (self.Mencgood(rresult.x)+self.Mnorm)*rresult.x
-    
-    #def ginterior1(self,r,E):
-    #    return (self.drhodr(1./r)/(r**2))*(1./sqrt(E-self.psigood(1./r)))
         
     def ginterior(self,r,E):
         return (self.drhodr(1./r)/(r**2))*(E-self.psi(1./r))**-0.5
-      
 
     def funcg(self,E,verbose = False):
         print 'starting g evaluation'
@@ -253,7 +249,7 @@ class MakeModel:
                 except IndexError:
                     pass
                 print t
-                gans.append(pi*t) #(should be -pi)****************
+                gans.append(-pi*t)
             return array(gans)
         except AttributeError:
             rapoval = self.rapo(E)
@@ -284,9 +280,6 @@ class MakeModel:
             plt.show()
         return m
 
-    #******************************* 
-    #******************************* 
-    #******************************* 
     #******************************* def mathcalG(self,E,psigood,ggood):
     #******************************* def distribution(self,E,Mencgood,psigood):
                                 
