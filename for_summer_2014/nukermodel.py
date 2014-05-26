@@ -80,8 +80,8 @@ class MakeModel:
         rresult=root(self.rHimplicit,1e-4)
         return rresult.x
     
-    #def psi2interior(self,r):
-    #    return self.rho(exp(r))*exp(2*r)
+    def psi2interior(self,r):
+        return self.rho(r)*r
     
     #LINDA'S USES LOGS, IS THIS EQUIVALENT? (no warnings generated this way, unlike with logs)
     
@@ -91,7 +91,7 @@ class MakeModel:
             t = r.shape
             psi2s = []
             for i in range(len(r)):
-                temp=intg.quad(self.Minterior,r[i],inf,full_output=1)
+                temp=intg.quad(self.psi2interior,r[i],inf,full_output=1)
                 try:
                     if temp[3]!='' and verbose==True:
                         print 'psi2, index =',i,'r = ',r[i],'message = ',temp[3],'\n'
@@ -100,7 +100,7 @@ class MakeModel:
                 psi2s.append(4*pi*temp[0])
             return array(psi2s)
         except AttributeError:    
-            return 4*pi*intg.quad(self.Minterior,r,inf)[0]
+            return 4*pi*intg.quad(self.psi2interior,r,inf)[0]
     
     #compute psi (potential)
     def psi(self,r):
@@ -190,7 +190,7 @@ class MakeModel:
             plt.axvline(rchange, color='r')
             plt.legend(loc='best')
             plt.show()
-        return m,psi2tab
+        return m
     
     def Mencgood(self,r,smallerexp=0,largerexp = 0,plotting=False):
         rarray,rchange,rstart = self.rgrid(5,-5,0.03)
@@ -219,7 +219,7 @@ class MakeModel:
 
     def rapo(self,E):
         if E**-1 > 0.2:
-            rguess = 20*E**-1
+            rguess = 10*E**-1
         elif E**-1 < 0.2:
             rguess = 0.01*E**-1
         rresult = root(self.rapoimplicit,rguess,args=E)
@@ -366,9 +366,9 @@ model = MakeModel('testing',1.,4.,1.5,1.,1.e5,1000)
 rtest = arange(-12,12,0.01)
 rtest = 10**rtest
 #test6 = model.psigood(rtest,plotting=True)
-#test7 = model.Mencgood(rtest,plotting=True)
-test8 = model.ggood(rtest,plotting=True) #still broken, debugging
-#test9 = model.funcg(0.744001157943) #results for rapoval converge only for large E
+test7 = model.Mencgood(rtest,plotting=True)
+#test8 = model.ggood(rtest,plotting=True) #still broken, debugging
+#test9 = model.funcg(0.744001157943) #believe this is now fixed 
 #test10 = model.Jc2(1.)
 
 '''
