@@ -77,9 +77,6 @@ class MakeModel:
     def psi2interior(self,r):
         return self.rho(r)*r
     
-    #LINDA'S USES LOGS, IS THIS EQUIVALENT? (no warnings generated this way, unlike with logs)
-    
-    #compute part 2 of psi - right now this has to cycle through r values, can this be more efficient?
     def psi2(self,r,verbose=False):
         try:
             t = r.shape
@@ -401,43 +398,8 @@ class MakeModel:
 
 
 model = MakeModel('testing',1.,4.,1.5,1.,1.e5,1000)
-#test1 = 0  #relied on inital dictionary definition in gen_params, now defunct
-#test2 = model.rho(1.) #calculate rho
-#test3 = model.drho2dr2(1.)
-#test4 = model.Menc(0.1)
-#test5 = model.psi2(1)
-rtest = arange(-12,12,0.01)
-rtest = 10**rtest
-#test6 = model.psigood(rtest,plotting=True)
-#test7 = model.Mencgood(rtest,plotting=True)
-#test8 = model.ggood(rtest,plotting=True) 
-#test9 = model.funcg(0.744001157943) 
-#test10 = model.Jc2(1.)
-#test13 = model.fgood(rtest,plotting=True)
-#test14 = model.mathcalGgood(rtest,plotting=True)
-
-
-#plt.loglog(rtest,abs(model.drhodr(rtest))) matches
-#plt.loglog(rtest,model.rho(rtest)) matches
 
 '''
-test12 = model.psi(1.)
-
-def rapoimplicit(r,E):
-    print abs(E-model.psi(abs(r)))
-    return abs(model.psi(abs(r))-E) #needs abs, b/c occasionally guesses negative
-
-def rapo(E):
-    rresult = root(rapoimplicit,0.01*E**-1,args=E)
-    print rresult
-    #print 'soln = ',E-model.psi(rresult.x)
-    #print 'success = ', rresult.success
-    return rresult.x
-
-test11 = rapo(1e-2)
-
-
-
 def mathcalGinterior(theta,r,E):
     print 'called integrand',r,theta
     return (r**2/sqrt(model.psi(r)-E))*(sqrt(theta)**-1 - sqrt(theta))*model.funcg(model.psi(r)*(1-theta)+E*theta)
@@ -464,11 +426,4 @@ def mathcalG(E,verbose = False):
         print rapoval
         return intg.dblquad(mathcalGinterior,0,rapoval,lambda r:0,lambda r:1,args = (E,))[0]
 
-print mathcalG(1e3,verbose=True)
-
-def testinterior(y,x):
-    print 
-    return x**2 + x/y + y**2
-
-def testint(xlim1,xlim2,ylim1,ylim2
 '''
