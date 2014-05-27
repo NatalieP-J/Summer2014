@@ -40,7 +40,7 @@ class MakeModel:
         return (r**-self.g)*(1+r**self.a)**((self.g-self.b)/self.a)
     #and its first
     def drhodr(self,r):
-        return -(self.g+r**(self.a*self.b))*(r**(-1-self.g))*(1+r**self.a)**((self.g-self.a-self.b)/self.a)
+        return (-r**(-1-self.g))*((1+r**self.a)**((self.g-self.a-self.b)/self.a))*(self.g+self.b*r**self.a)
     #and second derivatives
     def d2rhodr2(self,r):
         return(r**(-2-self.g))*((1+r**self.a)**((-2*self.a-self.b+self.g)/self.a))*(self.b*(1+self.b)*r**(2*self.a)+self.g+self.g**2+(self.b-self.a*self.b+self.g+self.a*self.g+2*self.b*self.g)*r**self.a)
@@ -98,7 +98,7 @@ class MakeModel:
     
     #compute psi (potential)
     def psi(self,r):
-        return (self.Mnorm/r) + (self.Menc(r)/r) + self.psi2(r,verbose=False)#**************************True)
+        return (self.Mnorm/r) + (self.Menc(r)/r) + self.psi2(r,verbose=True)
     
     #generate rgrid
     def rgrid(self,upstep=5,downstep=-5,step=0.03):
@@ -178,8 +178,8 @@ class MakeModel:
             plt.xlabel('r')
             plt.xlim(min(r),max(r))
             plt.ylim(min(m),max(m))
-            #interr=53231.5270085 #identifies r value at which interpolation errors began
-            #plt.axvline(interr,color='g',label='Start of quad errors')
+            interr=53231.5270085 #identifies r value at which interpolation errors began
+            plt.axvline(interr,color='g',label='Start of quad errors')
             plt.axvline(rstart, color='r',label='Limits of interpolation')
             plt.axvline(rchange, color='r')
             plt.legend(loc='best')
@@ -242,7 +242,7 @@ class MakeModel:
         return (self.drhodr(r))/sqrt(E-self.psi(r))
       
     def funcg(self,E,verbose = False):
-        print 'starting g evaluation'
+        #print 'starting g evaluation'
         try:
             t = E.shape
             gans = []
@@ -287,7 +287,7 @@ class MakeModel:
         if plotting==True:
             plt.clf()
             plt.loglog(E,m,'.')
-            plt.loglog(Earray,gtab,'ro',label = 'Evaluation points')
+            #plt.loglog(Earray,gtab,'ro',label = 'Evaluation points')
             plt.ylabel(r'g')
             plt.xlabel('E')
             plt.xlim(min(E),max(E))
@@ -308,7 +308,7 @@ class MakeModel:
             Gans = []
             for i in range(len(E)):
                 rapoval = self.rapo(E[i])
-                temp = intg.dblquad(self.mathcalGinterior,0,rapoval,0,1,args=E[i])
+                temp = intg.dblquad(self.mathcalGinterior,0,rapoval,lambda r:0,lambda r:1,args=(E[i],))
                 t = temp[0]
                 try:
                     if temp[3]!='' and verbose==True:
@@ -321,7 +321,7 @@ class MakeModel:
         except AttributeError:
             rapoval = self.rapo(E)
             print rapoval
-            return intg.dblquad(self.mathcalGinterior,0,rapoval,0,1,args = E)[0]
+            return intg.dblquad(self.mathcalGinterior,0,rapoval,lambda r:0,lambda r:1,args = (E,))[0]
 
     def mathcalGgood(self,E,smallrexp = 0,largerexp = 0,plotting = False):
         smallrexp = self.b-4
@@ -365,7 +365,7 @@ class MakeModel:
             t = E.shape
             fans = []
             for i in range(len(E)):
-                print i+1, ' of ' len(E)
+                print i+1, ' of ', len(E)
                 rapoval = self.rapo(E[i])
                 prefactor = (1./(sqrt(8)*pi**2*(self.Mnorm + self.Menc(rapoval))))
                 temp1 = intg.quad(self.finterior1,epsilon,1-epsilon,args=(E[i],rapoval),full_output = 1)
@@ -427,10 +427,15 @@ rtest = arange(-12,12,0.01)
 rtest = 10**rtest
 #test6 = model.psigood(rtest,plotting=True)
 #test7 = model.Mencgood(rtest,plotting=True)
-#test8 = model.ggood(rtest,plotting=True) #still broken, debugging
-#test9 = model.funcg(0.744001157943) #believe this is now fixed 
+#test8 = model.ggood(rtest,plotting=True) 
+#test9 = model.funcg(0.744001157943) 
 #test10 = model.Jc2(1.)
-test13 = model.fgood(rtest,plotting=True)
+#test13 = model.fgood(rtest,plotting=True)
+#test14 = model.mathcalGgood(rtest,plotting=True)
+
+
+#plt.loglog(rtest,abs(model.drhodr(rtest))) matches
+#plt.loglog(rtest,model.rho(rtest)) matches
 
 '''
 test12 = model.psi(1.)
@@ -447,4 +452,40 @@ def rapo(E):
     return rresult.x
 
 test11 = rapo(1e-2)
+
+
+
+def mathcalGinterior(theta,r,E):
+    print 'called integrand',r,theta
+    return (r**2/sqrt(model.psi(r)-E))*(sqrt(theta)**-1 - sqrt(theta))*model.funcg(model.psi(r)*(1-theta)+E*theta)
+    
+def mathcalG(E,verbose = False):
+    print 'starting G evaluation'
+    try:
+        t = E.shape
+        Gans = []
+        for i in range(len(E)):
+            rapoval = model.rapo(E[i])
+            temp = intg.dblquad(mathcalGinterior,0,rapoval,lambda r:0,lambda r:1,args=(E[i],))
+            t = temp[0]
+            try:
+                if temp[3]!='' and verbose==True:
+                    print 'G, E = ',E[i],'message = ',temp[3]
+                    t = 1
+            except IndexError:
+                pass
+            Gans.append(t)
+        return array(Gans)
+    except AttributeError:
+        rapoval = model.rapo(E)
+        print rapoval
+        return intg.dblquad(mathcalGinterior,0,rapoval,lambda r:0,lambda r:1,args = (E,))[0]
+
+print mathcalG(1e3,verbose=True)
+
+def testinterior(y,x):
+    print 
+    return x**2 + x/y + y**2
+
+def testint(xlim1,xlim2,ylim1,ylim2
 '''
