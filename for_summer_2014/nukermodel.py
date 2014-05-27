@@ -4,6 +4,7 @@ import scipy.integrate as intg
 from scipy.optimize import root
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
+import os
 G = 6.67e-11#const.G
 realMsun = 2e30#const.M_sun
 Rsun = 7e8#const.R_sun
@@ -13,7 +14,7 @@ pc = 3e16#const.pc
 #log = np.log
 class MakeModel:
     #initialize variables that constitute our model
-    def __init__(self,model_name,alpha,beta,gamma,r0pc,rho0,MBH_Msun):
+    def __init__(self,model_name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate=True):
         #name of model
         self.name = model_name
         #Nuker fit parameters
@@ -34,6 +35,8 @@ class MakeModel:
         self.r0_rT=(self.r0*pc)/self.rT
         #dynamical timescale (currently unused)
         self.tdyn0 = ((G*self.rho0*realMsun)/pc**3)**(-1./2)
+        #generate data?
+        self.generate = generate
     
     #compute density
     def rho(self,r):
@@ -235,7 +238,7 @@ class MakeModel:
             t = E.shape
             gans = []
             for i in range(len(E)):
-                print i+1, 'of', len(E)
+                #print i+1, 'of', len(E)
                 rapoval = self.rapo(E[i]) #THIS STEP IS SLOW
                 temp = intg.quad(self.ginterior,0,1./rapoval,args = E[i],full_output=1)
                 t = temp[0]
@@ -397,12 +400,42 @@ class MakeModel:
         return m
 
 
-model = MakeModel('testing',1.,4.,1.5,1.,1.e5,1000)
+model = MakeModel('testing',1.,4.,1.5,1.,1.e5,1000,generate = False)
+rtest = arange(-12,12,0.01)
+rtest = 10**rtest
+if model.generate == True:
+    psi = model.psi(rtest)
+    savetxt('{0}_psi.dat'.format(model.name),psi)
+    print 'made psi'
+    g = model.ggood(rtest)
+    savetxt('{0}_g.dat'.format(model.name),g)
+    print 'made g'
 
-'''
-def mathcalGinterior(theta,r,E):
-    print 'called integrand',r,theta
-    return (r**2/sqrt(model.psi(r)-E))*(sqrt(theta)**-1 - sqrt(theta))*model.funcg(model.psi(r)*(1-theta)+E*theta)
+elif model.generate == False:
+    psi = loadtxt('{0}_psi.dat'.format(model.name))
+    g = loadtxt('{0}_g.dat'.format(model.name))
+
+else:
+    print 'Invalid choice for "generate"'
+
+def locate(somelist,someval):
+    mini = min(somelist-someval)
+    #print mini
+    i = where(somelist-someval==mini)
+    #print i[0][0]
+    return somelist[i[0][0]]
+
+def mathcalGinterior1(theta,r,E):
+    #print 'called integrand',r,theta
+    psir = locate(psi,r)
+    #print E,psir,r,theta
+    return (r**2/sqrt(psir-E))*(sqrt(theta)**-1)*locate(g,(psir*(1-theta)+E*theta))
+
+def mathcalGinterior2(theta,r,E):
+    #print 'called integrand',r,theta
+    psir = locate(psi,r)
+    #print E,psir,r,theta
+    return (r**2/sqrt(psir-E))*(- sqrt(theta))*locate(g,(psir*(1-theta)+E*theta))
     
 def mathcalG(E,verbose = False):
     print 'starting G evaluation'
@@ -410,9 +443,11 @@ def mathcalG(E,verbose = False):
         t = E.shape
         Gans = []
         for i in range(len(E)):
+            print i+1, ' of ', len(E)
             rapoval = model.rapo(E[i])
-            temp = intg.dblquad(mathcalGinterior,0,rapoval,lambda r:0,lambda r:1,args=(E[i],))
-            t = temp[0]
+            temp1 = intg.dblquad(mathcalGinterior1,0,rapoval,lambda r:0,lambda r:1,args=(E[i],))
+            temp2 = intg.dblquad(mathcalGinterior2,0,rapoval,lambda r:0,lambda r:1,args=(E[i],))
+            t = temp1[0] + temp2[0]
             try:
                 if temp[3]!='' and verbose==True:
                     print 'G, E = ',E[i],'message = ',temp[3]
@@ -424,6 +459,11 @@ def mathcalG(E,verbose = False):
     except AttributeError:
         rapoval = model.rapo(E)
         print rapoval
-        return intg.dblquad(mathcalGinterior,0,rapoval,lambda r:0,lambda r:1,args = (E,))[0]
+        temp1 = intg.dblquad(mathcalGinterior1,0,rapoval,lambda r:0,lambda r:1,args=(E,))
+        print 'done 1'
+        temp2 = intg.dblquad(mathcalGinterior2,0,rapoval,lambda r:0,lambda r:1,args=(E,))
+        print 'done 2'
+        t = temp1[0] + temp2[0]
+        return t
 
-'''
+print mathcalG(1e3,verbose=True)
