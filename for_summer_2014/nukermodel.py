@@ -403,11 +403,12 @@ class MakeModel:
 model = MakeModel('testing',1.,4.,1.5,1.,1.e5,1000,generate = False)
 rtest = arange(-12,12,0.01)
 rtest = 10**rtest
+
 if model.generate == True:
-    psi = model.psi(rtest)
+    psi = model.psigood(rtest,plotting=True)
     savetxt('{0}_psi.dat'.format(model.name),psi)
     print 'made psi'
-    g = model.ggood(rtest)
+    g = model.ggood(rtest,plotting=True)
     savetxt('{0}_g.dat'.format(model.name),g)
     print 'made g'
 
@@ -418,24 +419,23 @@ elif model.generate == False:
 else:
     print 'Invalid choice for "generate"'
 
-def locate(somelist,someval):
-    mini = min(somelist-someval)
-    #print mini
-    i = where(somelist-someval==mini)
-    #print i[0][0]
-    return somelist[i[0][0]]
+def locate(somelist,checker,someval):
+    difflist = abs(checker-someval)
+    mini = min(difflist)
+    i = where(difflist==mini)
+    return somelist[i]
 
-def mathcalGinterior1(theta,r,E):
-    #print 'called integrand',r,theta
-    psir = locate(psi,r)
+def mathcalGinterior1(r,theta,E):
+    print 'called integrand1',r,theta
+    psir = locate(psi,rtest,r)
     #print E,psir,r,theta
-    return (r**2/sqrt(psir-E))*(sqrt(theta)**-1)*locate(g,(psir*(1-theta)+E*theta))
+    return (r**2/sqrt(psir-E))*(sqrt(theta)**-1)*locate(g,rtest,(psir*(1-theta)+E*theta))
 
-def mathcalGinterior2(theta,r,E):
-    #print 'called integrand',r,theta
-    psir = locate(psi,r)
+def mathcalGinterior2(r,theta,E):
+    print 'called integrand2',r,theta
+    psir = locate(psi,rtest,r)
     #print E,psir,r,theta
-    return (r**2/sqrt(psir-E))*(- sqrt(theta))*locate(g,(psir*(1-theta)+E*theta))
+    return (r**2/sqrt(psir-E))*(-sqrt(theta))*locate(g,rtest,(psir*(1-theta)+E*theta))
     
 def mathcalG(E,verbose = False):
     print 'starting G evaluation'
@@ -445,13 +445,20 @@ def mathcalG(E,verbose = False):
         for i in range(len(E)):
             print i+1, ' of ', len(E)
             rapoval = model.rapo(E[i])
-            temp1 = intg.dblquad(mathcalGinterior1,0,rapoval,lambda r:0,lambda r:1,args=(E[i],))
-            temp2 = intg.dblquad(mathcalGinterior2,0,rapoval,lambda r:0,lambda r:1,args=(E[i],))
+            print rapoval
+            temp1 = intg.dblquad(mathcalGinterior1,0,1,lambda theta:0,lambda theta:rapoval,args=(E[i],))
+            print 'done 1'
+            temp2 = intg.dblquad(mathcalGinterior2,0,1,lambda theta:0,lambda theta:rapoval,args=(E[i],))
+            print 'done 2'
             t = temp1[0] + temp2[0]
             try:
-                if temp[3]!='' and verbose==True:
-                    print 'G, E = ',E[i],'message = ',temp[3]
-                    t = 1
+                if verbose==True:
+                    if temp1[3] != '':
+                        print 'G, E = ',E[i],'message = ',temp1[3]
+                        t = 1
+                    if temp2[3] != '':
+                        print 'G, E = ',E[i],'message = ',temp2[3]
+                        t = 1
             except IndexError:
                 pass
             Gans.append(t)
@@ -459,11 +466,33 @@ def mathcalG(E,verbose = False):
     except AttributeError:
         rapoval = model.rapo(E)
         print rapoval
-        temp1 = intg.dblquad(mathcalGinterior1,0,rapoval,lambda r:0,lambda r:1,args=(E,))
-        print 'done 1'
-        temp2 = intg.dblquad(mathcalGinterior2,0,rapoval,lambda r:0,lambda r:1,args=(E,))
-        print 'done 2'
+        temp1 = intg.dblquad(mathcalGinterior1,0,1,lambda theta:0,lambda theta:rapoval,args=(E,))
+        temp2 = intg.dblquad(mathcalGinterior2,0,1,lambda theta:0,lambda theta:rapoval,args=(E,))
         t = temp1[0] + temp2[0]
         return t
 
-print mathcalG(1e3,verbose=True)
+def mathcalGgood(E,smallrexp = 0,largerexp = 0,plotting = False):
+    smallrexp = model.b-4
+    largerexp = model.g-4
+    Earray,Echange,Estart = model.Egrid(3,-4,0.1)
+    Gtab = mathcalG(Earray,verbose=True)
+    Gint = interp1d(log10(Earray),log10(Gtab))
+    start = Gtab[0]
+    end = Gtab[len(Earray)-1]
+    m = model.piecewise2(E,Gint,start,end,Estart,Echange,smallrexp,largerexp)
+    if plotting == True:
+        plt.clf()
+        plt.loglog(E,m,'.')
+        plt.loglog(Earray,Gtab,'ro',label='Evaluated points')
+        plt.ylabel(r'G')
+        plt.xlabel('E')
+        plt.xlim(min(E),max(E))
+        plt.ylim(min(m),max(m))
+        plt.axvline(Estart, color='r',label='Limits of interpolation')
+        plt.axvline(Echange, color='r')
+        plt.legend(loc='best')
+        plt.show()
+    return m
+
+test1 = mathcalGgood(rtest,plotting=True)
+#test2 = mathcalG(0.01)
