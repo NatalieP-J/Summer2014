@@ -43,8 +43,19 @@ class MakeModel:
     def drhodr(self,r):
         return (-r**(-1-self.g))*((1+r**self.a)**((self.g-self.a-self.b)/self.a))*(self.g+self.b*r**self.a)
     #and second derivatives
+    '''
     def d2rhodr2(self,r):
         return(r**(-2-self.g))*((1+r**self.a)**((-2*self.a-self.b+self.g)/self.a))*(self.b*(1+self.b)*r**(2*self.a)+self.g+self.g**2+(self.b-self.a*self.b+self.g+self.a*self.g+2*self.b*self.g)*r**self.a)
+    '''
+    def d2rhodr2(self,r):
+        part1 = r**(-2-self.g)
+        part2 = (1+r**self.a)**((self.g-self.b-2*self.a)/self.a)
+        part3a = self.b*(1+self.b)*r**(2*self.a)
+        part3b = self.g + self.g**2
+        part3c = (self.b - (self.a*self.b) + self.g + (self.a*self.g) + (2*self.b*self.g))*r**self.a
+        part3 = part3a + part3b + part3c
+        return part1*part2*part3
+                                
 
 model = MakeModel('testing',1.,4.,1.5,1.,1.e5,1.e3,generate = False)
 rtest = arange(-12,12,0.01)
@@ -204,7 +215,7 @@ def funcg(E,verbose=False):
                 pass
             gans.append(-pi*t)
         return array(gans),problems
-    except AttributeError:
+    except (AttributeError,TypeError):
         problem = []
         rapoval = rapo(E)
         temp = intg.quad(ginterior,0,1./rapoval,args = E,full_output = 1)
@@ -217,68 +228,116 @@ def funcg(E,verbose=False):
             pass
         return -pi*t, problem
 
-def finterior1(self,r,E,rapoval,verbose):
+def finterior1(r,E,rapoval,verbose):
     var = rapoval/r
-    result = (var**2)*(1./sqrt(E-psi(var,verbose)[0]))*(var/model.d2rhodr2(var))
+    #result = (var**2)*(1./sqrt(E-psi(var,verbose)[0]))*(var/model.d2rhodr2(var))
+    result = (var**3)*(1./sqrt(E-psi(var,verbose)[0]))*model.d2rhodr2(var)
     return result
 
-def finterior2(self,r,E,rapoval,verbose):
+def finterior2(r,E,rapoval,verbose):
     var = rapoval/r
     return (var**2)*(1./sqrt(E-psi(var,verbose)[0]))*model.drhodr(var)
 
-def finterior3(self,r,E,rapoval,verbose):
+def finterior3(r,E,rapoval,verbose):
     var = rapoval/r
-    return (var**2)*(1./sqrt(E-psi(var,verbose)[0]))*(1./(2*rapoval))*model.drhodr(var)*((model.Mnorm*(r-1)+r*model.Menc(var,verbose)[0] - Menc(rapoval,verbose)[0])/(E-psi(var,verbose)[0]))
+    return (var**2)*(1./sqrt(E-psi(var,verbose)[0]))*(1./(2*rapoval))*model.drhodr(var)*((model.Mnorm*(r-1)+r*Menc(var,verbose)[0] - Menc(rapoval,verbose)[0])/(E-psi(var,verbose)[0]))
                    
-def funcf(self,E,verbose=False):
+def funcf(E,verbose=False):
     print 'starting f evaluation'
-    epsilon = 1e-7
+    epsilon = 0
     try:
         t = E.shape
         fans = []
+        problems = []
         for i in range(len(E)):
-            print i+1, ' of ', len(E)
-            rapoval = self.rapo(E[i])
+            #print i+1, ' of ', len(E)
+            rapoval = rapo(E[i])
             prefactor = (1./(sqrt(8)*pi**2*(model.Mnorm + Menc(rapoval,verbose)[0])))
+            #print 'pre = ', prefactor
             temp1 = intg.quad(finterior1,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
+            #print 'temp1 = ',temp1[0]
             temp2 = intg.quad(finterior2,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
+            #print 'temp2 = ',temp2[0]
             temp3 = intg.quad(finterior3,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
+            #print 'temp3 = ',temp3[0]
             t = temp1[0] + temp2[0] + temp3[0]
             try:
                 if verbose==True:
                     if temp1[3] != '':
                         print 'f, E = ',E[i],'message = ',temp1[3]
+                        problems.append(i)
                     elif temp2[3] != '':
                         print 'f, E = ',E[i],'message = ',temp2[3]
+                        problems.append(i)
                     elif temp3[3] != '':
                         print 'f, E = ',E[i],'message = ',temp3[3]
-                    t = -1
+                        problems.append(i)                    
             except IndexError:
                 pass
-            fans.append(prefactor*t)
-        return array(fans)
+            fans.append((prefactor*t)[0])
+        return array(fans),problems
     except AttributeError:
-        rapoval = self.rapo(E)
-        prefactor = (1./(sqrt(8)*pi**2*(self.Mnorm + self.Menc(rapoval))))
-        temp1 = intg.quad(self.finterior1,0,1,args=(E,rapoval))
-        temp2 = intg.quad(self.finterior2,0,1,args=(E,rapoval))
-        temp3 = intg.quad(self.finterior3,0,1,args=(E,rapoval))
+        rapoval = rapo(E)
+        prefactor = (1./(sqrt(8)*pi**2*(model.Mnorm + Menc(rapoval,verbose)[0])))
+        temp1 = intg.quad(finterior1,0,1,args=(E,rapoval,verbose),full_output = 1)
+        temp2 = intg.quad(finterior2,0,1,args=(E,rapoval,verbose),full_output = 1)
+        temp3 = intg.quad(finterior3,0,1,args=(E,rapoval,verbose),full_output = 1)
         t = temp1[0] + temp2[0] + temp3[0]
+        problem = []
         try:
             if verbose==True:
                 if temp1[3] != '':
                     print 'f, E = ',E,'message = ',temp1[3]
+                    problem = [E]
                 elif temp2[3] != '':
                     print 'f, E = ',E,'message = ',temp2[3]
+                    problem = [E]
                 elif temp3[3] != '':
                     print 'f, E = ',E,'message = ',temp3[3]
+                    problem = [E]
                 t = -1
         except IndexError:
             pass
-        return prefactor*t
+        return prefactor*t, problem
+
+def Ginterior(theta,r,E,verbose):
+    part1 = (r**2)/sqrt(psi(r,verbose)[0]-E)
+    part2 = funcg(psi(r,verbose)[0]*(1-theta) + E*theta,verbose)[0]
+    part3 = (1./sqrt(theta))-sqrt(theta)
+    return part1*part2*part3
+
+def funcG(E,verbose = False):
+    print E
+    print E.shape
+    try:
+        t = E.shape
+        Gans = []
+        problems = []
+        for i in range(len(E)):
+            print i+1, 'of', len(E)
+            rapoval = rapo(E[i])
+            temp = intg.dblquad(Ginterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E[i],verbose))
+            try:
+                if temp[3] != '' and verbose == True:
+                    print 'G, E = ', E[i], 'message = ', temp[3]
+                    problems.append(i)
+            except IndexError:
+                pass
+            Gans.append(temp)
+        return array(Gans),problems
+    except AttributeError:
+        rapoval = rapo(E)
+        temp = intg.dblquad(Ginterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E,verbose))
+        problem = []
+        try:
+            if temp[3] != '' and verbose == True:
+                print 'G, E = ', E, 'message = ', temp[3]
+                problem = [E]
+        except IndexError:
+            pass
+        return temp,problem
 
 
-    #generate rgrid
 def rgrid(upstep=5,downstep=-5,step=0.03):
     rmin = min([rH(),[1.]])
     rmax = max([rH(),[1.]])
@@ -345,11 +404,11 @@ def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,
     m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp,conds)
     if plotting != False:
         plotter(r,m,rstart,rchange,plotting)
-    return m
+    return m,inter
 
 rarray,rchange,rstart = rgrid(5,-5,0.03)
 tic = time.clock()
-#psigood = makegood(psi,rtest,[5,-5,0.03],rgrid,-1,-1)#,plotting = ['r','$\psi$'])
+psivals,psigood = makegood(psi,rtest,[5,-5,0.03],rgrid,-1,-1)#,plotting = ['r','$\psi$'])
 toc = time.clock()
 print 'psi ran in ',toc-tic, 's'
 tic = time.clock()
@@ -357,7 +416,7 @@ tic = time.clock()
 toc = time.clock()
 print 'Menc ran in ',toc-tic, 's'
 tic = time.clock()
-#ggood = makegood(funcg,rtest,[5,-3,0.1],Egrid,model.b-0.5,model.g-0.5)#,plotting = ['E','g'])
+gvals,ggood = makegood(funcg,rtest,[5,-3,0.1],Egrid,model.b-0.5,model.g-0.5)#,plotting = ['E','g'])
 toc = time.clock()
 print 'g ran in ',toc-tic, 's'
 tic = time.clock()
@@ -365,6 +424,48 @@ tic = time.clock()
 toc = time.clock()
 print 'Jc2good ran in ',toc-tic, 's'
 tic = time.clock()
-fgood = makegood(funcf,rtest,[5,-3,0.03],Egrid,model.b-1.5,model.g-1.5,verbose=True,plotting = ['E','f']
+#fgood = makegood(funcf,rtest,[5,-3,0.03],Egrid,model.b-1.5,model.g-1.5,verbose=False,plotting = ['E','f'])
 toc = time.clock()
 print 'fgood ran in ', toc-tic, 's'
+
+def Ginterior(theta,r,E,verbose):
+    part1 = (r**2)/sqrt(psigood(r)[0]-E)
+    part2 = ggood(psigood(r)[0]*(1-theta) + E*theta,verbose)[0]
+    part3 = (1./sqrt(theta))-sqrt(theta)
+    return part1*part2*part3
+
+def funcG(E,verbose = False):
+    print E
+    print E.shape
+    try:
+        t = E.shape
+        Gans = []
+        problems = []
+        for i in range(len(E)):
+            print i+1, 'of', len(E)
+            rapoval = rapo(E[i])
+            temp = intg.dblquad(Ginterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E[i],verbose))
+            try:
+                if temp[3] != '' and verbose == True:
+                    print 'G, E = ', E[i], 'message = ', temp[3]
+                    problems.append(i)
+            except IndexError:
+                pass
+            Gans.append(temp)
+        return array(Gans),problems
+    except AttributeError:
+        rapoval = rapo(E)
+        temp = intg.dblquad(Ginterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E,verbose))
+        problem = []
+        try:
+            if temp[3] != '' and verbose == True:
+                print 'G, E = ', E, 'message = ', temp[3]
+                problem = [E]
+        except IndexError:
+            pass
+        return temp,problem
+
+tic = time.clock()
+#Ggood = makegood(funcG,rtest,[3,-4,0.1],Egrid,model.b-4,model.g-4,verbose=False,plotting = ['E','G'])
+toc = time.clock()
+print 'Ggood ran in ', toc-tic, 's'
