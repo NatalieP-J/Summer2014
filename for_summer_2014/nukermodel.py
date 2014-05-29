@@ -1,3 +1,6 @@
+import numpy as np
+nround = np.round
+nabs = np.abs
 from numpy import *
 #from astropy import constants as const
 import scipy.integrate as intg
@@ -5,6 +8,7 @@ from scipy.optimize import root
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 import os
+import time
 G = 6.67e-11#const.G
 realMsun = 2e30#const.M_sun
 Rsun = 7e8#const.R_sun
@@ -98,7 +102,7 @@ class MakeModel:
     
     #compute psi (potential)
     def psi(self,r):
-        return (self.Mnorm/r) + (self.Menc(r)/r) + self.psi2(r,verbose=True)
+        return (self.Mnorm/r) + (self.Menc(r)/r) + self.psi2(r,verbose=False)#************************************True)
     
     #generate rgrid
     def rgrid(self,upstep=5,downstep=-5,step=0.03):
@@ -169,10 +173,11 @@ class MakeModel:
         #identify psi boundaries for power law approximations
         start = psitab[0]
         end = psitab[len(rarray)-1]
+        #print psitab
         m = self.piecewise2(r,psiinter,start,end,rstart,rchange,smallrexp,largerexp)
 
         if plotting==True:
-            plt.clf()
+            plt.figure()
             plt.loglog(r,m,'.')
             plt.ylabel(r'$\psi$')
             plt.xlabel('r')
@@ -259,8 +264,8 @@ class MakeModel:
         largerexp = self.g-0.5
         Earray,Echange,Estart = self.Egrid(5,-3,0.1)
         gtab = self.funcg(Earray,verbose=True)
-        for i in range(len(gtab)):
-            print 'E = ',Earray[i],' g = ',gtab[i]
+        #for i in range(len(gtab)):
+        #    print 'E = ',Earray[i],' g = ',gtab[i]
         gint = interp1d(log10(Earray),log10(gtab))
         start = gtab[0]
         end = gtab[len(Earray)-1]
@@ -403,6 +408,12 @@ class MakeModel:
 model = MakeModel('testing',1.,4.,1.5,1.,1.e5,1000,generate = False)
 rtest = arange(-12,12,0.01)
 rtest = 10**rtest
+tic = time.clock()
+test = model.ggood(rtest,plotting=True)
+toc = time.clock()
+print 'g runs in ', toc-tic, 's'
+'''
+
 if model.generate == True:
     psi = model.psi(rtest)
     savetxt('{0}_psi.dat'.format(model.name),psi)
@@ -418,27 +429,45 @@ elif model.generate == False:
 else:
     print 'Invalid choice for "generate"'
 
-def locate(somelist,someval):
-    mini = min(somelist-someval)
-    #print mini
-    i = where(somelist-someval==mini)
-    #print i[0][0]
-    return somelist[i[0][0]]
+def locate(somelist,checker,someval):
+    return somelist[abs(checker)==min(abs(checker))]
 
+'''
+def locate(somelist,checker,someval):
+    idx = (nabs(checker-someval)).argmin()
+    #if someval - checker[idx] < 0:
+    #    print 'someval = ', someval, 'checker = ', checker[idx], 'diff = ', someval-checker[idx]
+    return somelist[idx]
+'''
 def mathcalGinterior1(theta,r,E):
     #print 'called integrand',r,theta
-    psir = locate(psi,r)
+    rcheck = rtest-r
+    #rcheck = rtest
+    psir = locate(psi,rcheck,r)
+    #if psir-E <= 0:
+    #    print 'psir = ',psir, 'E = ', E, 'diff = ', psir-E
+    Echeck = rtest-(psir*(1-theta)+E*theta)
+    #Echeck = rtest
+    gE = locate(g,Echeck,(psir*(1-theta)+E*theta))
     #print E,psir,r,theta
-    return (r**2/sqrt(psir-E))*(sqrt(theta)**-1)*locate(g,(psir*(1-theta)+E*theta))
+    part1 = (r**2/sqrt(abs(psir-E)))
+    part2 = (sqrt(theta)**-1)
+    return part1*part2*gE
 
 def mathcalGinterior2(theta,r,E):
     #print 'called integrand',r,theta
-    psir = locate(psi,r)
+    rcheck = rtest-r
+    psir = locate(psi,rcheck,r)
+    Echeck = rtest-(psir*(1-theta)+E*theta)
+    gE = locate(g,Echeck,(psir*(1-theta)+E*theta))
     #print E,psir,r,theta
-    return (r**2/sqrt(psir-E))*(- sqrt(theta))*locate(g,(psir*(1-theta)+E*theta))
+    part1 = (r**2/sqrt(psir-E))
+    part2 = (-sqrt(theta))
+    return part1*part2*gE
     
 def mathcalG(E,verbose = False):
     print 'starting G evaluation'
+    eps = 1e-7
     try:
         t = E.shape
         Gans = []
@@ -458,7 +487,7 @@ def mathcalG(E,verbose = False):
         return array(Gans)
     except AttributeError:
         rapoval = model.rapo(E)
-        print rapoval
+        #print rapoval
         temp1 = intg.dblquad(mathcalGinterior1,0,rapoval,lambda r:0,lambda r:1,args=(E,))
         print 'done 1'
         temp2 = intg.dblquad(mathcalGinterior2,0,rapoval,lambda r:0,lambda r:1,args=(E,))
@@ -467,3 +496,4 @@ def mathcalG(E,verbose = False):
         return t
 
 print mathcalG(1e3,verbose=True)
+'''
