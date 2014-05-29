@@ -5,6 +5,7 @@ from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 import os
 import time
+import math
 G = 6.67e-11
 realMsun = 1.99e30
 Rsun = 6.9e8
@@ -79,7 +80,10 @@ def Menc(r,verbose=False):
                     problems.append(i)
             except (IndexError, TypeError):
                 pass
-            Mencs.append(4*pi*temp[0])
+            if temp[0] >= 0:
+                Mencs.append(4*pi*temp[0])
+            elif temp[0] < 0:
+                Mencs.append(Mencs[i-1])
         return array(Mencs),array(problems)
     except AttributeError:
         problem = []
@@ -188,11 +192,11 @@ def psi(r,verbose):
     part2 = Menc(r,verbose)
     part3 =  psi2(r,verbose)
     problems = array([])
-    #if part2[1] != []:
-    #    problems = concatenate(problems,array(part2[1]))
-    #if part3[1] != []:
-    #    print part3[1]
-    #    problems = concatenate(problems,array(part3[1]))
+    if part2[1] != []:
+        problems = concatenate((problems,array(part2[1])))
+    if part3[1] != []:
+        print part3[1]
+        problems = concatenate((problems,array(part3[1])))
     return part1 + (part2[0]/r) + part3[0],problems
 
 def ginterior(r,E):
@@ -373,7 +377,7 @@ def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp,conds=False):
         piece3 = end*(set3/lim2)**largerexp
         return concatenate((piece1,piece2,piece3))
     if conds!=False:
-        print 'your piecewise function has further conditions'
+        #print 'your piecewise function has further conditions'
         tip = conds[0]
         if model.b>tip:
             piece3 = end*(set3/lim2)**conds[1]
@@ -397,36 +401,119 @@ def plotter(r,m,rstart,rchange,labels):
 
 def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,plotting=False):
     rarray,rchange,rstart = grid(size[0],size[1],size[2])
-    tab = func(rarray,verbose)
-    inter = interp1d(log10(rarray),log10(tab[0]))
-    start = tab[0][0]
-    end = tab[0][len(rarray)-1]
+    tab,problems = func(rarray,verbose)
+    tab = [i for j, i in enumerate(tab) if j not in problems]
+    rarray = [i for j, i in enumerate(rarray) if j not in problems]
+    inter = interp1d(log10(rarray),log10(tab))
+    start = tab[0]
+    end = tab[len(rarray)-1]
     m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp,conds)
     if plotting != False:
         plotter(r,m,rstart,rchange,plotting)
     return m,inter
 
-rarray,rchange,rstart = rgrid(5,-5,0.03)
+rarray,rchange,rstart = rgrid(10,-10,0.03)
 tic = time.clock()
-psivals,psigood = makegood(psi,rtest,[5,-5,0.03],rgrid,-1,-1)#,plotting = ['r','$\psi$'])
+psivals,psigood = makegood(psi,rtest,[10,-10,0.03],rgrid,-1,-1)#, plotting = ['r','$\psi$'])
 toc = time.clock()
 print 'psi ran in ',toc-tic, 's'
 tic = time.clock()
-#Mencgood = makegood(Menc,rtest,[5,-5,0.03],rgrid,3-model.g,0,conds = [2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)])#,plotting = ['r','M'])
+Mencvals,Mencgood = makegood(Menc,rtest,[10,-10,0.03],rgrid,3-model.g,0,conds = [2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)])#,plotting = ['r','M'])
 toc = time.clock()
 print 'Menc ran in ',toc-tic, 's'
 tic = time.clock()
-gvals,ggood = makegood(funcg,rtest,[5,-3,0.1],Egrid,model.b-0.5,model.g-0.5)#,plotting = ['E','g'])
+#gvals,ggood = makegood(funcg,rtest,[5,-3,0.1],Egrid,model.b-0.5,model.g-0.5)#,plotting = ['E','g'])
 toc = time.clock()
 print 'g ran in ',toc-tic, 's'
 tic = time.clock()
 #Jc2good = makegood(Jc2,rtest,[3,-3,0.01],Egrid,-1,-1,verbose = True,plotting = ['E','Jc2'])
 toc = time.clock()
 print 'Jc2good ran in ',toc-tic, 's'
+
+def finterior1(r,E,rapoval,verbose):
+    var = rapoval/r
+    psi = (10**psigood(log10(var)))[0]
+    result = (var**3)*(1./sqrt(abs(E-psi)))*model.d2rhodr2(var)
+    return result
+
+def finterior2(r,E,rapoval,verbose):
+    var = rapoval/r
+    psi = (10**psigood(log10(var)))[0]
+    return (var**2)*(1./sqrt(abs(E-psi)))*model.drhodr(var)
+
+def finterior3(r,E,rapoval,verbose):
+    var = rapoval/r
+    psi = (10**psigood(log10(var)))[0]
+    Mencvar = (10**Mencgood(log10(var)))[0]
+    Mencrap = (10**Mencgood(log10(rapoval)))[0]
+    if math.isnan(psi) == True or math.isnan(Mencvar)==True or math.isnan(Mencrap)==True:
+        print 'nan, var = ', var, 'Mencvar = ', Mencvar
+    return -(var**2)*(1./sqrt(abs(E-psi)))*(1./(2*rapoval))*model.drhodr(var)*((model.Mnorm*(r-1) + r*Mencvar - Mencrap)/abs(E-psi))
+                   
+def funcf(E,verbose=False):
+    print 'starting f evaluation'
+    epsilon = 0
+    try:
+        t = E.shape
+        fans = []
+        problems = []
+        for i in range(len(E)):
+            print i+1, ' of ', len(E)
+            rapoval = rapo(E[i])
+            prefactor = (1./(sqrt(8)*pi**2*(model.Mnorm + Menc(rapoval,verbose)[0])))
+            #print 'E = ', E[i]
+            #print 'pre = ', prefactor
+            temp1 = intg.quad(finterior1,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
+            #print 'temp1 = ',temp1[0]
+            temp2 = intg.quad(finterior2,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
+            #print 'temp2 = ',temp2[0]
+            temp3 = intg.quad(finterior3,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
+            #print 'temp3 = ',temp3[0]
+            t = temp1[0] + temp2[0] + temp3[0]
+            try:
+                if verbose==True:
+                    if temp1[3] != '':
+                        print 'f, E = ',E[i],'message = ',temp1[3]
+                        problems.append(i)
+                    elif temp2[3] != '':
+                        print 'f, E = ',E[i],'message = ',temp2[3]
+                        problems.append(i)
+                    elif temp3[3] != '':
+                        print 'f, E = ',E[i],'message = ',temp3[3]
+                        problems.append(i)                    
+            except IndexError:
+                pass
+            fans.append((prefactor*t)[0])
+        return array(fans),problems
+    except AttributeError:
+        rapoval = rapo(E)
+        prefactor = (1./(sqrt(8)*pi**2*(model.Mnorm + Menc(rapoval,verbose)[0])))
+        temp1 = intg.quad(finterior1,0,1,args=(E,rapoval,verbose),full_output = 1)
+        temp2 = intg.quad(finterior2,0,1,args=(E,rapoval,verbose),full_output = 1)
+        temp3 = intg.quad(finterior3,0,1,args=(E,rapoval,verbose),full_output = 1)
+        t = temp1[0] + temp2[0] + temp3[0]
+        problem = []
+        try:
+            if verbose==True:
+                if temp1[3] != '':
+                    print 'f, E = ',E,'message = ',temp1[3]
+                    problem = [E]
+                elif temp2[3] != '':
+                    print 'f, E = ',E,'message = ',temp2[3]
+                    problem = [E]
+                elif temp3[3] != '':
+                    print 'f, E = ',E,'message = ',temp3[3]
+                    problem = [E]
+                t = -1
+        except IndexError:
+            pass
+        return prefactor*t, problem
+
 tic = time.clock()
-#fgood = makegood(funcf,rtest,[5,-3,0.03],Egrid,model.b-1.5,model.g-1.5,verbose=False,plotting = ['E','f'])
+fgood = makegood(funcf,rtest,[5,-3,0.03],Egrid,model.b-1.5,model.g-1.5,verbose=False,plotting = ['E','f'])
 toc = time.clock()
 print 'fgood ran in ', toc-tic, 's'
+
 
 def Ginterior(theta,r,E,verbose):
     part1 = (r**2)/sqrt(psigood(r)[0]-E)
