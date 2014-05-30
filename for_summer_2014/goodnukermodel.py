@@ -7,20 +7,42 @@ import os
 import time
 import math
 import datetime
+Lam = exp(1)# ****************************************************************
 Gconst = 6.67259e-8
 realMsun = 1.989e33
 Rsun = 6.9599e10
 pc = 3.1e16
 km = 10**5
 yr = 365*24*3600
-Menc = 0
-psi = 1
-Jc2 = 2
-g = 3
-G = 4
-f = 5
-seton = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"OFF",f:"ON"}
+Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
+#psi = 1
+#Jc2 = 2
+#g = 3
+#G = 4
+#f = 5
+seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 
+########******************* PICKLING *******************########
+def _pickle_method(method):
+    func_name = method.im_func.__name__
+    obj = method.im_self
+    cls = method.im_class
+    return _unpickle_method, (func_name, obj, cls)
+
+def _unpickle_method(func_name, obj, cls):
+    for cls in cls.mro():
+        try:
+            func = cls.__dict__[func_name]
+        except KeyError:
+            pass
+        else:
+            break
+        return func.__get__(obj, cls)
+
+import copy_reg
+import types
+copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
+import pickle
 ########******************* CONSTRUCTION FUNCTIONS *******************########
 def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp,conds=False):
     set1 = r[(r<lim1)]
@@ -60,6 +82,7 @@ def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,
     tab = [i for j, i in enumerate(tab) if j not in problems]
     rarray = [i for j, i in enumerate(rarray) if j not in problems]
     inter = interp1d(log10(rarray),log10(tab))
+    pickle.dump(inter,open('{0}.pkl'.format(str(func)[10:15]),"wb"))
     start = tab[0]
     end = tab[len(rarray)-1]
     if plotting != False:
@@ -255,13 +278,14 @@ def funcpsi(r,verbose):
 ########******************* COMPUTE PSI *******************######## 
 
 if seton[psi] == "ON":
-    if seton[Menc] == "ON":
+    try:
+        test = Mencgood
         tic = time.clock()
         psigood = makegood(funcpsi,rtest,[3,-3,20,-20,0.03],rgrid,-1,-1)#, plotting = ['r','$\psi$'])
         toc = time.clock()
         delt = toc-tic
         print 'psi ran in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
-    elif seton[Menc] != "ON":
+    except NameError:
         print 'To compute psi please turn Menc ON'
 
 ########******************* APOHELION RADIUS (???) *******************######## 
@@ -325,16 +349,16 @@ def funcJc2(E,verbose):
 ########******************* COMPUTE Jc2 *******************######## 
 
 if seton[Jc2] == "ON":
-    if seton[psi] == "ON" and seton[Menc] == "ON":
+    try:
+        Mencgood
+        psigood
         tic = time.clock()
         Jc2good = makegood(funcJc2,rtest,[3,-3,12,-12,0.01],Egrid,-1,-1,verbose = True,plotting = ['E','Jc2'])
         toc = time.clock()
         delt = toc-tic
         print 'Jc2good ran in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
-    elif seton[psi] != "ON":
-        print 'To compute Jc2 please turn psi ON'
-    elif seton[Menc] != "ON":
-        print 'To compute Jc2 please turn Menc ON'
+    except NameError:
+        print 'To compute Jc2 please turn Menc and psi ON'
 
 ########******************* g *******************######## 
 
@@ -374,13 +398,14 @@ def funcg(E,verbose=False):
 ########******************* COMPUTE g *******************######## 
 
 if seton[g] == "ON":
-    if seton[psi] == "ON":
+    try:
+        psigood
         tic = time.clock()
         ggood = makegood(funcg,rtest,[3,-3,12,-12,0.1],Egrid,model.b-0.5,model.g-0.5)#,plotting = ['E','g'])
         toc = time.clock()
         delt = toc-tic
         print 'g ran in \t {0}'.format(datetime.timedelta(seconds=delt))
-    elif seton[psi] != "ON":
+    except NameError:
         print 'To compute g, please turn psi ON'
 
 ########******************* mathcalG *******************######## 
@@ -424,16 +449,16 @@ def funcG(E,verbose = False):
 
 ########******************* COMPUTE G *******************######## 
 if seton[G] == "ON":
-    if seton[psi] == "ON" and seton[g] == "ON":
+    try:
+        psigood
+        ggood
         tic = time.clock()
         Ggood = makegood(funcG,rtest,[2,-2,12,-12,0.1],Egrid,model.b-4,model.g-4,verbose=False,plotting = ['E','G'])
         toc = time.clock()
         delt = toc-tic
         print 'Ggood ran in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
-    elif seton[psi] != "ON":
-        print 'To compute G, please turn psi ON'
-    elif seton[g] != "ON":
-        print 'To compute G, please turn g ON'
+    except NameError:
+        print 'To compute G, please turn psi and g ON'
 
 ########******************* DISTRIBUTION FUNCTION *******************######## 
 
@@ -512,17 +537,29 @@ def funcf(E,verbose=False):
 
 ########******************* COMPUTE f *******************######## 
 if seton[f] == "ON":
-    if seton[Menc] == "ON" and seton[psi] == "ON":
+    try:
+        Mencgood
+        psigood
         tic = time.clock()
         fgood = makegood(funcf,rtest,[5,-3,12,-12,0.03],Egrid,model.b-1.5,model.g-1.5,verbose=False,plotting = ['E','f'])
         toc = time.clock()
         delt = toc-tic
         print 'fgood ran in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
-    elif seton[Menc] != "ON":
-        print 'To compute f, please turn Menc ON'
-    elif seton[psi] != "ON":
-        print 'To compute f, please turn psi ON'
+    except NameError:
+        print 'To compute f, please turn Menc and psi ON'
 
+########******************* ADDITIONAL FUNCTIONS *******************######## 
+'''
+def funcq(r):
+    return (4./pi)*log(Lam)*(model.r0_rT/model.MBH_Msun)*Ggood(r)
 
+def Rlc(r):
+    interior = 2*(model.MBHnorm./model.r0_rT)*(1./Jc2good(r))
+    return -log(interior)
 
-
+# dependent on a lot of mystery functions
+def dgdlnrp(Emin = 0.01,Emax=100):
+    prefactor = (8*pi**2)*model.MBH_Msun*(model.r0_rT**-1)*(model.tdyn0**-1)
+    qmin = funcq(Emax)
+    qmax = funcq(Emin)
+'''
