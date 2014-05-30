@@ -16,10 +16,9 @@ Jc2 = 2
 g = 3
 G = 4
 f = 5
-run = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"ON",G:"ON",f:"OFF"}
 
 ########******************* CONSTRUCTION FUNCTIONS *******************########
-
 def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp,conds=False):
     set1 = r[(r<lim1)]
     set2 = r[(r>=lim1)&(r<=lim2)]
@@ -99,10 +98,6 @@ class MakeModel:
     def drhodr(self,r):
         return (-r**(-1-self.g))*((1+r**self.a)**((self.g-self.a-self.b)/self.a))*(self.g+self.b*r**self.a)
     #and second derivatives
-    '''
-    def d2rhodr2(self,r):
-        return(r**(-2-self.g))*((1+r**self.a)**((-2*self.a-self.b+self.g)/self.a))*(self.b*(1+self.b)*r**(2*self.a)+self.g+self.g**2+(self.b-self.a*self.b+self.g+self.a*self.g+2*self.b*self.g)*r**self.a)
-    '''
     def d2rhodr2(self,r):
         part1 = r**(-2-self.g)
         part2 = (1+r**self.a)**((self.g-self.b-2*self.a)/self.a)
@@ -156,7 +151,7 @@ def funcMenc(r,verbose=False):
 ########******************* RADIUS OF INFLUENCE *******************######## 
 
 def rHimplicit(r):
-    return abs(model.Mnorm-Menc(r)[0])
+    return abs(model.Mnorm-funcMenc(r)[0])
 
 def rH():
     rresult=root(rHimplicit,1e-4)
@@ -164,7 +159,7 @@ def rH():
         return rresult.x
     elif rresult.success == False:
         print 'Failed to evaluate rH'
-        print rrseult.message
+        print rresult.message
         return rresult.x
 
 ########******************* CONSTRUCTION FUNCTIONS *******************########
@@ -186,7 +181,7 @@ rarray,rchange,rstart = rgrid(10,-10,0.03)
 def Egrid(upstep=5,downstep=-3,step=0.1):
     rmin = min([rH(),[1.]])[0]
     rmax = max([rH(),[1.]])[0]
-    eimin = log10(Menc(rmax)[0]/rmax) + downstep
+    eimin = log10(funcMenc(rmax)[0]/rmax) + downstep
     eimax = log10(model.Mnorm/rmin) + upstep
     dei = step
     Earray = arange(eimin,eimax,dei)
@@ -197,29 +192,11 @@ def Egrid(upstep=5,downstep=-3,step=0.1):
 
 ########******************* COMPUTE MENC *******************######## 
 
-if run[Menc] == "ON":
+if seton[Menc] == "ON":
     tic = time.clock()
-    Mencvals,Mencgood = makegood(Menc,rtest,[10,-10,0.03],rgrid,3-model.g,0,conds = [2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)])#,plotting = ['r','M'])
+    Mencvals,Mencgood = makegood(funcMenc,rtest,[12,-12,0.03],rgrid,3-model.g,0,conds = [2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)])#,plotting = ['r','M'])
     toc = time.clock()
     print 'Menc ran in ',toc-tic, 's'
-
-########******************* APOHELION RADIUS (???) *******************######## 
-
-def rapoimplicit(r,E):
-    return abs(psi(abs(r),verbose=False)[0]-E)
-
-def rapo(E):
-    if E**-1 > 0.2:
-        rguess = 10*E**-1
-    elif E**-1 < 0.2:
-        rguess = 0.01*E**-1
-    rresult = root(rapoimplicit,rguess,args=E)
-    if rresult.success == True:
-        return abs(rresult.x)
-    elif rresult.success == False:
-        print 'Failed to evaluate rapo'
-        print rresult.message
-        return abs(rresult.x)
 
 ########******************* POTENTIAL *******************######## 
         
@@ -255,7 +232,7 @@ def psi2(r,verbose=False):
 
 def funcpsi(r,verbose):
     part1 = (model.Mnorm/r)
-    part2 = Menc(r,verbose)
+    part2 = funcMenc(r,verbose)
     part3 =  psi2(r,verbose)
     problems = array([])
     if part2[1] != []:
@@ -267,19 +244,37 @@ def funcpsi(r,verbose):
 
 ########******************* COMPUTE PSI *******************######## 
 
-if run[psi] == "ON":
-    if run[Menc] == "ON":
+if seton[psi] == "ON":
+    if seton[Menc] == "ON":
         tic = time.clock()
-        psivals,psigood = makegood(psi,rtest,[10,-10,0.03],rgrid,-1,-1)#, plotting = ['r','$\psi$'])
+        psivals,psigood = makegood(funcpsi,rtest,[12,-12,0.03],rgrid,-1,-1)#, plotting = ['r','$\psi$'])
         toc = time.clock()
         print 'psi ran in ',toc-tic, 's'
-    elif run[Menc] != "ON":
+    elif seton[Menc] != "ON":
         print 'To compute psi please turn Menc ON'
+
+########******************* APOHELION RADIUS (???) *******************######## 
+
+def rapoimplicit(r,E):
+    return abs(10**psigood(log10(abs(r)))-E)
+
+def rapo(E):
+    if E**-1 > 0.2:
+        rguess = 10*E**-1
+    elif E**-1 < 0.2:
+        rguess = 0.01*E**-1
+    rresult = root(rapoimplicit,rguess,args=E)
+    if rresult.success == True:
+        return abs(rresult.x)
+    elif rresult.success == False:
+        print 'Failed to evaluate rapo'
+        print rresult.message
+        return abs(rresult.x)
 
 ########******************* CIRCULAR ANGULAR MOMENTUM *******************######## 
 
 def Jc2implicit(r,E,verbose):
-    return abs(psigood(abs(r))-E-((Mencgood(abs(r))+model.Mnorm)/(2*r)))
+    return abs(10**psigood(log10(abs(r)))-E-((10**Mencgood(log10(abs(r)))+model.Mnorm)/(2*r)))
 
 def funcJc2(E,verbose):
     try:
@@ -287,44 +282,51 @@ def funcJc2(E,verbose):
         Jcs = []
         problems = []
         for i in range(len(E)):
-            rresult = root(Jc2implicit,0.01*E[i]**-1,args=(E[i],verbose))
+            #print i+1, ' of ', len(E)
+            if E[i]**-1 > 0.2:
+                rguess = 10*E[i]**-1
+            elif E[i]**-1 < 0.2:
+                rguess = 0.01*E[i]**-1
+            rresult = root(Jc2implicit,rguess,args=(E[i],verbose))
+            rresult.x = abs(rresult.x)
             if rresult.success == True:
-                Jcs.append(((Menc(rresult.x,verbose)[0]+model.Mnorm)*rresult.x)[0])
-            elif rresult.success == False:
+                Jcs.append(((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0])
+            elif rresult.success == False and verbose==True:
                 print 'Failed to evaluate Jc2'
                 print rresult.message
-                Jcs.append(((Menc(rresult.x,verbose)[0]+model.Mnorm)*rresult.x)[0])
+                Jcs.append(((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0])
                 problems.append(i)
         return array(Jcs),problems
     except AttributeError:
         rresult = root(Jc2implicit,0.01*E[i]**-1,args=(E[i],verbose))
         problem = []
+        rresult.x = abs(rresult.x)
         if rresult.success == True:
-            Jc = ((Menc(rresult.x,verbose)[0]+model.Mnorm)*rresult.x)[0]
+            Jc = ((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0]
         elif rresult.success == False:
             print 'Failed to evaluate Jc2'
             print rresult.message
-            Jc = ((Menc(rresult.x,verbose)[0]+model.Mnorm)*rresult.x)[0]
+            Jc = ((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0]
             problem = [E]
         return Jc, problem
 
 ########******************* COMPUTE Jc2 *******************######## 
 
-if run[Jc2] == "ON":
-    if run[psi] == "ON" and run[Menc] == "ON":
+if seton[Jc2] == "ON":
+    if seton[psi] == "ON" and seton[Menc] == "ON":
         tic = time.clock()
-        Jc2good = makegood(Jc2,rtest,[3,-3,0.01],Egrid,-1,-1,verbose = True,plotting = ['E','Jc2'])
+        Jc2good = makegood(funcJc2,rtest,[3,-3,0.01],Egrid,-1,-1,verbose = True)#,plotting = ['E','Jc2'])
         toc = time.clock()
         print 'Jc2good ran in ',toc-tic, 's'
-    elif run[psi] != "ON":
+    elif seton[psi] != "ON":
         print 'To compute Jc2 please turn psi ON'
-    elif run[Menc] != "ON":
+    elif seton[Menc] != "ON":
         print 'To compute Jc2 please turn Menc ON'
 
 ########******************* g *******************######## 
 
 def ginterior(r,E):
-    return (model.drhodr(1./r))*(r**-2)*((sqrt(E-psigood((1./r))))**-1)
+    return (model.drhodr(1./r))*(r**-2)*((sqrt(E-10**psigood(log10(1./r))))**-1)
     
 def funcg(E,verbose=False):
     try:
@@ -358,26 +360,26 @@ def funcg(E,verbose=False):
 
 ########******************* COMPUTE g *******************######## 
 
-if run[g] == "ON":
-    if run[psi] == "ON":
+if seton[g] == "ON":
+    if seton[psi] == "ON":
         tic = time.clock()
-        gvals,ggood = makegood(funcg,rtest,[5,-3,0.1],Egrid,model.b-0.5,model.g-0.5)#,plotting = ['E','g'])
+        gvals,ggood = makegood(funcg,rtest,[9,-8,0.1],Egrid,model.b-0.5,model.g-0.5)#,plotting = ['E','g'])
         toc = time.clock()
         print 'g ran in ',toc-tic, 's'
-    elif run[psi] != "ON":
+    elif seton[psi] != "ON":
         print 'To compute g, please turn psi ON'
 
 ########******************* mathcalG *******************######## 
 
 def Ginterior(theta,r,E,verbose):
-    part1 = (r**2)/sqrt(psigood(r)-E)
-    part2 = ggood(psigood(r)*(1-theta) + E*theta)
+    # print 'called integrand, E = ',E,' r = ',r,' theta = ',theta
+    psir = 10**psigood(log10(r))
+    part1 = (r**2)/sqrt(psir-E)
+    part2 = 10**ggood(log10(psir*(1-theta) + E*theta))
     part3 = (1./sqrt(theta))-sqrt(theta)
     return part1*part2*part3
 
 def funcG(E,verbose = False):
-    print E
-    print E.shape
     try:
         t = E.shape
         Gans = []
@@ -392,7 +394,7 @@ def funcG(E,verbose = False):
                     problems.append(i)
             except IndexError:
                 pass
-            Gans.append(temp)
+            Gans.append(temp[0])
         return array(Gans),problems
     except AttributeError:
         rapoval = rapo(E)
@@ -404,18 +406,18 @@ def funcG(E,verbose = False):
                 problem = [E]
         except IndexError:
             pass
-        return temp,problem
+        return temp[0],problem
 
 ########******************* COMPUTE G *******************######## 
-if run[G] == "ON":
-    if run[psi] == "ON" and run[g] == "ON":
+if seton[G] == "ON":
+    if seton[psi] == "ON" and seton[g] == "ON":
         tic = time.clock()
-        Ggood = makegood(funcG,rtest,[3,-4,0.1],Egrid,model.b-4,model.g-4,verbose=False,plotting = ['E','G'])
+        Ggood = makegood(funcG,rtest,[2,-2,0.1],Egrid,model.b-4,model.g-4,verbose=False,plotting = ['E','G'])
         toc = time.clock()
         print 'Ggood ran in ', toc-tic, 's'
-    elif run[psi] != "ON":
+    elif seton[psi] != "ON":
         print 'To compute G, please turn psi ON'
-    elif run[g] != "ON":
+    elif seton[g] != "ON":
         print 'To compute G, please turn g ON'
 
 ########******************* DISTRIBUTION FUNCTION *******************######## 
@@ -439,15 +441,17 @@ def finterior3(r,E,rapoval,verbose):
     return -(var**2)*(1./sqrt(abs(E-psi)))*(1./(2*rapoval))*model.drhodr(var)*((model.Mnorm*(r-1) + r*Mencvar - Mencrap)/abs(E-psi))
                    
 def funcf(E,verbose=False):
-    print 'starting f evaluation'
+    #print 'starting f evaluation'
     epsilon = 0
     try:
         t = E.shape
         fans = []
         problems = []
         for i in range(len(E)):
+            #print i+1, ' of ', len(E)
             rapoval = rapo(E[i])
-            prefactor = (1./(sqrt(8)*pi**2*(model.Mnorm + Menc(rapoval,verbose)[0])))
+            #print rapoval
+            prefactor = (1./(sqrt(8)*pi**2*(model.Mnorm + funcMenc(rapoval,verbose)[0])))
             temp1 = intg.quad(finterior1,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
             temp2 = intg.quad(finterior2,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
             temp3 = intg.quad(finterior3,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
@@ -469,7 +473,7 @@ def funcf(E,verbose=False):
         return array(fans),problems
     except AttributeError:
         rapoval = rapo(E)
-        prefactor = (1./(sqrt(8)*pi**2*(model.Mnorm + Menc(rapoval,verbose)[0])))
+        prefactor = (1./(sqrt(8)*pi**2*(model.Mnorm + funcMenc(rapoval,verbose)[0])))
         temp1 = intg.quad(finterior1,0,1,args=(E,rapoval,verbose),full_output = 1)
         temp2 = intg.quad(finterior2,0,1,args=(E,rapoval,verbose),full_output = 1)
         temp3 = intg.quad(finterior3,0,1,args=(E,rapoval,verbose),full_output = 1)
@@ -492,15 +496,15 @@ def funcf(E,verbose=False):
         return prefactor*t, problem
 
 ########******************* COMPUTE f *******************######## 
-if run[f] == "ON":
-    if run[Menc] == "ON" and run[psi] == "ON":
+if seton[f] == "ON":
+    if seton[Menc] == "ON" and seton[psi] == "ON":
         tic = time.clock()
-        fgood = makegood(funcf,rtest,[5,-3,0.03],Egrid,model.b-1.5,model.g-1.5,verbose=False,plotting = ['E','f'])
+        fgood = makegood(funcf,rtest,[5,-3,0.03],Egrid,model.b-1.5,model.g-1.5,verbose=False)#,plotting = ['E','f'])
         toc = time.clock()
         print 'fgood ran in ', toc-tic, 's'
-    elif run[Menc] != "ON":
+    elif seton[Menc] != "ON":
         print 'To compute f, please turn Menc ON'
-    elif run[psi] != "ON":
+    elif seton[psi] != "ON":
         print 'To compute f, please turn psi ON'
 
 
