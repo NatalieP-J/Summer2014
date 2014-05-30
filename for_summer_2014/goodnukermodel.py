@@ -6,17 +6,20 @@ import matplotlib.pyplot as plt
 import os
 import time
 import math
-Gconst = 6.67e-11
-realMsun = 1.99e30
-Rsun = 6.9e8
+import datetime
+Gconst = 6.67259e-8
+realMsun = 1.989e33
+Rsun = 6.9599e10
 pc = 3.1e16
+km = 10**5
+yr = 365*24*3600
 Menc = 0
 psi = 1
 Jc2 = 2
 g = 3
 G = 4
 f = 5
-seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"ON",G:"ON",f:"OFF"}
+seton = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"OFF",f:"ON"}
 
 ########******************* CONSTRUCTION FUNCTIONS *******************########
 def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp,conds=False):
@@ -38,7 +41,8 @@ def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp,conds=False):
             piece3 = end + conds[3]*log(set3/lim2)
         return concatenate((piece1,piece2,piece3))
 
-def plotter(r,m,rstart,rchange,labels):
+def plotter(r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,labels):
+    m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp,conds)
     plt.figure()
     plt.loglog(r,m,'.')
     plt.ylabel(r'{0}'.format(labels[1]))
@@ -51,17 +55,16 @@ def plotter(r,m,rstart,rchange,labels):
     plt.show()
 
 def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,plotting=False):
-    rarray,rchange,rstart = grid(size[0],size[1],size[2])
+    rarray,rchange,rstart = grid(size[0],size[1],size[2],size[3],size[4])
     tab,problems = func(rarray,verbose)
     tab = [i for j, i in enumerate(tab) if j not in problems]
     rarray = [i for j, i in enumerate(rarray) if j not in problems]
     inter = interp1d(log10(rarray),log10(tab))
     start = tab[0]
     end = tab[len(rarray)-1]
-    m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp,conds)
     if plotting != False:
-        plotter(r,m,rstart,rchange,plotting)
-    return m,inter
+        plotter(r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,plotting)
+    return inter
 
 
 ########******************* MODEL FRAMEWORK *******************########
@@ -131,9 +134,11 @@ def funcMenc(r,verbose=False):
                     problems.append(i)
             except (IndexError, TypeError):
                 pass
-            if temp[0] >= 0:
+            if r[i] > 10**10:
+                Mencs.append(Mencs[i-1])
+            elif temp[0] >= 0:
                 Mencs.append(4*pi*temp[0])
-            elif temp[0] < 0:
+            elif temp[0] < 0 or r[i] > 10**10:
                 Mencs.append(Mencs[i-1])
         return array(Mencs),array(problems)
     except AttributeError:
@@ -164,27 +169,31 @@ def rH():
 
 ########******************* CONSTRUCTION FUNCTIONS *******************########
 
-def rgrid(upstep=5,downstep=-5,step=0.03):
+def rgrid(upstep=5,downstep=-5,up=12,down=-12,step=0.03):
     rmin = min([rH(),[1.]])
     rmax = max([rH(),[1.]])
     rimin = log10(rmin) + downstep
     rimax = log10(rmax) + upstep
     dri = step
     rarray = arange(rimin,rimax,dri)
+    rarray = append(rarray,up)
+    rarray = insert(rarray,0,down)
     rarray = 10**rarray
     rchange = rarray[len(rarray)-1]
     rstart = rarray[0]
     return rarray,rchange,rstart
 
-rarray,rchange,rstart = rgrid(10,-10,0.03)
+rarray,rchange,rstart = rgrid(5,-5,0.03)
 
-def Egrid(upstep=5,downstep=-3,step=0.1):
+def Egrid(upstep=5,downstep=-3,up=12,down=-12,step=0.1):
     rmin = min([rH(),[1.]])[0]
     rmax = max([rH(),[1.]])[0]
     eimin = log10(funcMenc(rmax)[0]/rmax) + downstep
     eimax = log10(model.Mnorm/rmin) + upstep
     dei = step
     Earray = arange(eimin,eimax,dei)
+    Earray = append(Earray,up)
+    Earray = insert(Earray,0,down)
     Earray = 10**Earray
     Echange = Earray[len(Earray)-1]
     Estart = Earray[0]
@@ -194,9 +203,10 @@ def Egrid(upstep=5,downstep=-3,step=0.1):
 
 if seton[Menc] == "ON":
     tic = time.clock()
-    Mencvals,Mencgood = makegood(funcMenc,rtest,[12,-12,0.03],rgrid,3-model.g,0,conds = [2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)])#,plotting = ['r','M'])
+    Mencgood = makegood(funcMenc,rtest,[3,-3,20,-20,0.03],rgrid,3-model.g,0,conds = [2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)])#,plotting = ['r','M'])
     toc = time.clock()
-    print 'Menc ran in ',toc-tic, 's'
+    delt = toc-tic
+    print 'Menc ran in \t {0}'.format(str(datetime.timedelta(seconds = delt)))
 
 ########******************* POTENTIAL *******************######## 
         
@@ -247,9 +257,10 @@ def funcpsi(r,verbose):
 if seton[psi] == "ON":
     if seton[Menc] == "ON":
         tic = time.clock()
-        psivals,psigood = makegood(funcpsi,rtest,[12,-12,0.03],rgrid,-1,-1)#, plotting = ['r','$\psi$'])
+        psigood = makegood(funcpsi,rtest,[3,-3,20,-20,0.03],rgrid,-1,-1)#, plotting = ['r','$\psi$'])
         toc = time.clock()
-        print 'psi ran in ',toc-tic, 's'
+        delt = toc-tic
+        print 'psi ran in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
     elif seton[Menc] != "ON":
         print 'To compute psi please turn Menc ON'
 
@@ -274,6 +285,7 @@ def rapo(E):
 ########******************* CIRCULAR ANGULAR MOMENTUM *******************######## 
 
 def Jc2implicit(r,E,verbose):
+    #print r
     return abs(10**psigood(log10(abs(r)))-E-((10**Mencgood(log10(abs(r)))+model.Mnorm)/(2*r)))
 
 def funcJc2(E,verbose):
@@ -315,9 +327,10 @@ def funcJc2(E,verbose):
 if seton[Jc2] == "ON":
     if seton[psi] == "ON" and seton[Menc] == "ON":
         tic = time.clock()
-        Jc2good = makegood(funcJc2,rtest,[3,-3,0.01],Egrid,-1,-1,verbose = True)#,plotting = ['E','Jc2'])
+        Jc2good = makegood(funcJc2,rtest,[3,-3,12,-12,0.01],Egrid,-1,-1,verbose = True,plotting = ['E','Jc2'])
         toc = time.clock()
-        print 'Jc2good ran in ',toc-tic, 's'
+        delt = toc-tic
+        print 'Jc2good ran in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
     elif seton[psi] != "ON":
         print 'To compute Jc2 please turn psi ON'
     elif seton[Menc] != "ON":
@@ -363,9 +376,10 @@ def funcg(E,verbose=False):
 if seton[g] == "ON":
     if seton[psi] == "ON":
         tic = time.clock()
-        gvals,ggood = makegood(funcg,rtest,[9,-8,0.1],Egrid,model.b-0.5,model.g-0.5)#,plotting = ['E','g'])
+        ggood = makegood(funcg,rtest,[3,-3,12,-12,0.1],Egrid,model.b-0.5,model.g-0.5)#,plotting = ['E','g'])
         toc = time.clock()
-        print 'g ran in ',toc-tic, 's'
+        delt = toc-tic
+        print 'g ran in \t {0}'.format(datetime.timedelta(seconds=delt))
     elif seton[psi] != "ON":
         print 'To compute g, please turn psi ON'
 
@@ -412,9 +426,10 @@ def funcG(E,verbose = False):
 if seton[G] == "ON":
     if seton[psi] == "ON" and seton[g] == "ON":
         tic = time.clock()
-        Ggood = makegood(funcG,rtest,[2,-2,0.1],Egrid,model.b-4,model.g-4,verbose=False,plotting = ['E','G'])
+        Ggood = makegood(funcG,rtest,[2,-2,12,-12,0.1],Egrid,model.b-4,model.g-4,verbose=False,plotting = ['E','G'])
         toc = time.clock()
-        print 'Ggood ran in ', toc-tic, 's'
+        delt = toc-tic
+        print 'Ggood ran in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
     elif seton[psi] != "ON":
         print 'To compute G, please turn psi ON'
     elif seton[g] != "ON":
@@ -448,10 +463,10 @@ def funcf(E,verbose=False):
         fans = []
         problems = []
         for i in range(len(E)):
-            #print i+1, ' of ', len(E)
+            print i+1, ' of ', len(E)
             rapoval = rapo(E[i])
             #print rapoval
-            prefactor = (1./(sqrt(8)*pi**2*(model.Mnorm + funcMenc(rapoval,verbose)[0])))
+            prefactor = (1./(sqrt(8)*pi**2*(model.Mnorm + 10**Mencgood(log10(rapoval)))))
             temp1 = intg.quad(finterior1,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
             temp2 = intg.quad(finterior2,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
             temp3 = intg.quad(finterior3,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
@@ -499,9 +514,10 @@ def funcf(E,verbose=False):
 if seton[f] == "ON":
     if seton[Menc] == "ON" and seton[psi] == "ON":
         tic = time.clock()
-        fgood = makegood(funcf,rtest,[5,-3,0.03],Egrid,model.b-1.5,model.g-1.5,verbose=False)#,plotting = ['E','f'])
+        fgood = makegood(funcf,rtest,[5,-3,12,-12,0.03],Egrid,model.b-1.5,model.g-1.5,verbose=False,plotting = ['E','f'])
         toc = time.clock()
-        print 'fgood ran in ', toc-tic, 's'
+        delt = toc-tic
+        print 'fgood ran in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
     elif seton[Menc] != "ON":
         print 'To compute f, please turn Menc ON'
     elif seton[psi] != "ON":
