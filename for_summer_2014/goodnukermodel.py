@@ -3,9 +3,7 @@ import scipy.integrate as intg
 from scipy.optimize import root
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
-import os
 import time
-import math
 import datetime
 from subprocess import call
 Lam = exp(1)# ****************************************************************
@@ -16,36 +14,16 @@ pc = 3.1e16
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
-verbosity = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
-plot = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"ON",G:"OFF",f:"OFF"}
-plt.ion()
+seton = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
+verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
+plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
+#plt.ion()
 ########******************* PICKLING *******************########
-def _pickle_method(method):
-    func_name = method.im_func.__name__
-    obj = method.im_self
-    cls = method.im_class
-    return _unpickle_method, (func_name, obj, cls)
-
-def _unpickle_method(func_name, obj, cls):
-    for cls in cls.mro():
-        try:
-            func = cls.__dict__[func_name]
-        except KeyError:
-            pass
-        else:
-            break
-        return func.__get__(obj, cls)
-
-import copy_reg
-import types
-copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
-
 import pickle
 ########******************* MODEL FRAMEWORK *******************########
-class MakeModel:
+class NukerModel:
     #initialize variables that constitute our model
-    def __init__(self,model_name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate=True):
+    def __init__(self,model_name,alpha,beta,gamma,r0pc,rho0,MBH_Msun):
         #name of model
         self.name = model_name
         #Nuker fit parameters
@@ -66,8 +44,6 @@ class MakeModel:
         self.r0_rT=(self.r0*pc)/self.rT
         #dynamical timescale (currently unused)
         self.tdyn0 = ((Gconst*self.rho0*realMsun)/pc**3)**(-1./2)
-        #generate data?
-        self.generate = generate
     
     #compute density
     def rho(self,r):
@@ -87,7 +63,7 @@ class MakeModel:
                                 
 ########******************* CONSTRUCT MODEL *******************########
 
-model = MakeModel('testing',1.,4.,1.5,1.,1.e5,1.e3,generate = False)
+model = NukerModel('testing',1.,4.,1.5,1.,1.e5,1.e3)
 rtest = arange(-12,12,0.01)
 rtest = 10**rtest
 directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,model.r0,model.rho0,model.MBH)
@@ -121,11 +97,12 @@ def plotter(name,r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,labe
     plt.xlabel('{0}'.format(labels[0]))
     plt.xlim(min(r),max(r))
     plt.ylim(min(m),max(m))
-    plt.axvline(rstart, color='r',label='Limits of interpolation')
-    plt.axvline(rchange, color='r')
-    plt.legend(loc='best')
+    if rstart>r[0] and rchange<r[len(r)-1]:
+        plt.axvline(rstart, color='r',label='Limits of interpolation')
+        plt.axvline(rchange, color='r')
+        plt.legend(loc='best')
     plt.savefig('{0}/{1}.png'.format(directory,name))
-    plt.show()
+    #plt.show()
 
 def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,plotting=False):
     rarray,rchange,rstart = grid(size[0],size[1],size[2],size[3],size[4])
@@ -133,13 +110,12 @@ def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,
     tab = [i for j, i in enumerate(tab) if j not in problems]
     rarray = [i for j, i in enumerate(rarray) if j not in problems]
     inter = interp1d(log10(rarray),log10(tab))
-    try:
-        pklfile = open('{0}/{1}.pkl'.format(directory,str(func)[10:15]),"wb")
-        pickle.dump(inter,pklfile)
-        pklfile.close()
-    except Exception as e:
-        print 'Interpolation Error'
-        print e
+    pklrfile = open('{0}/r{1}.pkl'.format(directory,str(func)[10:15]),"wb")
+    pickle.dump(rarray,pklrfile)
+    pklrfile.close()
+    pklffile = open('{0}/{1}.pkl'.format(directory,str(func)[10:15]),"wb")
+    pickle.dump(tab,pklffile)
+    pklffile.close()
     start = tab[0]
     end = tab[len(rarray)-1]
     if plotting != False:
@@ -180,6 +156,22 @@ def compute(dependencies,name,function,rtest,size,grid,exps,kwargs):
             return good
         except TypeError:
             print 'To compute {0}, please turn {1} ON'.format(strname,dependencies[i+1])
+    elif seton[name] != "ON":
+        try:
+            tic = time.clock()
+            pklrfile = open('{0}/r{1}.pkl'.format(directory,str(function)[10:15]),"rb")
+            rarray = pickle.load(pklrfile)
+            pklrfile.close()
+            pklffile = open('{0}/{1}.pkl'.format(directory,str(function)[10:15]),"rb")
+            tab = pickle.load(pklffile)
+            pklffile.close()
+            good =  interp1d(log10(rarray),log10(tab))
+            toc = time.clock()
+            delt = toc-tic
+            print '{0}good loaded in \t {1}'.format(strname,str(datetime.timedelta(seconds=delt)))
+            return good
+        except IOError:
+            print '{0} not yet generated, please turn it ON'.format(strname)
             
 ########******************* ENCLOSED MASS *******************########
 
