@@ -7,6 +7,7 @@ import time
 import datetime
 from subprocess import call
 import pickle
+plt.ion()
 Lam = exp(1)# ****************************************************************
 Gconst = 6.67259e-8
 realMsun = 1.989e33
@@ -15,8 +16,8 @@ pc = 3.1e16
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"ON",f:"ON"}
-verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
+seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"ON",f:"OFf"}
+verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"OFF",G:"ON",f:"ON"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
 class NukerModel:
@@ -126,8 +127,9 @@ def plotter(name,r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,labe
         plt.axvline(rchange, color='r')
         plt.legend(loc='best')
     plt.savefig('{0}/{1}.png'.format(directory,name))
+    plt.show()
 
-def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,plotting=False):
+def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,plotting=False,problem = True):
     """
     func - function to be evaluated
     r - independent variable array
@@ -138,13 +140,15 @@ def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,
     verbose = False - suppresses warnings and error messages from integration and rootfinders
     conds = False - no special conditions on the piecewise function
     plotting = False - do not save plots
+    problem = True - eliminate problem points
     returns an interpolated object version of the function based computed values
     """
     rarray,rchange,rstart = grid(size[0],size[1],size[2],size[3],size[4])
     tab,problems = func(rarray,verbose)
-    print 'fraction unsatisfactorially computed: {0}'.format(len(problems)/len(tab))
-    tab = [i for j, i in enumerate(tab) if j not in problems]
-    rarray = [i for j, i in enumerate(rarray) if j not in problems]
+    print 'fraction unsatisfactorially computed: {0}'.format(float(len(problems))/float(len(tab)))
+    if problem == True:
+        tab = [i for j, i in enumerate(tab) if j not in problems]
+        rarray = [i for j, i in enumerate(rarray) if j not in problems]
     inter = interp1d(log10(rarray),log10(tab))
     pklrfile = open('{0}/r{1}.pkl'.format(directory,str(func)[10:15]),"wb")
     pickle.dump(rarray,pklrfile)
@@ -167,7 +171,7 @@ def compute(dependencies,name,function,rtest,size,grid,exps,kwargs):
     size - size of generated independent variable array with format [upstep,downstep,max,min,stepsize]
     grid - choice of grid generator function
     exps - extreme r or E behaviour, format [smallrexp,largerexp]
-    kwargs - additional information used to specify conditions and plotting information, format [conds,plotting]
+    kwargs - additional information used to specify conditions and plotting information, format [conds,plotting,problem]
     finds interpolated form based on conditions in the dictionaries and pickles it or unpickles intepolated form
     returns interpolated form
     """
@@ -179,30 +183,31 @@ def compute(dependencies,name,function,rtest,size,grid,exps,kwargs):
                 dependencies[i](1)
                 i+=2
             smallrexp,largerexp = exps
-            conditions,plotdat = kwargs
+            conditions,plotdat,prob = kwargs
             if verbosity[name] == "ON" and plot[name] == "ON":
                 tic = time.clock()
-                good = makegood(function,rtest,size,grid,smallrexp,largerexp,verbose = True,conds = conditions,plotting = plotdat)
+                good = makegood(function,rtest,size,grid,smallrexp,largerexp,verbose = True,conds = conditions,plotting = plotdat,problem = prob)
                 toc = time.clock()
                 delt = toc-tic
             elif verbosity[name] == "ON" and plot[name] == "OFF":
                 tic = time.clock()
-                good = makegood(function,rtest,size,grid,smallrexp,largerexp,verbose = True,conds = conditions)
+                good = makegood(function,rtest,size,grid,smallrexp,largerexp,verbose = True,conds = conditions,problem = prob)
                 toc = time.clock()
                 delt = toc-tic
             elif verbosity[name] == "OFF" and plot[name] == "ON":
                 tic = time.clock()
-                good = makegood(function,rtest,size,grid,smallrexp,largerexp,conds = conditions,plotting = plotdat)
+                good = makegood(function,rtest,size,grid,smallrexp,largerexp,conds = conditions,plotting = plotdat,problem = prob)
                 toc = time.clock()
                 delt = toc-tic
             elif verbosity[name] == "OFF" and plot[name] == "OFF":
                 tic = time.clock()
-                good = makegood(function,rtest,size,grid,smallrexp,largerexp,conds = conditions)
+                good = makegood(function,rtest,size,grid,smallrexp,largerexp,conds = conditions,problem = prob)
                 toc = time.clock()
                 delt = toc-tic
             print '{0}good ran in \t {1}'.format(strname,str(datetime.timedelta(seconds=delt)))
             return good
-        except TypeError:
+        except TypeError as e:
+            print e
             print 'To compute {0}, please turn {1} ON'.format(strname,dependencies[i+1])
     elif seton[name] != "ON":
         try:
@@ -242,9 +247,10 @@ def funcMenc(r,verbose=False):
         for i in range(len(r)):
             temp = intg.quad(Minterior,0,r[i],full_output=1)
             try:
-                if temp[3]!='' and verbose==True:
-                    print 'Menc, r = ',r[i],'message = ',temp[3],'\n'
+                if temp[3]!='':
                     problems.append(i)
+                    if verbose==True:
+                        print 'Menc, r = ',r[i],'message = ',temp[3],'\n'
             except (IndexError, TypeError):
                 pass
             if r[i] > 10**10:
@@ -258,9 +264,10 @@ def funcMenc(r,verbose=False):
         problem = []
         temp = 4*pi*intg.quad(Minterior,0,r)[0]
         try:
-            if temp[3]!='' and verbose==True:
-                print 'Menc, r = ',r,'message = ',temp[3],'\n'
-                problem = [r]
+            if temp[3]!='':
+                problems = [r]
+                if verbose==True:
+                    print 'Menc, r = ',r,'message = ',temp[3],'\n'
                 t = temp[0]
         except (IndexError,TypeError):
             t = temp
@@ -328,7 +335,7 @@ def Egrid(upstep=5,downstep=-3,up=12,down=-12,step=0.1):
 
 ########******************* COMPUTE MENC *******************######## 
 
-Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[3,-3,20,-20,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M']])
+Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[3,-3,30,-30,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],True])
 
 ########******************* POTENTIAL *******************######## 
         
@@ -351,9 +358,10 @@ def psi2(r,verbose=False):
         for i in range(len(r)):
             temp=intg.quad(psi2interior,r[i],inf,full_output=1)
             try:
-                if temp[3]!='' and verbose==True:
-                    print 'psi2, index =',i,'r = ',r[i],'message = ',temp[3],'\n'
-                    problems.append(r)
+                if temp[3]!='':
+                    if verbose==True:
+                        print 'psi2, index =',i,'r = ',r[i],'message = ',temp[3],'\n'
+                    problems.append(i)
             except (IndexError,TypeError):
                 pass
             psi2s.append(4*pi*temp[0])
@@ -362,15 +370,16 @@ def psi2(r,verbose=False):
         problem = []
         temp = 4*pi*intg.quad(psi2interior,r,inf)[0]
         try:
-            if temp[3]!='' and verbose==True:
-                print 'psi2, r = ',r,'message = ',temp[3],'\n'
+            if temp[3]!='':
+                if verbose==True:
+                    print 'psi2, r = ',r,'message = ',temp[3],'\n'
                 problem = [r]
                 t = temp[0]
         except (IndexError,TypeError):
             t = temp
         return t, problem
 
-def funcpsi(r,verbose):
+def funcpsi(r,verbose=False):
     """
     returns potential as a function of r
     """
@@ -387,7 +396,7 @@ def funcpsi(r,verbose):
 
 ########******************* COMPUTE PSI *******************######## 
 
-psigood = compute([],["psi",psi],funcpsi,rtest,[3,-3,20,-20,0.03],rgrid,[-1,-1],[False,['r','$\psi$']])
+psigood = compute([],["psi",psi],funcpsi,rtest,[3,-3,30,-30,0.03],rgrid,[-1,-1],[False,['r','$\psi$'],True])
 
 ########******************* APOCENTER RADIUS *******************######## 
 
@@ -439,9 +448,10 @@ def funcJc2(E,verbose):
             rresult.x = abs(rresult.x)
             if rresult.success == True:
                 Jcs.append(((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0])
-            elif rresult.success == False and verbose==True:
-                print 'Failed to evaluate Jc2'
-                print rresult.message
+            elif rresult.success == False:
+                if verbose==True:
+                    print 'Failed to evaluate Jc2'
+                    print rresult.message
                 Jcs.append(((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0])
                 problems.append(i)
         return array(Jcs),problems
@@ -452,8 +462,9 @@ def funcJc2(E,verbose):
         if rresult.success == True:
             Jc = ((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0]
         elif rresult.success == False:
-            print 'Failed to evaluate Jc2'
-            print rresult.message
+            if verbose==True:
+                print 'Failed to evaluate Jc2'
+                print rresult.message
             Jc = ((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0]
             problem = [E]
         return Jc, problem
@@ -462,7 +473,7 @@ def funcJc2(E,verbose):
 
 prereqs = [Mencgood,"Menc",psigood,"psi"]
 
-Jc2good = compute(prereqs,["Jc2",Jc2],funcJc2,rtest,[3,-3,12,-12,0.01],Egrid,[-1,-1],[False,['E','Jc2']])
+Jc2good = compute(prereqs,["Jc2",Jc2],funcJc2,rtest,[3,-3,12,-12,0.01],Egrid,[-1,-1],[False,['E','Jc2'],True])
 
 ########******************* g *******************######## 
 
@@ -470,7 +481,7 @@ def ginterior(r,E):
     """
     interior of g integral
     """
-    return (model.drhodr(1./r))*(r**-2)*((sqrt(E-10**psigood(log10(1./r))))**-1)
+    return (model.drhodr(1./r))*(r**-2)*((sqrt(abs(E-10**psigood(log10(1./r)))))**-1)
     
 def funcg(E,verbose=False):
     """
@@ -487,21 +498,23 @@ def funcg(E,verbose=False):
             temp = intg.quad(ginterior,0,1./rapoval,args = E[i],full_output = 1)
             t = temp[0]
             try:
-                if temp[3] != '' and verbose == True:
-                    print 'g, E = ',E[i], 'message = ', temp[3]
+                if temp[3] != '':
+                    if verbose == True:
+                        print 'g, E = ',E[i], 'message = ', temp[3]
                     problems.append(i)
             except (IndexError,TypeError):
                 pass
             gans.append(-pi*t)
         return array(gans),problems
-    except (AttributeError,TypeError):
+    except (AttributeError,TypeError) as e:
         problem = []
         rapoval = rapo(E)
         temp = intg.quad(ginterior,0,1./rapoval,args = E,full_output = 1)
         t = temp[0]
         try:
-            if temp[3] != '' and verbose == True:
-                print 'g, E = ',E, 'message = ', temp[3]
+            if temp[3] != '':
+                if verbose == True:
+                    print 'g, E = ',E, 'message = ', temp[3]
                 problem = [E]
         except (IndexError,TypeError):
             pass
@@ -510,20 +523,16 @@ def funcg(E,verbose=False):
 ########******************* COMPUTE g *******************######## 
 prereqs = [psigood,"psi"]
 
-ggood = compute(prereqs,["g",g],funcg,rtest,[3,-3,12,-12,0.1],Egrid,[model.b-0.5,model.g-0.5],[False,['E','g']])
+ggood = compute(prereqs,["g",g],funcg,rtest,[3,-3,20,-20,0.1],Egrid,[model.b-0.5,model.g-0.5],[False,['E','g'],False])
 
 ########******************* mathcalG *******************######## 
 
-def Ginterior(theta,r,E,p):
+def Ginterior(theta,r,E):
     """
     interior of G integral
     """
-    if p==True:
-        print 'rarg = ',log10(r)
     psir = 10**psigood(log10(r))
     part1 = (r**2)/sqrt(psir-E)
-    if p==True:
-        print 'garg = ',log10(psir*(1-theta) + E*theta)
     part2 = 10**ggood(log10(psir*(1-theta) + E*theta))
     part3 = (1./sqrt(theta))-sqrt(theta)
     return part1*part2*part3
@@ -538,16 +547,14 @@ def funcG(E,verbose = False):
         t = E.shape
         Gans = []
         problems = []
-        p = False
         for i in range(len(E)):
-            if i==36:
-                p = True
             print i+1, 'of', len(E)
             rapoval = rapo(E[i])
-            temp = intg.dblquad(Ginterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E[i],p))
+            temp = intg.dblquad(Ginterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E[i],))
             try:
-                if temp[3] != '' and verbose == True:
-                    print 'G, E = ', E[i], 'message = ', temp[3]
+                if temp[3] != '':
+                    if verbose == True:
+                        print 'G, E = ', E[i], 'message = ', temp[3]
                     problems.append(i)
             except IndexError:
                 pass
@@ -558,8 +565,9 @@ def funcG(E,verbose = False):
         temp = intg.dblquad(Ginterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E,verbose))
         problem = []
         try:
-            if temp[3] != '' and verbose == True:
-                print 'G, E = ', E, 'message = ', temp[3]
+            if temp[3] != '':
+                if verbose == True:
+                    print 'G, E = ', E, 'message = ', temp[3]
                 problem = [E]
         except IndexError:
             pass
@@ -568,7 +576,7 @@ def funcG(E,verbose = False):
 ########******************* COMPUTE G *******************######## 
 prereqs = [psigood, "psi",ggood,"g"]
 
-Ggood = compute(prereqs,["G",G],funcG,rtest,[2,-2,12,-12,0.1],Egrid,[model.b-4,model.g-4],[False,['E','G']])
+Ggood = compute(prereqs,["G",G],funcG,rtest,[2,-2,12,-12,0.1],Egrid,[model.b-4,model.g-4],[False,['E','G'],False])
 
 ########******************* DISTRIBUTION FUNCTION *******************######## 
 
@@ -619,16 +627,18 @@ def funcf(E,verbose=False):
             temp3 = intg.quad(finterior3,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
             t = temp1[0] + temp2[0] + temp3[0]
             try:
-                if verbose==True:
-                    if temp1[3] != '':
+                if temp1[3] != '':
+                    if verbose == True:
                         print 'f, E = ',E[i],'message = ',temp1[3]
-                        problems.append(i)
-                    elif temp2[3] != '':
+                    problems.append(i)
+                elif temp2[3] != '':
+                    if verbose == True:
                         print 'f, E = ',E[i],'message = ',temp2[3]
-                        problems.append(i)
-                    elif temp3[3] != '':
+                    problems.append(i)
+                elif temp3[3] != '':
+                    if verbose == True:
                         print 'f, E = ',E[i],'message = ',temp3[3]
-                        problems.append(i)                    
+                    problems.append(i)                    
             except IndexError:
                 pass
             fans.append((prefactor*t)[0])
@@ -660,7 +670,7 @@ def funcf(E,verbose=False):
 ########******************* COMPUTE f *******************######## 
 prereqs = [Mencgood,"Menc",psigood,"psi"]
 
-fgood = compute(prereqs,["f",f],funcf,rtest,[5,-3,12,-12,0.03],Egrid,[model.b-1.5,model.g-1.5],[False,['E','f']])
+fgood = compute(prereqs,["f",f],funcf,rtest,[5,-3,12,-12,0.03],Egrid,[model.b-1.5,model.g-1.5],[False,['E','f'],False])
 
 ########******************* ADDITIONAL FUNCTIONS *******************######## 
 '''
