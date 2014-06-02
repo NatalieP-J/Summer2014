@@ -20,7 +20,7 @@ Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
 #g = 3
 #G = 4
 #f = 5
-seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+seton = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 
 ########******************* PICKLING *******************########
 def _pickle_method(method):
@@ -82,7 +82,7 @@ def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,
     tab = [i for j, i in enumerate(tab) if j not in problems]
     rarray = [i for j, i in enumerate(rarray) if j not in problems]
     inter = interp1d(log10(rarray),log10(tab))
-    pickle.dump(inter,open('{0}.pkl'.format(str(func)[10:15]),"wb"))
+    pickle.dump(inter.__call__,open('{0}.pkl'.format(str(func)[10:15]),"wb"))
     start = tab[0]
     end = tab[len(rarray)-1]
     if plotting != False:
