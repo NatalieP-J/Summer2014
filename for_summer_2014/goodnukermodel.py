@@ -7,6 +7,7 @@ import os
 import time
 import math
 import datetime
+from subprocess import call
 Lam = exp(1)# ****************************************************************
 Gconst = 6.67259e-8
 realMsun = 1.989e33
@@ -15,9 +16,9 @@ pc = 3.1e16
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"ON"}
+seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 verbosity = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
-plot = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"ON",G:"OFF",f:"ON"}
+plot = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"ON",G:"OFF",f:"OFF"}
 plt.ion()
 ########******************* PICKLING *******************########
 def _pickle_method(method):
@@ -39,89 +40,8 @@ def _unpickle_method(func_name, obj, cls):
 import copy_reg
 import types
 copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
+
 import pickle
-########******************* CONSTRUCTION FUNCTIONS *******************########
-def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp,conds=False):
-    set1 = r[(r<lim1)]
-    set2 = r[(r>=lim1)&(r<=lim2)]
-    set3 = r[(r>lim2)]
-    piece1 = start*(set1/lim1)**smallrexp
-    piece2 = 10**(inter(log10(set2)))
-    if conds==False:
-        piece3 = end*(set3/lim2)**largerexp
-        return concatenate((piece1,piece2,piece3))
-    if conds!=False:
-        tip = conds[0]
-        if model.b>tip:
-            piece3 = end*(set3/lim2)**conds[1]
-        elif model.b<tip:
-            piece3 = end*(set3/lim2)**conds[2]
-        elif model.b == tip:
-            piece3 = end + conds[3]*log(set3/lim2)
-        return concatenate((piece1,piece2,piece3))
-
-def plotter(r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,labels):
-    m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp,conds)
-    plt.figure()
-    plt.loglog(r,m,'.')
-    plt.ylabel(r'{0}'.format(labels[1]))
-    plt.xlabel('{0}'.format(labels[0]))
-    plt.xlim(min(r),max(r))
-    plt.ylim(min(m),max(m))
-    plt.axvline(rstart, color='r',label='Limits of interpolation')
-    plt.axvline(rchange, color='r')
-    plt.legend(loc='best')
-    plt.show()
-
-def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,plotting=False):
-    rarray,rchange,rstart = grid(size[0],size[1],size[2],size[3],size[4])
-    tab,problems = func(rarray,verbose)
-    tab = [i for j, i in enumerate(tab) if j not in problems]
-    rarray = [i for j, i in enumerate(rarray) if j not in problems]
-    inter = interp1d(log10(rarray),log10(tab))
-    pickle.dump(inter.__call__,open('{0}.pkl'.format(str(func)[10:15]),"wb"))
-    start = tab[0]
-    end = tab[len(rarray)-1]
-    if plotting != False:
-        plotter(r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,plotting)
-    return inter
-
-def compute(dependencies,name,function,rtest,size,grid,exps,kwargs):
-    strname,name = name
-    if seton[name] == "ON":
-        try:   
-            i = 0
-            while i<len(dependencies):
-                dependencies[i](1)
-                i+=2
-            smallrexp,largerexp = exps
-            conditions,plotdat = kwargs
-            if verbosity[name] == "ON" and plot[name] == "ON":
-                tic = time.clock()
-                good = makegood(function,rtest,size,grid,smallrexp,largerexp,verbose = True,conds = conditions,plotting = plotdat)
-                toc = time.clock()
-                delt = toc-tic
-            elif verbosity[name] == "ON" and plot[name] == "OFF":
-                tic = time.clock()
-                good = makegood(function,rtest,size,grid,smallrexp,largerexp,verbose = True,conds = conditions)
-                toc = time.clock()
-                delt = toc-tic
-            elif verbosity[name] == "OFF" and plot[name] == "ON":
-                tic = time.clock()
-                good = makegood(function,rtest,size,grid,smallrexp,largerexp,conds = conditions,plotting = plotdat)
-                toc = time.clock()
-                delt = toc-tic
-            elif verbosity[name] == "OFF" and plot[name] == "OFF":
-                tic = time.clock()
-                good = makegood(function,rtest,size,grid,smallrexp,largerexp,conds = conditions)
-                toc = time.clock()
-                delt = toc-tic
-            print '{0}good ran in \t {1}'.format(strname,str(datetime.timedelta(seconds=delt)))
-            return good
-        except TypeError:
-            print 'To compute {0}, please turn {1} ON'.format(strname,dependencies[i+1])
-            
-
 ########******************* MODEL FRAMEWORK *******************########
 class MakeModel:
     #initialize variables that constitute our model
@@ -170,7 +90,97 @@ class MakeModel:
 model = MakeModel('testing',1.,4.,1.5,1.,1.e5,1.e3,generate = False)
 rtest = arange(-12,12,0.01)
 rtest = 10**rtest
+directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,model.r0,model.rho0,model.MBH)
+call(["mkdir","{0}".format(directory)])
 
+########******************* CONSTRUCTION FUNCTIONS *******************########
+def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp,conds=False):
+    set1 = r[(r<lim1)]
+    set2 = r[(r>=lim1)&(r<=lim2)]
+    set3 = r[(r>lim2)]
+    piece1 = start*(set1/lim1)**smallrexp
+    piece2 = 10**(inter(log10(set2)))
+    if conds==False:
+        piece3 = end*(set3/lim2)**largerexp
+        return concatenate((piece1,piece2,piece3))
+    if conds!=False:
+        tip = conds[0]
+        if model.b>tip:
+            piece3 = end*(set3/lim2)**conds[1]
+        elif model.b<tip:
+            piece3 = end*(set3/lim2)**conds[2]
+        elif model.b == tip:
+            piece3 = end + conds[3]*log(set3/lim2)
+        return concatenate((piece1,piece2,piece3))
+
+def plotter(name,r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,labels):
+    m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp,conds)
+    plt.figure()
+    plt.loglog(r,m,'.')
+    plt.ylabel(r'{0}'.format(labels[1]))
+    plt.xlabel('{0}'.format(labels[0]))
+    plt.xlim(min(r),max(r))
+    plt.ylim(min(m),max(m))
+    plt.axvline(rstart, color='r',label='Limits of interpolation')
+    plt.axvline(rchange, color='r')
+    plt.legend(loc='best')
+    plt.savefig('{0}/{1}.png'.format(directory,name))
+    plt.show()
+
+def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,plotting=False):
+    rarray,rchange,rstart = grid(size[0],size[1],size[2],size[3],size[4])
+    tab,problems = func(rarray,verbose)
+    tab = [i for j, i in enumerate(tab) if j not in problems]
+    rarray = [i for j, i in enumerate(rarray) if j not in problems]
+    inter = interp1d(log10(rarray),log10(tab))
+    try:
+        pklfile = open('{0}/{1}.pkl'.format(directory,str(func)[10:15]),"wb")
+        pickle.dump(inter,pklfile)
+        pklfile.close()
+    except Exception as e:
+        print 'Interpolation Error'
+        print e
+    start = tab[0]
+    end = tab[len(rarray)-1]
+    if plotting != False:
+        plotter(str(func)[10:15],r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,plotting)
+    return inter
+
+def compute(dependencies,name,function,rtest,size,grid,exps,kwargs):
+    strname,name = name
+    if seton[name] == "ON":
+        try:   
+            i = 0
+            while i<len(dependencies):
+                dependencies[i](1)
+                i+=2
+            smallrexp,largerexp = exps
+            conditions,plotdat = kwargs
+            if verbosity[name] == "ON" and plot[name] == "ON":
+                tic = time.clock()
+                good = makegood(function,rtest,size,grid,smallrexp,largerexp,verbose = True,conds = conditions,plotting = plotdat)
+                toc = time.clock()
+                delt = toc-tic
+            elif verbosity[name] == "ON" and plot[name] == "OFF":
+                tic = time.clock()
+                good = makegood(function,rtest,size,grid,smallrexp,largerexp,verbose = True,conds = conditions)
+                toc = time.clock()
+                delt = toc-tic
+            elif verbosity[name] == "OFF" and plot[name] == "ON":
+                tic = time.clock()
+                good = makegood(function,rtest,size,grid,smallrexp,largerexp,conds = conditions,plotting = plotdat)
+                toc = time.clock()
+                delt = toc-tic
+            elif verbosity[name] == "OFF" and plot[name] == "OFF":
+                tic = time.clock()
+                good = makegood(function,rtest,size,grid,smallrexp,largerexp,conds = conditions)
+                toc = time.clock()
+                delt = toc-tic
+            print '{0}good ran in \t {1}'.format(strname,str(datetime.timedelta(seconds=delt)))
+            return good
+        except TypeError:
+            print 'To compute {0}, please turn {1} ON'.format(strname,dependencies[i+1])
+            
 ########******************* ENCLOSED MASS *******************########
 
 def Minterior(r):
@@ -257,6 +267,9 @@ def Egrid(upstep=5,downstep=-3,up=12,down=-12,step=0.1):
 ########******************* COMPUTE MENC *******************######## 
 
 Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[3,-3,20,-20,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M']])
+
+test = open('{0}/funcM.pkl'.format(directory),"rb")
+mtest= pickle.load(test)
 
 ########******************* POTENTIAL *******************######## 
         
@@ -474,7 +487,6 @@ def finterior3(r,E,rapoval,verbose):
     return -(var**2)*(1./sqrt(abs(E-psi)))*(1./(2*rapoval))*model.drhodr(var)*((model.Mnorm*(r-1) + r*Mencvar - Mencrap)/abs(E-psi))
                    
 def funcf(E,verbose=False):
-    #print 'starting f evaluation'
     epsilon = 0
     try:
         t = E.shape
@@ -483,7 +495,6 @@ def funcf(E,verbose=False):
         for i in range(len(E)):
             print i+1, ' of ', len(E)
             rapoval = rapo(E[i])
-            #print rapoval
             prefactor = (1./(sqrt(8)*pi**2*(model.Mnorm + 10**Mencgood(log10(rapoval)))))
             temp1 = intg.quad(finterior1,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
             temp2 = intg.quad(finterior2,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
