@@ -533,34 +533,6 @@ prereqs = [Mencgood,"Menc",psigood,"psi"]
 
 fgood = compute(prereqs,["f",f],funcf,rtest,[5,-3,12,-12,0.03],Egrid,[model.b-1.5,model.g-1.5],[False,['E','f']])
 
-if seton[f] == "ON":
-    try:
-        Mencgood
-        psigood
-        if verbosity[f] == "ON" and plot[f] == "ON":
-            tic = time.clock()
-            fgood = makegood(funcf,rtest,[5,-3,12,-12,0.03],Egrid,model.b-1.5,model.g-1.5,verbose=True,plotting = ['E','f'])
-            toc = time.clock()
-            delt = toc-tic
-        elif verbosity[f] == "OFF" and plot[f] == "ON":
-            tic = time.clock()
-            fgood = makegood(funcf,rtest,[5,-3,12,-12,0.03],Egrid,model.b-1.5,model.g-1.5,plotting = ['E','f'])
-            toc = time.clock()
-            delt = toc-tic
-        elif verbosity[f] == "ON" and plot[f] == "OFF":
-            tic = time.clock()
-            fgood = makegood(funcf,rtest,[5,-3,12,-12,0.03],Egrid,model.b-1.5,model.g-1.5,verbose=True)
-            toc = time.clock()
-            delt = toc-tic
-        elif verbosity[f] == "OFF" and plot[f] == "OFF":
-            tic = time.clock()
-            fgood = makegood(funcf,rtest,[5,-3,12,-12,0.03],Egrid,model.b-1.5,model.g-1.5)
-            toc = time.clock()
-            delt = toc-tic
-        print 'fgood ran in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
-    except NameError:
-        print 'To compute f, please turn Menc and psi ON'
-
 ########******************* ADDITIONAL FUNCTIONS *******************######## 
 '''
 def funcq(r):
