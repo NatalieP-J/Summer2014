@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import time
 import datetime
 from subprocess import call
+import pickle
 Lam = exp(1)# ****************************************************************
 Gconst = 6.67259e-8
 realMsun = 1.989e33
@@ -17,9 +18,6 @@ Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
 seton = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
-#plt.ion()
-########******************* PICKLING *******************########
-import pickle
 ########******************* MODEL FRAMEWORK *******************########
 class NukerModel:
     #initialize variables that constitute our model
@@ -102,11 +100,11 @@ def plotter(name,r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,labe
         plt.axvline(rchange, color='r')
         plt.legend(loc='best')
     plt.savefig('{0}/{1}.png'.format(directory,name))
-    #plt.show()
 
 def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,plotting=False):
     rarray,rchange,rstart = grid(size[0],size[1],size[2],size[3],size[4])
     tab,problems = func(rarray,verbose)
+    print 'fraction unsatisfactorially computed: {0}'.format(len(problems)/len(tab))
     tab = [i for j, i in enumerate(tab) if j not in problems]
     rarray = [i for j, i in enumerate(rarray) if j not in problems]
     inter = interp1d(log10(rarray),log10(tab))
