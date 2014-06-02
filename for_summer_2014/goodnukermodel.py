@@ -16,7 +16,7 @@ km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
 
-seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"ON",G:"ON",f:"OFF"}
 
 ########******************* PICKLING *******************########
 def _pickle_method(method):
