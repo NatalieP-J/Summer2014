@@ -16,7 +16,8 @@ km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
 seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
-
+verbosity = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+plot = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 ########******************* PICKLING *******************########
 def _pickle_method(method):
     func_name = method.im_func.__name__
@@ -220,10 +221,26 @@ def Egrid(upstep=5,downstep=-3,up=12,down=-12,step=0.1):
 ########******************* COMPUTE MENC *******************######## 
 
 if seton[Menc] == "ON":
-    tic = time.clock()
-    Mencgood = makegood(funcMenc,rtest,[3,-3,20,-20,0.03],rgrid,3-model.g,0,conds = [2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)])#,plotting = ['r','M'])
-    toc = time.clock()
-    delt = toc-tic
+    if verbosity[Menc] == "ON" and plot[Menc] == "ON":
+        tic = time.clock()
+        Mencgood = makegood(funcMenc,rtest,[3,-3,20,-20,0.03],rgrid,3-model.g,0,conds = [2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],verbose = True,plotting = ['r','M'])
+        toc = time.clock()
+        delt = toc-tic
+    elif verbosity[Menc] == "OFF" and plot[Menc] == "ON":
+        tic = time.clock()
+        Mencgood = makegood(funcMenc,rtest,[3,-3,20,-20,0.03],rgrid,3-model.g,0,conds = [2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],plotting = ['r','M'])
+        toc = time.clock()
+        delt = toc-tic
+    elif verbosity[Menc] == "ON" and plot[Menc] == "OFF":
+        tic = time.clock()
+        Mencgood = makegood(funcMenc,rtest,[3,-3,20,-20,0.03],rgrid,3-model.g,0,conds = [2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],verbose = True)
+        toc = time.clock()
+        delt = toc-tic
+    elif verbosity[Menc] == "OFF" and plot[Menc] == "OFF":
+        tic = time.clock()
+        Mencgood = makegood(funcMenc,rtest,[3,-3,20,-20,0.03],rgrid,3-model.g,0,conds = [2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)])
+        toc = time.clock()
+        delt = toc-tic
     print 'Menc ran in \t {0}'.format(str(datetime.timedelta(seconds = delt)))
 
 ########******************* POTENTIAL *******************######## 
@@ -274,11 +291,27 @@ def funcpsi(r,verbose):
 
 if seton[psi] == "ON":
     try:
-        test = Mencgood
-        tic = time.clock()
-        psigood = makegood(funcpsi,rtest,[3,-3,20,-20,0.03],rgrid,-1,-1)#, plotting = ['r','$\psi$'])
-        toc = time.clock()
-        delt = toc-tic
+        Mencgood
+        if verbosity[psi] == "ON" and plot[psi] == "ON":
+            tic = time.clock()
+            psigood = makegood(funcpsi,rtest,[3,-3,20,-20,0.03],rgrid,-1,-1,verbose = True, plotting = ['r','$\psi$'])
+            toc = time.clock()
+            delt = toc-tic
+        elif verbosity[psi] == "OFF" and plot[psi] == "ON":
+            tic = time.clock()
+            psigood = makegood(funcpsi,rtest,[3,-3,20,-20,0.03],rgrid,-1,-1, plotting = ['r','$\psi$'])
+            toc = time.clock()
+            delt = toc-tic
+        elif verbosity[psi] == "ON" and plot[psi] == "OFF":
+            tic = time.clock()
+            psigood = makegood(funcpsi,rtest,[3,-3,20,-20,0.03],rgrid,-1,-1,verbose = True)
+            toc = time.clock()
+            delt = toc-tic
+        elif verbosity[psi] == "OFF" and plot[psi] == "OFF":
+            tic = time.clock()
+            psigood = makegood(funcpsi,rtest,[3,-3,20,-20,0.03],rgrid,-1,-1)
+            toc = time.clock()
+            delt = toc-tic
         print 'psi ran in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
     except NameError:
         print 'To compute psi please turn Menc ON'
@@ -347,10 +380,26 @@ if seton[Jc2] == "ON":
     try:
         Mencgood
         psigood
-        tic = time.clock()
-        Jc2good = makegood(funcJc2,rtest,[3,-3,12,-12,0.01],Egrid,-1,-1,verbose = True,plotting = ['E','Jc2'])
-        toc = time.clock()
-        delt = toc-tic
+        if verbosity[Jc2] == "ON" and plot[Jc2] == "ON":
+            tic = time.clock()
+            Jc2good = makegood(funcJc2,rtest,[3,-3,12,-12,0.01],Egrid,-1,-1,verbose = True,plotting = ['E','Jc2'])
+            toc = time.clock()
+            delt = toc-tic
+        if verbosity[Jc2] == "OFF" and plot[Jc2] == "ON":
+            tic = time.clock()
+            Jc2good = makegood(funcJc2,rtest,[3,-3,12,-12,0.01],Egrid,-1,-1,plotting = ['E','Jc2'])
+            toc = time.clock()
+            delt = toc-tic
+        elif verbosity[Jc2] == "ON" and plot[Jc2] == "OFF":
+            tic = time.clock()
+            Jc2good = makegood(funcJc2,rtest,[3,-3,12,-12,0.01],Egrid,-1,-1,verbose = True)
+            toc = time.clock()
+            delt = toc-tic
+        elif verbosity[Jc2] == "OFF" and plot[Jc2] == "OFF":
+            tic = time.clock()
+            Jc2good = makegood(funcJc2,rtest,[3,-3,12,-12,0.01],Egrid,-1,-1)
+            toc = time.clock()
+            delt = toc-tic
         print 'Jc2good ran in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
     except NameError:
         print 'To compute Jc2 please turn Menc and psi ON'
@@ -395,10 +444,26 @@ def funcg(E,verbose=False):
 if seton[g] == "ON":
     try:
         psigood
-        tic = time.clock()
-        ggood = makegood(funcg,rtest,[3,-3,12,-12,0.1],Egrid,model.b-0.5,model.g-0.5)#,plotting = ['E','g'])
-        toc = time.clock()
-        delt = toc-tic
+        if verbosity[g] == "ON" and plot[g] == "ON":
+            tic = time.clock()
+            ggood = makegood(funcg,rtest,[3,-3,12,-12,0.1],Egrid,model.b-0.5,model.g-0.5,verbose=True,plotting = ['E','g'])
+            toc = time.clock()
+            delt = toc-tic
+        elif verbosity[g] == "ON" and plot[g] == "OFF":
+            tic = time.clock()
+            ggood = makegood(funcg,rtest,[3,-3,12,-12,0.1],Egrid,model.b-0.5,model.g-0.5,verbose=True)
+            toc = time.clock()
+            delt = toc-tic
+        if verbosity[g] == "OFF" and plot[g] == "ON":
+            tic = time.clock()
+            ggood = makegood(funcg,rtest,[3,-3,12,-12,0.1],Egrid,model.b-0.5,model.g-0.5,plotting = ['E','g'])
+            toc = time.clock()
+            delt = toc-tic
+        elif verbosity[g] == "OFF" and plot[g] == "OFF":
+            tic = time.clock()
+            ggood = makegood(funcg,rtest,[3,-3,12,-12,0.1],Egrid,model.b-0.5,model.g-0.5)
+            toc = time.clock()
+            delt = toc-tic
         print 'g ran in \t {0}'.format(datetime.timedelta(seconds=delt))
     except NameError:
         print 'To compute g, please turn psi ON'
@@ -406,7 +471,6 @@ if seton[g] == "ON":
 ########******************* mathcalG *******************######## 
 
 def Ginterior(theta,r,E,verbose):
-    # print 'called integrand, E = ',E,' r = ',r,' theta = ',theta
     psir = 10**psigood(log10(r))
     part1 = (r**2)/sqrt(psir-E)
     part2 = 10**ggood(log10(psir*(1-theta) + E*theta))
@@ -447,10 +511,26 @@ if seton[G] == "ON":
     try:
         psigood
         ggood
-        tic = time.clock()
-        Ggood = makegood(funcG,rtest,[2,-2,12,-12,0.1],Egrid,model.b-4,model.g-4,verbose=False,plotting = ['E','G'])
-        toc = time.clock()
-        delt = toc-tic
+        if verbosity[G] == "ON" and plot[G] == "ON":
+            tic = time.clock()
+            Ggood = makegood(funcG,rtest,[2,-2,12,-12,0.1],Egrid,model.b-4,model.g-4,verbose=True,plotting = ['E','G'])
+            toc = time.clock()
+            delt = toc-tic
+        elif verbosity[G] == "OFF" and plot[G] == "ON":
+            tic = time.clock()
+            Ggood = makegood(funcG,rtest,[2,-2,12,-12,0.1],Egrid,model.b-4,model.g-4,plotting = ['E','G'])
+            toc = time.clock()
+            delt = toc-tic
+        elif verbosity[G] == "ON" and plot[G] == "OFF":
+            tic = time.clock()
+            Ggood = makegood(funcG,rtest,[2,-2,12,-12,0.1],Egrid,model.b-4,model.g-4,verbose=True)
+            toc = time.clock()
+            delt = toc-tic
+        elif verbosity[G] == "OF" and plot[G] == "OFF":
+            tic = time.clock()
+            Ggood = makegood(funcG,rtest,[2,-2,12,-12,0.1],Egrid,model.b-4,model.g-4)
+            toc = time.clock()
+            delt = toc-tic
         print 'Ggood ran in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
     except NameError:
         print 'To compute G, please turn psi and g ON'
@@ -535,10 +615,26 @@ if seton[f] == "ON":
     try:
         Mencgood
         psigood
-        tic = time.clock()
-        fgood = makegood(funcf,rtest,[5,-3,12,-12,0.03],Egrid,model.b-1.5,model.g-1.5,verbose=False,plotting = ['E','f'])
-        toc = time.clock()
-        delt = toc-tic
+        if verbosity[f] == "ON" and plot[f] == "ON":
+            tic = time.clock()
+            fgood = makegood(funcf,rtest,[5,-3,12,-12,0.03],Egrid,model.b-1.5,model.g-1.5,verbose=True,plotting = ['E','f'])
+            toc = time.clock()
+            delt = toc-tic
+         elif verbosity[f] == "OFF" and plot[f] == "ON":
+            tic = time.clock()
+            fgood = makegood(funcf,rtest,[5,-3,12,-12,0.03],Egrid,model.b-1.5,model.g-1.5,plotting = ['E','f'])
+            toc = time.clock()
+            delt = toc-tic
+         elif verbosity[f] == "ON" and plot[f] == "OFF":
+            tic = time.clock()
+            fgood = makegood(funcf,rtest,[5,-3,12,-12,0.03],Egrid,model.b-1.5,model.g-1.5,verbose=True)
+            toc = time.clock()
+            delt = toc-tic
+          elif verbosity[f] == "OFF" and plot[f] == "OFF":
+            tic = time.clock()
+            fgood = makegood(funcf,rtest,[5,-3,12,-12,0.03],Egrid,model.b-1.5,model.g-1.5)
+            toc = time.clock()
+            delt = toc-tic
         print 'fgood ran in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
     except NameError:
         print 'To compute f, please turn Menc and psi ON'
