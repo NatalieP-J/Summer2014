@@ -15,7 +15,7 @@ pc = 3.1e16
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-seton = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
+seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"ON",f:"ON"}
 verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
@@ -69,6 +69,18 @@ call(["mkdir","{0}".format(directory)])
 
 ########******************* CONSTRUCTION FUNCTIONS *******************########
 def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp,conds=False):
+    """
+    r - independent variable
+    inter - interpolated object
+    start - first computed value of function
+    end - last computed value of function
+    lim1 - first piecewise break
+    lim2 - second piecewise break
+    smallrexp - log slope at small r or large E
+    largerexp - log slope at large r or small E
+    conds - any extra conditions
+    returns a value for the function at r
+    """
     set1 = r[(r<lim1)]
     set2 = r[(r>=lim1)&(r<=lim2)]
     set3 = r[(r>lim2)]
@@ -88,6 +100,20 @@ def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp,conds=False):
         return concatenate((piece1,piece2,piece3))
 
 def plotter(name,r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,labels):
+    """
+    name - name under which figure will be saved
+    r - independent variable array
+    inter - interpolated object
+    rstart - first element of r
+    rchange - last element of r
+    start - first computed value of function
+    end - last computed value of function
+    smallrexp - log slope at small r or large E
+    largerexp - log slope at large r or small E
+    conds - any extra conditions
+    labels - plot axis labels, x and then y
+    saves a plot of the piecewise function
+    """
     m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp,conds)
     plt.figure()
     plt.loglog(r,m,'.')
@@ -102,6 +128,18 @@ def plotter(name,r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,labe
     plt.savefig('{0}/{1}.png'.format(directory,name))
 
 def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,plotting=False):
+    """
+    func - function to be evaluated
+    r - independent variable array
+    size - size of generated independent variable array with format [upstep,downstep,max,min,stepsize]
+    grid - choice of grid generator function
+    smallrexp - log slope at small r or large E
+    largerexp - log slope at large r or small E
+    verbose = False - suppresses warnings and error messages from integration and rootfinders
+    conds = False - no special conditions on the piecewise function
+    plotting = False - do not save plots
+    returns an interpolated object version of the function based computed values
+    """
     rarray,rchange,rstart = grid(size[0],size[1],size[2],size[3],size[4])
     tab,problems = func(rarray,verbose)
     print 'fraction unsatisfactorially computed: {0}'.format(len(problems)/len(tab))
@@ -121,6 +159,18 @@ def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,
     return inter
 
 def compute(dependencies,name,function,rtest,size,grid,exps,kwargs):
+    """
+    dependencies - other functions needed to compute this one, format [func1, "func1",func2,"func2",...]
+    name - name of function in the dictionaries, format ["name",name]
+    function - name of the functional form
+    rtest - independent variable array
+    size - size of generated independent variable array with format [upstep,downstep,max,min,stepsize]
+    grid - choice of grid generator function
+    exps - extreme r or E behaviour, format [smallrexp,largerexp]
+    kwargs - additional information used to specify conditions and plotting information, format [conds,plotting]
+    finds interpolated form based on conditions in the dictionaries and pickles it or unpickles intepolated form
+    returns interpolated form
+    """
     strname,name = name
     if seton[name] == "ON":
         try:   
@@ -174,9 +224,17 @@ def compute(dependencies,name,function,rtest,size,grid,exps,kwargs):
 ########******************* ENCLOSED MASS *******************########
 
 def Minterior(r):
+    """
+    interior of the Menc integral
+    """
     return model.rho(r)*r**2
 
 def funcMenc(r,verbose=False):
+    """
+    functional form of Menc
+    relies on Minterior
+    returns Menc(r)
+    """
     try:
         problems = []
         t = r.shape
@@ -211,9 +269,15 @@ def funcMenc(r,verbose=False):
 ########******************* RADIUS OF INFLUENCE *******************######## 
 
 def rHimplicit(r):
+    """
+    equation that has its minimum when r = rH
+    """
     return abs(model.Mnorm-funcMenc(r)[0])
 
 def rH():
+    """
+    finds root of rHimplicit
+    """
     rresult=root(rHimplicit,1e-4)
     if rresult.success == True:
         return rresult.x
@@ -225,6 +289,10 @@ def rH():
 ########******************* CONSTRUCTION FUNCTIONS *******************########
 
 def rgrid(upstep=5,downstep=-5,up=12,down=-12,step=0.03):
+    """
+    constructs a grid in radius and adds one point at each extreme (up and down)
+    returns 10**grid
+    """
     rmin = min([rH(),[1.]])
     rmax = max([rH(),[1.]])
     rimin = log10(rmin) + downstep
@@ -241,6 +309,10 @@ def rgrid(upstep=5,downstep=-5,up=12,down=-12,step=0.03):
 rarray,rchange,rstart = rgrid(5,-5,0.03)
 
 def Egrid(upstep=5,downstep=-3,up=12,down=-12,step=0.1):
+    """
+    constructs a grid in energy and adds one point at each extreme (up and down)
+    returns 10**grid
+    """
     rmin = min([rH(),[1.]])[0]
     rmax = max([rH(),[1.]])[0]
     eimin = log10(funcMenc(rmax)[0]/rmax) + downstep
@@ -258,15 +330,20 @@ def Egrid(upstep=5,downstep=-3,up=12,down=-12,step=0.1):
 
 Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[3,-3,20,-20,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M']])
 
-test = open('{0}/funcM.pkl'.format(directory),"rb")
-mtest= pickle.load(test)
-
 ########******************* POTENTIAL *******************######## 
         
 def psi2interior(r):
+    """
+    interior of psi part 2 integral
+    """
     return model.rho(r)*r
 
 def psi2(r,verbose=False):
+    """
+    functional form of psi part 2
+    relies on psi2interior
+    returns psi2(r)
+    """
     try:
         problems = []
         t = r.shape
@@ -294,6 +371,9 @@ def psi2(r,verbose=False):
         return t, problem
 
 def funcpsi(r,verbose):
+    """
+    returns potential as a function of r
+    """
     part1 = (model.Mnorm/r)
     part2 = funcMenc(r,verbose)
     part3 =  psi2(r,verbose)
@@ -309,12 +389,18 @@ def funcpsi(r,verbose):
 
 psigood = compute([],["psi",psi],funcpsi,rtest,[3,-3,20,-20,0.03],rgrid,[-1,-1],[False,['r','$\psi$']])
 
-########******************* APOHELION RADIUS (???) *******************######## 
+########******************* APOCENTER RADIUS *******************######## 
 
 def rapoimplicit(r,E):
+    """
+    function with a minimum at r=rapo
+    """
     return abs(10**psigood(log10(abs(r)))-E)
 
 def rapo(E):
+    """
+    finds root of rapoimplicit
+    """
     if E**-1 > 0.2:
         rguess = 10*E**-1
     elif E**-1 < 0.2:
@@ -330,10 +416,15 @@ def rapo(E):
 ########******************* CIRCULAR ANGULAR MOMENTUM *******************######## 
 
 def Jc2implicit(r,E,verbose):
-    #print r
+    """
+    not actually sure what this solves yet ********************************************************************
+    """
     return abs(10**psigood(log10(abs(r)))-E-((10**Mencgood(log10(abs(r)))+model.Mnorm)/(2*r)))
 
 def funcJc2(E,verbose):
+    """
+    see Jc2implicit
+    """
     try:
         t = E.shape
         Jcs = []
@@ -376,9 +467,17 @@ Jc2good = compute(prereqs,["Jc2",Jc2],funcJc2,rtest,[3,-3,12,-12,0.01],Egrid,[-1
 ########******************* g *******************######## 
 
 def ginterior(r,E):
+    """
+    interior of g integral
+    """
     return (model.drhodr(1./r))*(r**-2)*((sqrt(E-10**psigood(log10(1./r))))**-1)
     
 def funcg(E,verbose=False):
+    """
+    functional form of g
+    relies on ginterior
+    returns g(E)
+    """
     try:
         t = E.shape
         gans = []
@@ -415,22 +514,37 @@ ggood = compute(prereqs,["g",g],funcg,rtest,[3,-3,12,-12,0.1],Egrid,[model.b-0.5
 
 ########******************* mathcalG *******************######## 
 
-def Ginterior(theta,r,E,verbose):
+def Ginterior(theta,r,E,p):
+    """
+    interior of G integral
+    """
+    if p==True:
+        print 'rarg = ',log10(r)
     psir = 10**psigood(log10(r))
     part1 = (r**2)/sqrt(psir-E)
+    if p==True:
+        print 'garg = ',log10(psir*(1-theta) + E*theta)
     part2 = 10**ggood(log10(psir*(1-theta) + E*theta))
     part3 = (1./sqrt(theta))-sqrt(theta)
     return part1*part2*part3
 
 def funcG(E,verbose = False):
+    """
+    functional form of mathcalG
+    relies on Ginterior
+    returns mathcalG(E)
+    """
     try:
         t = E.shape
         Gans = []
         problems = []
+        p = False
         for i in range(len(E)):
+            if i==36:
+                p = True
             print i+1, 'of', len(E)
             rapoval = rapo(E[i])
-            temp = intg.dblquad(Ginterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E[i],verbose))
+            temp = intg.dblquad(Ginterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E[i],p))
             try:
                 if temp[3] != '' and verbose == True:
                     print 'G, E = ', E[i], 'message = ', temp[3]
@@ -459,17 +573,26 @@ Ggood = compute(prereqs,["G",G],funcG,rtest,[2,-2,12,-12,0.1],Egrid,[model.b-4,m
 ########******************* DISTRIBUTION FUNCTION *******************######## 
 
 def finterior1(r,E,rapoval,verbose):
+    """
+    part 1 of the interior of the f integral
+    """
     var = rapoval/r
     psi = (10**psigood(log10(var)))[0]
     result = (var**3)*(1./sqrt(abs(E-psi)))*model.d2rhodr2(var)
     return result
 
 def finterior2(r,E,rapoval,verbose):
+    """
+    part 2 of the interior of the f integral
+    """
     var = rapoval/r
     psi = (10**psigood(log10(var)))[0]
     return (var**2)*(1./sqrt(abs(E-psi)))*model.drhodr(var)
 
 def finterior3(r,E,rapoval,verbose):
+    """
+    part 3 of the interior of the f integral
+    """
     var = rapoval/r
     psi = (10**psigood(log10(var)))[0]
     Mencvar = (10**Mencgood(log10(var)))[0]
@@ -477,6 +600,11 @@ def finterior3(r,E,rapoval,verbose):
     return -(var**2)*(1./sqrt(abs(E-psi)))*(1./(2*rapoval))*model.drhodr(var)*((model.Mnorm*(r-1) + r*Mencvar - Mencrap)/abs(E-psi))
                    
 def funcf(E,verbose=False):
+    """
+    functional form of f
+    relies on finterior1,finterior2,finterior3
+    returns f(E)
+    """
     epsilon = 0
     try:
         t = E.shape
