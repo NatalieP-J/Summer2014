@@ -3,10 +3,11 @@ import scipy.integrate as intg
 from scipy.optimize import root
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
-import os
 import time
-import math
 import datetime
+from subprocess import call
+import pickle
+plt.ion()
 Lam = exp(1)# ****************************************************************
 Gconst = 6.67259e-8
 realMsun = 1.989e33
@@ -15,81 +16,13 @@ pc = 3.1e16
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-
-seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"ON",G:"ON",f:"OFF"}
-
-########******************* PICKLING *******************########
-def _pickle_method(method):
-    func_name = method.im_func.__name__
-    obj = method.im_self
-    cls = method.im_class
-    return _unpickle_method, (func_name, obj, cls)
-
-def _unpickle_method(func_name, obj, cls):
-    for cls in cls.mro():
-        try:
-            func = cls.__dict__[func_name]
-        except KeyError:
-            pass
-        else:
-            break
-        return func.__get__(obj, cls)
-
-import copy_reg
-import types
-copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
-import pickle
-########******************* CONSTRUCTION FUNCTIONS *******************########
-def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp,conds=False):
-    set1 = r[(r<lim1)]
-    set2 = r[(r>=lim1)&(r<=lim2)]
-    set3 = r[(r>lim2)]
-    piece1 = start*(set1/lim1)**smallrexp
-    piece2 = 10**(inter(log10(set2)))
-    if conds==False:
-        piece3 = end*(set3/lim2)**largerexp
-        return concatenate((piece1,piece2,piece3))
-    if conds!=False:
-        tip = conds[0]
-        if model.b>tip:
-            piece3 = end*(set3/lim2)**conds[1]
-        elif model.b<tip:
-            piece3 = end*(set3/lim2)**conds[2]
-        elif model.b == tip:
-            piece3 = end + conds[3]*log(set3/lim2)
-        return concatenate((piece1,piece2,piece3))
-
-def plotter(r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,labels):
-    m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp,conds)
-    plt.figure()
-    plt.loglog(r,m,'.')
-    plt.ylabel(r'{0}'.format(labels[1]))
-    plt.xlabel('{0}'.format(labels[0]))
-    plt.xlim(min(r),max(r))
-    plt.ylim(min(m),max(m))
-    plt.axvline(rstart, color='r',label='Limits of interpolation')
-    plt.axvline(rchange, color='r')
-    plt.legend(loc='best')
-    plt.show()
-
-def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,plotting=False):
-    rarray,rchange,rstart = grid(size[0],size[1],size[2],size[3],size[4])
-    tab,problems = func(rarray,verbose)
-    tab = [i for j, i in enumerate(tab) if j not in problems]
-    rarray = [i for j, i in enumerate(rarray) if j not in problems]
-    inter = interp1d(log10(rarray),log10(tab))
-    pickle.dump(inter,open('{0}.pkl'.format(str(func)[10:15]),"wb"))
-    start = tab[0]
-    end = tab[len(rarray)-1]
-    if plotting != False:
-        plotter(r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,plotting)
-    return inter
-
-
+seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"OFF",G:"ON",f:"ON"}
+plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
-class MakeModel:
+class NukerModel:
     #initialize variables that constitute our model
-    def __init__(self,model_name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate=True):
+    def __init__(self,model_name,alpha,beta,gamma,r0pc,rho0,MBH_Msun):
         #name of model
         self.name = model_name
         #Nuker fit parameters
@@ -110,8 +43,6 @@ class MakeModel:
         self.r0_rT=(self.r0*pc)/self.rT
         #dynamical timescale (currently unused)
         self.tdyn0 = ((Gconst*self.rho0*realMsun)/pc**3)**(-1./2)
-        #generate data?
-        self.generate = generate
     
     #compute density
     def rho(self,r):
@@ -131,16 +62,200 @@ class MakeModel:
                                 
 ########******************* CONSTRUCT MODEL *******************########
 
-model = MakeModel('testing',1.,4.,1.5,1.,1.e5,1.e3,generate = False)
+model = NukerModel('testing',1.,4.,1.5,1.,1.e5,1.e3)
 rtest = arange(-12,12,0.01)
 rtest = 10**rtest
+directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,model.r0,model.rho0,model.MBH)
+call(["mkdir","{0}".format(directory)])
 
+########******************* CONSTRUCTION FUNCTIONS *******************########
+def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp,conds=False):
+    """
+    r - independent variable
+    inter - interpolated object
+    start - first computed value of function
+    end - last computed value of function
+    lim1 - first piecewise break
+    lim2 - second piecewise break
+    smallrexp - log slope at small r or large E
+    largerexp - log slope at large r or small E
+    conds - any extra conditions
+
+    returns a value for the function at r
+    """
+    set1 = r[(r<lim1)]
+    set2 = r[(r>=lim1)&(r<=lim2)]
+    set3 = r[(r>lim2)]
+    piece1 = start*(set1/lim1)**smallrexp
+    piece2 = 10**(inter(log10(set2)))
+    if conds==False:
+        piece3 = end*(set3/lim2)**largerexp
+        return concatenate((piece1,piece2,piece3))
+    if conds!=False:
+        tip = conds[0]
+        if model.b>tip:
+            piece3 = end*(set3/lim2)**conds[1]
+        elif model.b<tip:
+            piece3 = end*(set3/lim2)**conds[2]
+        elif model.b == tip:
+            piece3 = end + conds[3]*log(set3/lim2)
+        return concatenate((piece1,piece2,piece3))
+
+def plotter(name,r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,labels):
+    """
+    name - name under which figure will be saved
+    r - independent variable array
+    inter - interpolated object
+    rstart - first element of r
+    rchange - last element of r
+    start - first computed value of function
+    end - last computed value of function
+    smallrexp - log slope at small r or large E
+    largerexp - log slope at large r or small E
+    conds - any extra conditions
+    labels - plot axis labels, x and then y
+
+    saves a plot of the piecewise function
+    """
+    m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp,conds)
+    plt.figure()
+    plt.loglog(r,m,'.')
+    plt.ylabel(r'{0}'.format(labels[1]))
+    plt.xlabel('{0}'.format(labels[0]))
+    plt.xlim(min(r),max(r))
+    plt.ylim(min(m),max(m))
+    if rstart>r[0] and rchange<r[len(r)-1]:
+        plt.axvline(rstart, color='r',label='Limits of interpolation')
+        plt.axvline(rchange, color='r')
+        plt.legend(loc='best')
+    plt.savefig('{0}/{1}.png'.format(directory,name))
+    plt.show()
+
+def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,plotting=False,problem = True):
+    """
+
+    func - function to be evaluated
+    r - independent variable array
+    size - size of generated independent variable array with format 
+    	   [upstep,downstep,max,min,stepsize]
+    grid - choice of grid generator function
+    smallrexp - log slope at small r or large E
+    largerexp - log slope at large r or small E
+    verbose = False - suppresses warnings and error messages from 
+    	              integration and rootfinders
+    conds = False - no special conditions on the piecewise function
+    plotting = False - 	do not save plots
+    problem = True - eliminate problem points
+    
+    returns an interpolated object version of the function based 
+    computed values
+    
+    """
+    rarray,rchange,rstart = grid(size[0],size[1],size[2],size[3],size[4])
+    tab,problems = func(rarray,verbose)
+    print 'fraction unsatisfactorially computed: {0}'.format(float(len(problems))/float(len(tab)))
+    if problem == True:
+        tab = [i for j, i in enumerate(tab) if j not in problems]
+        rarray = [i for j, i in enumerate(rarray) if j not in problems]
+    inter = interp1d(log10(rarray),log10(tab))
+    pklrfile = open('{0}/r{1}.pkl'.format(directory,str(func)[10:15]),"wb")
+    pickle.dump(rarray,pklrfile)
+    pklrfile.close()
+    pklffile = open('{0}/{1}.pkl'.format(directory,str(func)[10:15]),"wb")
+    pickle.dump(tab,pklffile)
+    pklffile.close()
+    start = tab[0]
+    end = tab[len(rarray)-1]
+    if plotting != False:
+        plotter(str(func)[10:15],r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,plotting)
+    return inter
+
+def compute(dependencies,name,function,rtest,size,grid,exps,kwargs):
+    """
+    dependencies - other functions needed to compute this one, 
+                   format [func1, "func1",func2,"func2",...]
+    name - name of function in the dictionaries, 
+           format ["name",name]
+    function - name of the functional form
+    rtest - independent variable array
+    size - size of generated independent variable array 
+    	   with format [upstep,downstep,max,min,stepsize]
+    grid - choice of grid generator function
+    exps - extreme r or E behaviour, 
+           format [smallrexp,largerexp]
+    kwargs - additional information used to specify 
+            conditions and plotting information, 
+            format [conds,plotting,problem]
+    
+    finds interpolated form based on conditions in the 
+    dictionaries and pickles it or unpickles intepolated form
+    returns interpolated form
+    """
+    strname,name = name
+    if seton[name] == "ON":
+        try:   
+            i = 0
+            while i<len(dependencies):
+                dependencies[i](1)
+                i+=2
+            smallrexp,largerexp = exps
+            conditions,plotdat,prob = kwargs
+            if verbosity[name] == "ON" and plot[name] == "ON":
+                tic = time.clock()
+                good = makegood(function,rtest,size,grid,smallrexp,largerexp,verbose = True,conds = conditions,plotting = plotdat,problem = prob)
+                toc = time.clock()
+                delt = toc-tic
+            elif verbosity[name] == "ON" and plot[name] == "OFF":
+                tic = time.clock()
+                good = makegood(function,rtest,size,grid,smallrexp,largerexp,verbose = True,conds = conditions,problem = prob)
+                toc = time.clock()
+                delt = toc-tic
+            elif verbosity[name] == "OFF" and plot[name] == "ON":
+                tic = time.clock()
+                good = makegood(function,rtest,size,grid,smallrexp,largerexp,conds = conditions,plotting = plotdat,problem = prob)
+                toc = time.clock()
+                delt = toc-tic
+            elif verbosity[name] == "OFF" and plot[name] == "OFF":
+                tic = time.clock()
+                good = makegood(function,rtest,size,grid,smallrexp,largerexp,conds = conditions,problem = prob)
+                toc = time.clock()
+                delt = toc-tic
+            print '{0}good ran in \t {1}'.format(strname,str(datetime.timedelta(seconds=delt)))
+            return good
+        except TypeError as e:
+            print e
+            print 'To compute {0}, please turn {1} ON'.format(strname,dependencies[i+1])
+    elif seton[name] != "ON":
+        try:
+            tic = time.clock()
+            pklrfile = open('{0}/r{1}.pkl'.format(directory,str(function)[10:15]),"rb")
+            rarray = pickle.load(pklrfile)
+            pklrfile.close()
+            pklffile = open('{0}/{1}.pkl'.format(directory,str(function)[10:15]),"rb")
+            tab = pickle.load(pklffile)
+            pklffile.close()
+            good =  interp1d(log10(rarray),log10(tab))
+            toc = time.clock()
+            delt = toc-tic
+            print '{0}good loaded in \t {1}'.format(strname,str(datetime.timedelta(seconds=delt)))
+            return good
+        except IOError:
+            print '{0} not yet generated, please turn it ON'.format(strname)
+            
 ########******************* ENCLOSED MASS *******************########
 
 def Minterior(r):
+    """
+    interior of the Menc integral
+    """
     return model.rho(r)*r**2
 
 def funcMenc(r,verbose=False):
+    """
+    functional form of Menc
+    relies on Minterior
+    returns Menc(r)
+    """
     try:
         problems = []
         t = r.shape
@@ -148,9 +263,10 @@ def funcMenc(r,verbose=False):
         for i in range(len(r)):
             temp = intg.quad(Minterior,0,r[i],full_output=1)
             try:
-                if temp[3]!='' and verbose==True:
-                    print 'Menc, r = ',r[i],'message = ',temp[3],'\n'
+                if temp[3]!='':
                     problems.append(i)
+                    if verbose==True:
+                        print 'Menc, r = ',r[i],'message = ',temp[3],'\n'
             except (IndexError, TypeError):
                 pass
             if r[i] > 10**10:
@@ -164,9 +280,10 @@ def funcMenc(r,verbose=False):
         problem = []
         temp = 4*pi*intg.quad(Minterior,0,r)[0]
         try:
-            if temp[3]!='' and verbose==True:
-                print 'Menc, r = ',r,'message = ',temp[3],'\n'
-                problem = [r]
+            if temp[3]!='':
+                problems = [r]
+                if verbose==True:
+                    print 'Menc, r = ',r,'message = ',temp[3],'\n'
                 t = temp[0]
         except (IndexError,TypeError):
             t = temp
@@ -175,9 +292,15 @@ def funcMenc(r,verbose=False):
 ########******************* RADIUS OF INFLUENCE *******************######## 
 
 def rHimplicit(r):
+    """
+    equation that has its minimum when r = rH
+    """
     return abs(model.Mnorm-funcMenc(r)[0])
 
 def rH():
+    """
+    finds root of rHimplicit
+    """
     rresult=root(rHimplicit,1e-4)
     if rresult.success == True:
         return rresult.x
@@ -189,6 +312,10 @@ def rH():
 ########******************* CONSTRUCTION FUNCTIONS *******************########
 
 def rgrid(upstep=5,downstep=-5,up=12,down=-12,step=0.03):
+    """
+    constructs a grid in radius and adds one point at each extreme (up and down)
+    returns 10**grid
+    """
     rmin = min([rH(),[1.]])
     rmax = max([rH(),[1.]])
     rimin = log10(rmin) + downstep
@@ -205,6 +332,10 @@ def rgrid(upstep=5,downstep=-5,up=12,down=-12,step=0.03):
 rarray,rchange,rstart = rgrid(5,-5,0.03)
 
 def Egrid(upstep=5,downstep=-3,up=12,down=-12,step=0.1):
+    """
+    constructs a grid in energy and adds one point at each extreme (up and down)
+    returns 10**grid
+    """
     rmin = min([rH(),[1.]])[0]
     rmax = max([rH(),[1.]])[0]
     eimin = log10(funcMenc(rmax)[0]/rmax) + downstep
@@ -220,19 +351,22 @@ def Egrid(upstep=5,downstep=-3,up=12,down=-12,step=0.1):
 
 ########******************* COMPUTE MENC *******************######## 
 
-if seton[Menc] == "ON":
-    tic = time.clock()
-    Mencgood = makegood(funcMenc,rtest,[3,-3,20,-20,0.03],rgrid,3-model.g,0,conds = [2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)])#,plotting = ['r','M'])
-    toc = time.clock()
-    delt = toc-tic
-    print 'Menc ran in \t {0}'.format(str(datetime.timedelta(seconds = delt)))
+Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[3,-3,30,-30,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],True])
 
 ########******************* POTENTIAL *******************######## 
         
 def psi2interior(r):
+    """
+    interior of psi part 2 integral
+    """
     return model.rho(r)*r
 
 def psi2(r,verbose=False):
+    """
+    functional form of psi part 2
+    relies on psi2interior
+    returns psi2(r)
+    """
     try:
         problems = []
         t = r.shape
@@ -240,9 +374,10 @@ def psi2(r,verbose=False):
         for i in range(len(r)):
             temp=intg.quad(psi2interior,r[i],inf,full_output=1)
             try:
-                if temp[3]!='' and verbose==True:
-                    print 'psi2, index =',i,'r = ',r[i],'message = ',temp[3],'\n'
-                    problems.append(r)
+                if temp[3]!='':
+                    if verbose==True:
+                        print 'psi2, index =',i,'r = ',r[i],'message = ',temp[3],'\n'
+                    problems.append(i)
             except (IndexError,TypeError):
                 pass
             psi2s.append(4*pi*temp[0])
@@ -251,15 +386,19 @@ def psi2(r,verbose=False):
         problem = []
         temp = 4*pi*intg.quad(psi2interior,r,inf)[0]
         try:
-            if temp[3]!='' and verbose==True:
-                print 'psi2, r = ',r,'message = ',temp[3],'\n'
+            if temp[3]!='':
+                if verbose==True:
+                    print 'psi2, r = ',r,'message = ',temp[3],'\n'
                 problem = [r]
                 t = temp[0]
         except (IndexError,TypeError):
             t = temp
         return t, problem
 
-def funcpsi(r,verbose):
+def funcpsi(r,verbose=False):
+    """
+    returns potential as a function of r
+    """
     part1 = (model.Mnorm/r)
     part2 = funcMenc(r,verbose)
     part3 =  psi2(r,verbose)
@@ -273,23 +412,20 @@ def funcpsi(r,verbose):
 
 ########******************* COMPUTE PSI *******************######## 
 
-if seton[psi] == "ON":
-    try:
-        test = Mencgood
-        tic = time.clock()
-        psigood = makegood(funcpsi,rtest,[3,-3,20,-20,0.03],rgrid,-1,-1)#, plotting = ['r','$\psi$'])
-        toc = time.clock()
-        delt = toc-tic
-        print 'psi ran in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
-    except NameError:
-        print 'To compute psi please turn Menc ON'
+psigood = compute([],["psi",psi],funcpsi,rtest,[3,-3,30,-30,0.03],rgrid,[-1,-1],[False,['r','$\psi$'],True])
 
-########******************* APOHELION RADIUS (???) *******************######## 
+########******************* APOCENTER RADIUS *******************######## 
 
 def rapoimplicit(r,E):
+    """
+    function with a minimum at r=rapo
+    """
     return abs(10**psigood(log10(abs(r)))-E)
 
 def rapo(E):
+    """
+    finds root of rapoimplicit
+    """
     if E**-1 > 0.2:
         rguess = 10*E**-1
     elif E**-1 < 0.2:
@@ -305,10 +441,15 @@ def rapo(E):
 ########******************* CIRCULAR ANGULAR MOMENTUM *******************######## 
 
 def Jc2implicit(r,E,verbose):
-    #print r
+    """
+    not actually sure what this solves yet ********************************************************************
+    """
     return abs(10**psigood(log10(abs(r)))-E-((10**Mencgood(log10(abs(r)))+model.Mnorm)/(2*r)))
 
 def funcJc2(E,verbose):
+    """
+    see Jc2implicit
+    """
     try:
         t = E.shape
         Jcs = []
@@ -323,9 +464,10 @@ def funcJc2(E,verbose):
             rresult.x = abs(rresult.x)
             if rresult.success == True:
                 Jcs.append(((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0])
-            elif rresult.success == False and verbose==True:
-                print 'Failed to evaluate Jc2'
-                print rresult.message
+            elif rresult.success == False:
+                if verbose==True:
+                    print 'Failed to evaluate Jc2'
+                    print rresult.message
                 Jcs.append(((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0])
                 problems.append(i)
         return array(Jcs),problems
@@ -336,85 +478,87 @@ def funcJc2(E,verbose):
         if rresult.success == True:
             Jc = ((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0]
         elif rresult.success == False:
-            print 'Failed to evaluate Jc2'
-            print rresult.message
+            if verbose==True:
+                print 'Failed to evaluate Jc2'
+                print rresult.message
             Jc = ((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0]
             problem = [E]
         return Jc, problem
 
 ########******************* COMPUTE Jc2 *******************######## 
 
-if seton[Jc2] == "ON":
-    try:
-        Mencgood
-        psigood
-        tic = time.clock()
-        Jc2good = makegood(funcJc2,rtest,[3,-3,12,-12,0.01],Egrid,-1,-1,verbose = True,plotting = ['E','Jc2'])
-        toc = time.clock()
-        delt = toc-tic
-        print 'Jc2good ran in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
-    except NameError:
-        print 'To compute Jc2 please turn Menc and psi ON'
+prereqs = [Mencgood,"Menc",psigood,"psi"]
+
+Jc2good = compute(prereqs,["Jc2",Jc2],funcJc2,rtest,[3,-3,12,-12,0.01],Egrid,[-1,-1],[False,['E','Jc2'],True])
 
 ########******************* g *******************######## 
 
-def ginterior(r,E):
-    return (model.drhodr(1./r))*(r**-2)*((sqrt(E-10**psigood(log10(1./r))))**-1)
+def lginterior(r,E):
+    """
+    interior of g integral
+    """
+    return (model.drhodr(1./r))*(r**-2)*((sqrt(abs(E-10**psigood(log10(1./r)))))**-1)
     
-def funcg(E,verbose=False):
+def funclg(E,verbose=False):
+    """
+    functional form of g
+    relies on ginterior
+    returns g(E)
+    """
     try:
         t = E.shape
         gans = []
         problems = []
         for i in range(len(E)):
             rapoval = rapo(E[i])
-            temp = intg.quad(ginterior,0,1./rapoval,args = E[i],full_output = 1)
+            temp = intg.quad(lginterior,0,1./rapoval,args = E[i],full_output = 1)
             t = temp[0]
             try:
-                if temp[3] != '' and verbose == True:
-                    print 'g, E = ',E[i], 'message = ', temp[3]
+                if temp[3] != '':
+                    if verbose == True:
+                        print 'g, E = ',E[i], 'message = ', temp[3]
                     problems.append(i)
             except (IndexError,TypeError):
                 pass
             gans.append(-pi*t)
         return array(gans),problems
-    except (AttributeError,TypeError):
+    except (AttributeError,TypeError) as e:
         problem = []
         rapoval = rapo(E)
-        temp = intg.quad(ginterior,0,1./rapoval,args = E,full_output = 1)
+        temp = intg.quad(lginterior,0,1./rapoval,args = E,full_output = 1)
         t = temp[0]
         try:
-            if temp[3] != '' and verbose == True:
-                print 'g, E = ',E, 'message = ', temp[3]
+            if temp[3] != '':
+                if verbose == True:
+                    print 'g, E = ',E, 'message = ', temp[3]
                 problem = [E]
         except (IndexError,TypeError):
             pass
         return -pi*t, problem
 
 ########******************* COMPUTE g *******************######## 
+prereqs = [psigood,"psi"]
 
-if seton[g] == "ON":
-    try:
-        psigood
-        tic = time.clock()
-        ggood = makegood(funcg,rtest,[3,-3,12,-12,0.1],Egrid,model.b-0.5,model.g-0.5)#,plotting = ['E','g'])
-        toc = time.clock()
-        delt = toc-tic
-        print 'g ran in \t {0}'.format(datetime.timedelta(seconds=delt))
-    except NameError:
-        print 'To compute g, please turn psi ON'
+ggood = compute(prereqs,["g",g],funclg,rtest,[3,-3,20,-20,0.1],Egrid,[model.b-0.5,model.g-0.5],[False,['E','g'],False])
 
 ########******************* mathcalG *******************######## 
 
-def Ginterior(theta,r,E,verbose):
-    # print 'called integrand, E = ',E,' r = ',r,' theta = ',theta
+def bGinterior(theta,r,E):
+    """
+    interior of G integral
+    """
     psir = 10**psigood(log10(r))
     part1 = (r**2)/sqrt(psir-E)
     part2 = 10**ggood(log10(psir*(1-theta) + E*theta))
     part3 = (1./sqrt(theta))-sqrt(theta)
     return part1*part2*part3
 
-def funcG(E,verbose = False):
+def funcbG(E,verbose = False):
+    """
+    functional form of mathcalG
+    relies on Ginterior
+    returns mathcalG(E)
+    """
     try:
         t = E.shape
         Gans = []
@@ -422,10 +566,11 @@ def funcG(E,verbose = False):
         for i in range(len(E)):
             print i+1, 'of', len(E)
             rapoval = rapo(E[i])
-            temp = intg.dblquad(Ginterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E[i],verbose))
+            temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E[i],))
             try:
-                if temp[3] != '' and verbose == True:
-                    print 'G, E = ', E[i], 'message = ', temp[3]
+                if temp[3] != '':
+                    if verbose == True:
+                        print 'G, E = ', E[i], 'message = ', temp[3]
                     problems.append(i)
             except IndexError:
                 pass
@@ -433,43 +578,45 @@ def funcG(E,verbose = False):
         return array(Gans),problems
     except AttributeError:
         rapoval = rapo(E)
-        temp = intg.dblquad(Ginterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E,verbose))
+        temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E,verbose))
         problem = []
         try:
-            if temp[3] != '' and verbose == True:
-                print 'G, E = ', E, 'message = ', temp[3]
+            if temp[3] != '':
+                if verbose == True:
+                    print 'G, E = ', E, 'message = ', temp[3]
                 problem = [E]
         except IndexError:
             pass
         return temp[0],problem
 
 ########******************* COMPUTE G *******************######## 
-if seton[G] == "ON":
-    try:
-        psigood
-        ggood
-        tic = time.clock()
-        Ggood = makegood(funcG,rtest,[2,-2,12,-12,0.1],Egrid,model.b-4,model.g-4,verbose=False,plotting = ['E','G'])
-        toc = time.clock()
-        delt = toc-tic
-        print 'Ggood ran in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
-    except NameError:
-        print 'To compute G, please turn psi and g ON'
+prereqs = [psigood, "psi",ggood,"g"]
+
+Ggood = compute(prereqs,["G",G],funcbG,rtest,[2,-2,12,-12,0.1],Egrid,[model.b-4,model.g-4],[False,['E','G'],False])
 
 ########******************* DISTRIBUTION FUNCTION *******************######## 
 
 def finterior1(r,E,rapoval,verbose):
+    """
+    part 1 of the interior of the f integral
+    """
     var = rapoval/r
     psi = (10**psigood(log10(var)))[0]
     result = (var**3)*(1./sqrt(abs(E-psi)))*model.d2rhodr2(var)
     return result
 
 def finterior2(r,E,rapoval,verbose):
+    """
+    part 2 of the interior of the f integral
+    """
     var = rapoval/r
     psi = (10**psigood(log10(var)))[0]
     return (var**2)*(1./sqrt(abs(E-psi)))*model.drhodr(var)
 
 def finterior3(r,E,rapoval,verbose):
+    """
+    part 3 of the interior of the f integral
+    """
     var = rapoval/r
     psi = (10**psigood(log10(var)))[0]
     Mencvar = (10**Mencgood(log10(var)))[0]
@@ -477,7 +624,11 @@ def finterior3(r,E,rapoval,verbose):
     return -(var**2)*(1./sqrt(abs(E-psi)))*(1./(2*rapoval))*model.drhodr(var)*((model.Mnorm*(r-1) + r*Mencvar - Mencrap)/abs(E-psi))
                    
 def funcf(E,verbose=False):
-    #print 'starting f evaluation'
+    """
+    functional form of f
+    relies on finterior1,finterior2,finterior3
+    returns f(E)
+    """
     epsilon = 0
     try:
         t = E.shape
@@ -486,23 +637,24 @@ def funcf(E,verbose=False):
         for i in range(len(E)):
             print i+1, ' of ', len(E)
             rapoval = rapo(E[i])
-            #print rapoval
             prefactor = (1./(sqrt(8)*pi**2*(model.Mnorm + 10**Mencgood(log10(rapoval)))))
             temp1 = intg.quad(finterior1,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
             temp2 = intg.quad(finterior2,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
             temp3 = intg.quad(finterior3,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
             t = temp1[0] + temp2[0] + temp3[0]
             try:
-                if verbose==True:
-                    if temp1[3] != '':
+                if temp1[3] != '':
+                    if verbose == True:
                         print 'f, E = ',E[i],'message = ',temp1[3]
-                        problems.append(i)
-                    elif temp2[3] != '':
+                    problems.append(i)
+                elif temp2[3] != '':
+                    if verbose == True:
                         print 'f, E = ',E[i],'message = ',temp2[3]
-                        problems.append(i)
-                    elif temp3[3] != '':
+                    problems.append(i)
+                elif temp3[3] != '':
+                    if verbose == True:
                         print 'f, E = ',E[i],'message = ',temp3[3]
-                        problems.append(i)                    
+                    problems.append(i)                    
             except IndexError:
                 pass
             fans.append((prefactor*t)[0])
@@ -532,23 +684,16 @@ def funcf(E,verbose=False):
         return prefactor*t, problem
 
 ########******************* COMPUTE f *******************######## 
-if seton[f] == "ON":
-    try:
-        Mencgood
-        psigood
-        tic = time.clock()
-        fgood = makegood(funcf,rtest,[5,-3,12,-12,0.03],Egrid,model.b-1.5,model.g-1.5,verbose=False,plotting = ['E','f'])
-        toc = time.clock()
-        delt = toc-tic
-        print 'fgood ran in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
-    except NameError:
-        print 'To compute f, please turn Menc and psi ON'
+prereqs = [Mencgood,"Menc",psigood,"psi"]
+
+fgood = compute(prereqs,["f",f],funcf,rtest,[5,-3,12,-12,0.03],Egrid,[model.b-1.5,model.g-1.5],[False,['E','f'],False])
 
 ########******************* ADDITIONAL FUNCTIONS *******************######## 
-'''
+
 def funcq(r):
     return (4./pi)*log(Lam)*(model.r0_rT/model.MBH_Msun)*Ggood(r)
 
+'''
 def Rlc(r):
     interior = 2*(model.MBHnorm./model.r0_rT)*(1./Jc2good(r))
     return -log(interior)
