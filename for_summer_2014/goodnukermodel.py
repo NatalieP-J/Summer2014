@@ -16,7 +16,7 @@ pc = 3.1e16
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"ON",f:"ON"}
+seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"ON"}
 verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"OFF",G:"ON",f:"ON"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
@@ -614,7 +614,8 @@ def finterior2(r,E,rapoval,verbose):
     """
     var = rapoval/r
     psi = (10**psigood(log10(var)))[0]
-    return (var**2)*(1./sqrt(abs(E-psi)))*model.drhodr(var)
+    result = (var**2)*(1./sqrt(abs(E-psi)))*model.drhodr(var)
+    return result
 
 def finterior3(r,E,rapoval,verbose):
     """
@@ -624,8 +625,19 @@ def finterior3(r,E,rapoval,verbose):
     psi = (10**psigood(log10(var)))[0]
     Mencvar = (10**Mencgood(log10(var)))[0]
     Mencrap = (10**Mencgood(log10(rapoval)))[0]
+    result = -(var**2)*(1./sqrt(abs(E-psi)))*(1./(2*rapoval))*model.drhodr(var)*((model.Mnorm*(r-1) + r*Mencvar - Mencrap)/abs(E-psi))
     return -(var**2)*(1./sqrt(abs(E-psi)))*(1./(2*rapoval))*model.drhodr(var)*((model.Mnorm*(r-1) + r*Mencvar - Mencrap)/abs(E-psi))
-                   
+
+def finterior(r,E,rapoval):
+    var = rapoval/r
+    psi = (10**psigood(log10(var)))[0]
+    Mencvar = (10**Mencgood(log10(var)))[0]
+    Mencrap = (10**Mencgood(log10(rapoval)))[0]
+    result1 = (var**3)*(1./sqrt(abs(E-psi)))*model.d2rhodr2(var)
+    result2 = (var**2)*(1./sqrt(abs(E-psi)))*model.drhodr(var)
+    result3 = -(var**2)*(1./sqrt(abs(E-psi)))*(1./(2*rapoval))*model.drhodr(var)*((model.Mnorm*(r-1) + r*Mencvar - Mencrap)/abs(E-psi))  
+    return result1+result2+result3
+
 def funcf(E,verbose=False):
     """
     functional form of f
@@ -641,47 +653,28 @@ def funcf(E,verbose=False):
             print i+1, ' of ', len(E)
             rapoval = rapo(E[i])
             prefactor = (1./(sqrt(8)*pi**2*(model.Mnorm + 10**Mencgood(log10(rapoval)))))
-            temp1 = intg.quad(finterior1,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
-            temp2 = intg.quad(finterior2,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
-            temp3 = intg.quad(finterior3,epsilon,1-epsilon,args=(E[i],rapoval,verbose),full_output = 1)
-            t = temp1[0] + temp2[0] + temp3[0]
+            temp = intg.quad(finterior,epsilon,1-epsilon,args=(E[i],rapoval),full_output = 1)
+            t = temp[0]
             try:
-                if temp1[3] != '':
+                if temp[3] != '':
                     if verbose == True:
-                        print 'f, E = ',E[i],'message = ',temp1[3]
-                    problems.append(i)
-                elif temp2[3] != '':
-                    if verbose == True:
-                        print 'f, E = ',E[i],'message = ',temp2[3]
-                    problems.append(i)
-                elif temp3[3] != '':
-                    if verbose == True:
-                        print 'f, E = ',E[i],'message = ',temp3[3]
-                    problems.append(i)                    
+                        print 'f, E = ',E[i],'message = ',temp[3]
+                    problems.append(i)                  
             except IndexError:
                 pass
             fans.append((prefactor*t)[0])
         return array(fans),problems
     except AttributeError:
         rapoval = rapo(E)
-        prefactor = (1./(sqrt(8)*pi**2*(model.Mnorm + funcMenc(rapoval,verbose)[0])))
-        temp1 = intg.quad(finterior1,0,1,args=(E,rapoval,verbose),full_output = 1)
-        temp2 = intg.quad(finterior2,0,1,args=(E,rapoval,verbose),full_output = 1)
-        temp3 = intg.quad(finterior3,0,1,args=(E,rapoval,verbose),full_output = 1)
-        t = temp1[0] + temp2[0] + temp3[0]
+        prefactor = (1./(sqrt(8)*pi**2*(model.Mnorm + 10**Mencgood(log10(rapoval)))))
+        temp = intg.quad(finterior,epsilon,1-epsilon,args=(E,rapoval),full_output = 1)
+        t = temp[0]
         problem = []
         try:
-            if verbose==True:
-                if temp1[3] != '':
+            if temp1[3] != '':
+                if verbose == True:
                     print 'f, E = ',E,'message = ',temp1[3]
-                    problem = [E]
-                elif temp2[3] != '':
-                    print 'f, E = ',E,'message = ',temp2[3]
-                    problem = [E]
-                elif temp3[3] != '':
-                    print 'f, E = ',E,'message = ',temp3[3]
-                    problem = [E]
-                t = -1
+                problem = [E]
         except IndexError:
             pass
         return prefactor*t, problem
