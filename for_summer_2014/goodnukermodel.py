@@ -16,7 +16,7 @@ pc = 3.1e16
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"ON"}
+seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"OFF",G:"ON",f:"ON"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
@@ -61,6 +61,13 @@ class NukerModel:
         part3c = (self.b - (self.a*self.b) + self.g + (self.a*self.g) + (2*self.b*self.g))*r**self.a
         part3 = part3a + part3b + part3c
         return part1*part2*part3
+
+factorial_memo = {}
+def factorial(k):
+    if k<2: return 1
+    if not k in factorial_memo:
+        factorial_memo[k] = k*factorial(k-1)
+    return factorial_memo[k]
                                 
 ########******************* CONSTRUCT MODEL *******************########
 
