@@ -16,13 +16,13 @@ pc = 3.1e16
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"ON",f:"ON"}
 verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"OFF",G:"ON",f:"ON"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
 class NukerModel:
     #initialize variables that constitute our model
-    def __init__(self,model_name,alpha,beta,gamma,r0pc,rho0,MBH_Msun):
+    def __init__(self,model_name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate=False):
         #name of model
         self.name = model_name
         #Nuker fit parameters
@@ -43,6 +43,8 @@ class NukerModel:
         self.r0_rT=(self.r0*pc)/self.rT
         #dynamical timescale (currently unused)
         self.tdyn0 = ((Gconst*self.rho0*realMsun)/pc**3)**(-1./2)
+        #start a new directory?
+        self.generate = generate
     
     #compute density
     def rho(self,r):
@@ -62,12 +64,13 @@ class NukerModel:
                                 
 ########******************* CONSTRUCT MODEL *******************########
 
-model = NukerModel('testing',1.,4.,1.5,1.,1.e5,1.e3)
+model = NukerModel('testing',0.5,4.,1.5,1.,1.e5,1.e3,False)
 rtest = arange(-12,12,0.01)
 rtest = 10**rtest
 directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,model.r0,model.rho0,model.MBH)
-call(["mkdir","{0}".format(directory)])
-
+if model.generate == True:
+    call(["mkdir","{0}".format(directory)])
+    seton = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* CONSTRUCTION FUNCTIONS *******************########
 def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp,conds=False):
     """
@@ -153,7 +156,7 @@ def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,
     """
     rarray,rchange,rstart = grid(size[0],size[1],size[2],size[3],size[4])
     tab,problems = func(rarray,verbose)
-    print 'fraction unsatisfactorially computed: {0}'.format(float(len(problems))/float(len(tab)))
+    print 'fraction reporting a message: {0}'.format(float(len(problems))/float(len(tab)))
     if problem == True:
         tab = [i for j, i in enumerate(tab) if j not in problems]
         rarray = [i for j, i in enumerate(rarray) if j not in problems]
@@ -223,7 +226,6 @@ def compute(dependencies,name,function,rtest,size,grid,exps,kwargs):
             print '{0}good ran in \t {1}'.format(strname,str(datetime.timedelta(seconds=delt)))
             return good
         except TypeError as e:
-            print e
             print 'To compute {0}, please turn {1} ON'.format(strname,dependencies[i+1])
     elif seton[name] != "ON":
         try:
@@ -559,6 +561,7 @@ def funcbG(E,verbose = False):
     relies on Ginterior
     returns mathcalG(E)
     """
+    tolerance = 1.49e-8
     try:
         t = E.shape
         Gans = []
@@ -566,7 +569,7 @@ def funcbG(E,verbose = False):
         for i in range(len(E)):
             print i+1, 'of', len(E)
             rapoval = rapo(E[i])
-            temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E[i],))
+            temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E[i],),epsabs = tolerance,epsrel = tolerance)
             try:
                 if temp[3] != '':
                     if verbose == True:
