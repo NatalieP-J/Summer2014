@@ -16,7 +16,7 @@ pc = 3.1e16
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"ON",f:"OFF"}
 verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"OFF",G:"ON",f:"ON"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
@@ -552,14 +552,24 @@ ggood = compute(prereqs,["g",g],funclg,rtest,[3,-3,20,-20,0.1],Egrid,[model.b-0.
 
 ########******************* mathcalG *******************######## 
 
+psibG_memo = {}
+part2bG_memo = {}
+part3bG_memo = {}
+
 def bGinterior(theta,r,E):
     """
     interior of G integral
     """
-    psir = 10**psigood(log10(r))
+    if not r in psibG_memo:
+        psibG_memo[r] = 10**psigood(log10(r))
+    psir = psibG_memo[r]
     part1 = (r**2)/sqrt(psir-E)
-    part2 = 10**ggood(log10(psir*(1-theta) + E*theta))
-    part3 = (1./sqrt(theta))-sqrt(theta)
+    if not log10(psir*(1-theta) + E*theta) in part2bG_memo:
+        part2bG_memo[log10(psir*(1-theta) + E*theta)] = 10**ggood(log10(psir*(1-theta) + E*theta))
+    part2 = part2bG_memo[log10(psir*(1-theta) + E*theta)]
+    if not theta in part3bG_memo:
+        part3bG_memo[theta]= (1./sqrt(theta))-sqrt(theta)
+    part3 = part3bG_memo[theta]
     return part1*part2*part3
 
 def funcbG(E,verbose = False):
@@ -576,27 +586,23 @@ def funcbG(E,verbose = False):
         for i in range(len(E)):
             print i+1, 'of', len(E)
             rapoval = rapo(E[i])
-            temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E[i],),epsabs = tolerance,epsrel = tolerance)
             try:
-                if temp[3] != '':
-                    if verbose == True:
-                        print 'G, E = ', E[i], 'message = ', temp[3]
-                    problems.append(i)
-            except IndexError:
-                pass
+                temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E[i],),epsabs = tolerance,epsrel = tolerance)
+            except UserWarning as e:
+                if verbose == True:
+                    print 'G, E = ', E[i], 'message = ', e
+                problems.append(i)
             Gans.append(temp[0])
         return array(Gans),problems
     except AttributeError:
         rapoval = rapo(E)
-        temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E,verbose))
         problem = []
         try:
-            if temp[3] != '':
-                if verbose == True:
-                    print 'G, E = ', E, 'message = ', temp[3]
-                problem = [E]
-        except IndexError:
-            pass
+            temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E,verbose))
+        except UserWarning as e:
+            if verbose == True:
+                print 'G, E = ', E, 'message = ', temp[3]
+            problem = [E]
         return temp[0],problem
 
 ########******************* COMPUTE G *******************######## 
@@ -604,36 +610,11 @@ prereqs = [psigood, "psi",ggood,"g"]
 
 Ggood = compute(prereqs,["G",G],funcbG,rtest,[2,-2,12,-12,0.1],Egrid,[model.b-4,model.g-4],[False,['E','G'],False])
 
+psibG_memo = {}
+part2bG_memo = {}
+part3bG_memo = {}
+
 ########******************* DISTRIBUTION FUNCTION *******************######## 
-
-def finterior1(r,E,rapoval,verbose):
-    """
-    part 1 of the interior of the f integral
-    """
-    var = rapoval/r
-    psi = (10**psigood(log10(var)))[0]
-    result = (var**3)*(1./sqrt(abs(E-psi)))*model.d2rhodr2(var)
-    return result
-
-def finterior2(r,E,rapoval,verbose):
-    """
-    part 2 of the interior of the f integral
-    """
-    var = rapoval/r
-    psi = (10**psigood(log10(var)))[0]
-    result = (var**2)*(1./sqrt(abs(E-psi)))*model.drhodr(var)
-    return result
-
-def finterior3(r,E,rapoval,verbose):
-    """
-    part 3 of the interior of the f integral
-    """
-    var = rapoval/r
-    psi = (10**psigood(log10(var)))[0]
-    Mencvar = (10**Mencgood(log10(var)))[0]
-    Mencrap = (10**Mencgood(log10(rapoval)))[0]
-    result = -(var**2)*(1./sqrt(abs(E-psi)))*(1./(2*rapoval))*model.drhodr(var)*((model.Mnorm*(r-1) + r*Mencvar - Mencrap)/abs(E-psi))
-    return -(var**2)*(1./sqrt(abs(E-psi)))*(1./(2*rapoval))*model.drhodr(var)*((model.Mnorm*(r-1) + r*Mencvar - Mencrap)/abs(E-psi))
 
 def finterior(r,E,rapoval):
     var = rapoval/r
