@@ -16,6 +16,7 @@ pc = 3.1e16
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
+generate = True
 seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"OFF",G:"ON",f:"ON"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
@@ -64,7 +65,7 @@ class NukerModel:
                                 
 ########******************* CONSTRUCT MODEL *******************########
 
-model = NukerModel('testing',0.5,4.,1.5,1.,1.e5,1.e3,False)
+model = NukerModel('testing',1.,4.,1.5,1.,1.e5,1.e3,generate)
 rtest = arange(-12,12,0.01)
 rtest = 10**rtest
 directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,model.r0,model.rho0,model.MBH)
@@ -353,7 +354,7 @@ def Egrid(upstep=5,downstep=-3,up=12,down=-12,step=0.1):
 
 ########******************* COMPUTE MENC *******************######## 
 
-Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[3,-3,30,-30,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],True])
+Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[3,-3,30,-30,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],False])
 
 ########******************* POTENTIAL *******************######## 
         
@@ -414,7 +415,7 @@ def funcpsi(r,verbose=False):
 
 ########******************* COMPUTE PSI *******************######## 
 
-psigood = compute([],["psi",psi],funcpsi,rtest,[3,-3,30,-30,0.03],rgrid,[-1,-1],[False,['r','$\psi$'],True])
+psigood = compute([],["psi",psi],funcpsi,rtest,[3,-3,30,-30,0.03],rgrid,[-1,-1],[False,['r','$\psi$'],False])
 
 ########******************* APOCENTER RADIUS *******************######## 
 
@@ -491,7 +492,7 @@ def funcJc2(E,verbose):
 
 prereqs = [Mencgood,"Menc",psigood,"psi"]
 
-Jc2good = compute(prereqs,["Jc2",Jc2],funcJc2,rtest,[3,-3,12,-12,0.01],Egrid,[-1,-1],[False,['E','Jc2'],True])
+Jc2good = compute(prereqs,["Jc2",Jc2],funcJc2,rtest,[3,-3,12,-12,0.01],Egrid,[-1,-1],[False,['E','Jc2'],False])
 
 ########******************* g *******************######## 
 
@@ -603,9 +604,9 @@ prereqs = [psigood, "psi",ggood,"g"]
 
 Ggood = compute(prereqs,["G",G],funcbG,rtest,[2,-2,12,-12,0.1],Egrid,[model.b-4,model.g-4],[False,['E','G'],False])
 
-psibG_memo = {}
-part2bG_memo = {}
-part3bG_memo = {}
+#psibG_memo = {}
+#part2bG_memo = {}
+#part3bG_memo = {}
 
 ########******************* DISTRIBUTION FUNCTION *******************######## 
 
