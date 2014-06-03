@@ -16,7 +16,7 @@ pc = 3.1e16
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-generate = True
+generate = False
 seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"OFF",G:"ON",f:"ON"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
@@ -604,9 +604,9 @@ prereqs = [psigood, "psi",ggood,"g"]
 
 Ggood = compute(prereqs,["G",G],funcbG,rtest,[2,-2,12,-12,0.1],Egrid,[model.b-4,model.g-4],[False,['E','G'],False])
 
-#psibG_memo = {}
-#part2bG_memo = {}
-#part3bG_memo = {}
+psibG_memo = {}
+part2bG_memo = {}
+part3bG_memo = {}
 
 ########******************* DISTRIBUTION FUNCTION *******************######## 
 
