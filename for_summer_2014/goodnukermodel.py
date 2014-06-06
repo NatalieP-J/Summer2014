@@ -77,8 +77,8 @@ for a in range(len(alphas)):
     alpha = alphas[a]
     for b in range(len(betas)):
         beta = betas[b]
-        for g in range(len(gammas)):
-            gamma = gammas[g]
+        for gam in range(len(gammas)):
+            gamma = gammas[gam]
             print 'alpha = ',alpha, ' beta = ',beta, ' gamma = ',gamma
                                 
 ########******************* CONSTRUCT MODEL *******************########
