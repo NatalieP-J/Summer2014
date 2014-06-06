@@ -275,6 +275,7 @@ for a in range(len(alphas)):
                         print '{0}good ran in \t {1}'.format(strname,str(datetime.timedelta(seconds=delt)))
                         return good
                     except TypeError as e:
+                        print 'e = ',e
                         print 'To compute {0}, please turn {1} ON'.format(strname,dependencies[i+1])
                 elif seton[name] != "ON":
                     try:
@@ -402,7 +403,7 @@ for a in range(len(alphas)):
 
 ########******************* COMPUTE MENC *******************######## 
 
-            Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[3,-3,30,-30,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],False])
+            Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[3,-3,40,-40,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],False])
             if Mencgood == 'Fail':
                 print 'Mencgood = ',Mencgood
                 statfile.write('Mencgood = {0}'.format(Mencgood))
@@ -467,7 +468,7 @@ for a in range(len(alphas)):
 
 ########******************* COMPUTE PSI *******************######## 
 
-            psigood = compute([],["psi",psi],funcpsi,rtest,[3,-3,30,-30,0.03],rgrid,[-1,-1],[False,['r','$\psi$'],False])
+            psigood = compute([],["psi",psi],funcpsi,rtest,[3,-3,40,-40,0.03],rgrid,[-1,-1],[False,['r','$\psi$'],False])
 
             if psigood == 'Fail':
                 print 'psigood = ',psigood
@@ -530,6 +531,9 @@ for a in range(len(alphas)):
                             Jcs.append(((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0])
                             problems.append(i)
                     return array(Jcs),problems
+                except IndexError as e:
+                    print 'Jc2 err = ', e
+                    print E
                 except AttributeError:
                     rresult = root(Jc2implicit,0.01*E[i]**-1,args=(E[i],verbose))
                     problem = []
@@ -716,7 +720,7 @@ for a in range(len(alphas)):
                                 if verbose == True:
                                     print 'f, E = ',E[i],'message = ',temp[3]
                                 problems.append(i)                  
-                        except IndexError:
+                        except TypeError:
                             pass
                         fans.append((prefactor*t)[0])
                     return array(fans),problems
