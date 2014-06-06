@@ -7,11 +7,15 @@ import time
 import datetime
 from subprocess import call
 import pickle
-plt.ion()
+#plt.ion()
 
-alphas = np.arange(0,10,0.1)
-betas = np.arange(0,10,0.1)
-gammas = np.arange(0,10,0.1)
+alphas = arange(0,10,0.1)
+betas = arange(0,10,0.1)
+gammas = arange(0,10,0.1)
+
+alpha = 1.0
+beta = 4.0
+gamma = 1.5
 
 Lam = exp(1)# ****************************************************************
 Gconst = 6.67259e-8
@@ -21,7 +25,7 @@ pc = 3.1e16
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-generate = False
+generate = True
 seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"OFF",G:"ON",f:"ON"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
@@ -138,7 +142,7 @@ def plotter(name,r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,labe
         plt.axvline(rchange, color='r')
         plt.legend(loc='best')
     plt.savefig('{0}/{1}.png'.format(directory,name))
-    plt.show()
+    #plt.show()
 
 def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,plotting=False,problem = True):
     """
@@ -359,7 +363,7 @@ def Egrid(upstep=5,downstep=-3,up=12,down=-12,step=0.1):
 
 ########******************* COMPUTE MENC *******************######## 
 
-Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[3,-3,30,-30,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],False])
+Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[3,-3,40,-40,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],False])
 
 ########******************* POTENTIAL *******************######## 
         
@@ -420,7 +424,7 @@ def funcpsi(r,verbose=False):
 
 ########******************* COMPUTE PSI *******************######## 
 
-psigood = compute([],["psi",psi],funcpsi,rtest,[3,-3,30,-30,0.03],rgrid,[-1,-1],[False,['r','$\psi$'],False])
+psigood = compute([],["psi",psi],funcpsi,rtest,[3,-3,40,-40,0.03],rgrid,[-1,-1],[False,['r','$\psi$'],False])
 
 ########******************* APOCENTER RADIUS *******************######## 
 
