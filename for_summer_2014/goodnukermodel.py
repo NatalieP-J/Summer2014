@@ -8,6 +8,11 @@ import datetime
 from subprocess import call
 import pickle
 plt.ion()
+
+alphas = np.arange(0,10,0.1)
+betas = np.arange(0,10,0.1)
+gammas = np.arange(0,10,0.1)
+
 Lam = exp(1)# ****************************************************************
 Gconst = 6.67259e-8
 realMsun = 1.989e33
@@ -65,7 +70,7 @@ class NukerModel:
                                 
 ########******************* CONSTRUCT MODEL *******************########
 
-model = NukerModel('testing',1.,4.,1.5,1.,1.e5,1.e3,generate)
+model = NukerModel('testing',alpha,beta,gamma,1.,1.e5,1.e3,generate)
 rtest = arange(-12,12,0.01)
 rtest = 10**rtest
 directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,model.r0,model.rho0,model.MBH)
