@@ -7,7 +7,16 @@ import time
 import datetime
 from subprocess import call
 import pickle
-plt.ion()
+#plt.ion()
+
+alphas = arange(0,10,0.1)
+betas = arange(0,10,0.1)
+gammas = arange(0,10,0.1)
+
+alpha = 1.0
+beta = 4.0
+gamma = 1.5
+
 Lam = exp(1)# ****************************************************************
 Gconst = 6.67259e-8
 realMsun = 1.989e33
@@ -65,7 +74,7 @@ class NukerModel:
                                 
 ########******************* CONSTRUCT MODEL *******************########
 
-model = NukerModel('testing',1.,4.,1.5,1.,1.e5,1.e3,generate)
+model = NukerModel('testing',alpha,beta,gamma,1.,1.e5,1.e3,generate)
 rtest = arange(-12,12,0.01)
 rtest = 10**rtest
 directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,model.r0,model.rho0,model.MBH)
@@ -133,7 +142,7 @@ def plotter(name,r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,labe
         plt.axvline(rchange, color='r')
         plt.legend(loc='best')
     plt.savefig('{0}/{1}.png'.format(directory,name))
-    plt.show()
+    #plt.show()
 
 def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,plotting=False,problem = True):
     """
@@ -354,7 +363,7 @@ def Egrid(upstep=5,downstep=-3,up=12,down=-12,step=0.1):
 
 ########******************* COMPUTE MENC *******************######## 
 
-Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[3,-3,30,-30,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],False])
+Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[3,-3,40,-40,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],False])
 
 ########******************* POTENTIAL *******************######## 
         
@@ -415,7 +424,7 @@ def funcpsi(r,verbose=False):
 
 ########******************* COMPUTE PSI *******************######## 
 
-psigood = compute([],["psi",psi],funcpsi,rtest,[3,-3,30,-30,0.03],rgrid,[-1,-1],[False,['r','$\psi$'],False])
+psigood = compute([],["psi",psi],funcpsi,rtest,[3,-3,40,-40,0.03],rgrid,[-1,-1],[False,['r','$\psi$'],False])
 
 ########******************* APOCENTER RADIUS *******************######## 
 
