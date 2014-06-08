@@ -16,9 +16,9 @@ pc = 3.1e16
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-generate = False
+generate = True
 seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
-verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"OFF",G:"ON",f:"ON"}
+verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
 class NukerModel:
@@ -671,11 +671,10 @@ fgood = compute(prereqs,["f",f],funcf,rtest,[5,-3,12,-12,0.03],Egrid,[model.b-1.
 def funcq(r):
     return (4./pi)*log(Lam)*(model.r0_rT/model.MBH)*10**Ggood(log10(r))
 
-'''
 def Rlc(r):
-    interior = 2*(model.MBHnorm./model.r0_rT)*(1./Jc2good(r))
+    interior = 2*(model.Mnorm/model.r0_rT)*(10**Jc2good(log10(r)))**-1
     return -log(interior)
-
+'''
 # dependent on a lot of mystery functions
 def dgdlnrp(Emin = 0.01,Emax=100):
     prefactor = (8*pi**2)*model.MBH_Msun*(model.r0_rT**-1)*(model.tdyn0**-1)
