@@ -28,23 +28,19 @@ class BesselGen:
         qimax = 1.
         dqi = 0.03
         qi = ((log10(q) - qimin)/dqi)+1.
-        print qi
         xichange = 10**(floor((qimax-qimin)/dqi)*dqi + qimin)
-        print xichange
-        print 10**qimin
         try:
-            xi1 = sqrt(4*q[(qi<10**qimin)]/pi)
-            xi2 = self.xinter(qi[(qi>=10**qimin)&(qi<=xichange)])
-            xi3 = qi[(qi>xichange)]/qi[(qi>xichange)]
+            xi1 = sqrt(4*q[(q<10**qimin)]/pi)
+            xi2 = self.xinter(q[(q>=10**qimin)&(q<=xichange)])
+            xi3 = q[(q>xichange)]/qi[(q>xichange)]
             return cocatenate((xi1,xi2,xi3))
         except TypeError:
-            if qi < 10**qimin:
+            if q < 10**qimin:
                 return sqrt(4*q/pi)
-            if qi >= 10**qimin and qi <= xichange:
-                return self.xinter(qi)
-            if qi > xichange:
+            elif q >= 10**qimin and q < xichange:
+                return self.xinter(q)
+            elif q >= xichange:
                 return 1.
-
 
     def besselfin(self,u,m):
         zimin = 10**-2
@@ -61,9 +57,9 @@ class BesselGen:
         except IndexError:
             if z<zimin:
                 return 1
-            if z>=zimin and z<=zimax:
+            elif z>=zimin and z<=zimax:
                 return self.binter(zi)
-            if z>zimax:
+            elif z>zimax:
                 return sqrt(1./((m-0.25)*u*pi**2))*cos(pi*(u*(m-0.25)-0.25))
     
     def mpiece(self,m):
@@ -75,7 +71,7 @@ class BesselGen:
         except TypeError:
             if m<=mlim:
                 return self.minter(m)
-            if m>mlim:
+            elif m>mlim:
                 return (-1)**(m-1)*sqrt(2*m - 0.5)
                    
         
