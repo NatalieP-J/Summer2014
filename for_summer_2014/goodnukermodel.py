@@ -27,7 +27,7 @@ yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
 generate = False
 seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
-verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"OFF",G:"ON",f:"ON"}
+verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
 class NukerModel:
@@ -686,8 +686,6 @@ def Rlc(r):
 
 etest = 10**arange(-6,6,0.01)
 plt.loglog(etest,Rlc(etest))
-
-
 
 '''
 # dependent on a lot of mystery functions
