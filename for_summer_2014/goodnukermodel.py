@@ -7,7 +7,7 @@ import time
 import datetime
 from subprocess import call
 import pickle
-#plt.ion()
+plt.ion()
 
 alphas = arange(0,10,0.1)
 betas = arange(0,10,0.1)
@@ -21,11 +21,11 @@ Lam = exp(1)# ****************************************************************
 Gconst = 6.67259e-8
 realMsun = 1.989e33
 Rsun = 6.9599e10
-pc = 3.1e16
+pc = 3.1e18
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-generate = True
+generate = False
 seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"OFF",G:"ON",f:"ON"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
@@ -80,7 +80,7 @@ rtest = 10**rtest
 directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,model.r0,model.rho0,model.MBH)
 if model.generate == True:
     call(["mkdir","{0}".format(directory)])
-    seton = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
+    seton = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"OFF",f:"ON"}
 ########******************* CONSTRUCTION FUNCTIONS *******************########
 def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp,conds=False):
     """
@@ -468,9 +468,9 @@ def funcJc2(E,verbose):
         problems = []
         for i in range(len(E)):
             #print i+1, ' of ', len(E)
-            if E[i]**-1 > 0.2:
+            if E[i]**-1 > 0.4:
                 rguess = 10*E[i]**-1
-            elif E[i]**-1 < 0.2:
+            elif E[i]**-1 < 0.4:
                 rguess = 0.01*E[i]**-1
             rresult = root(Jc2implicit,rguess,args=(E[i],verbose))
             rresult.x = abs(rresult.x)
@@ -680,11 +680,16 @@ fgood = compute(prereqs,["f",f],funcf,rtest,[5,-3,12,-12,0.03],Egrid,[model.b-1.
 def funcq(r):
     return (4./pi)*log(Lam)*(model.r0_rT/model.MBH)*10**Ggood(log10(r))
 
-'''
 def Rlc(r):
-    interior = 2*(model.MBHnorm./model.r0_rT)*(1./Jc2good(r))
+    interior = 2*(model.Mnorm/model.r0_rT)*(1./10**Jc2good(log10(r)))
     return -log(interior)
 
+etest = 10**arange(-6,6,0.01)
+plt.loglog(etest,Rlc(etest))
+
+
+
+'''
 # dependent on a lot of mystery functions
 def dgdlnrp(Emin = 0.01,Emax=100):
     prefactor = (8*pi**2)*model.MBH_Msun*(model.r0_rT**-1)*(model.tdyn0**-1)
