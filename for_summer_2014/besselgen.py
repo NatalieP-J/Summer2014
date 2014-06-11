@@ -6,7 +6,7 @@ class BesselGen:
         data = loadtxt('{0}'.format(files[0]))
         self.ainter = interp1d(data[:,0],data[:,1])
         data = loadtxt('{0}'.format(files[1]))
-        self.xinter = interp1d(data[:,0],data[:,1])
+        self.xinter = interp1d(10**data[:,0],data[:,1])
         data = loadtxt('{0}'.format(files[2]))
         self.binter = interp1d(data[:,0],data[:,1])
         data = loadtxt('{0}'.format(files[3]))
@@ -24,6 +24,7 @@ class BesselGen:
                 return pi*(m-0.25)
         
     def xi(self,q):
+        q = 10**q
         qimin = -10.
         qimax = 1.
         dqi = 0.03
