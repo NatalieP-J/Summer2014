@@ -31,8 +31,8 @@ def rmin(v):
     return (2*G*Msun)/v**2
 def Coulomb(R,v):
     return log(R/rmin(v))
-def trel(v,n,R,rmin):
-    return ((v**3)/(((G*m)**2)*n*Coulomb(R,v)))
+def trel(v,rh,R,units = 'Gyr'):
+    return time_units(((v**3)/(((G*Msun)**2)*numdense(rh)*Coulomb(R,v))),units)
 def basicrate(v,rh,MBH,Nstar,units = 'Gyr'):
     return 1./time_units(1./(Nstar*numdense(rh)*v*sigma(MBH)),units)
 def gravrate(v,rh,MBH,Nstar,units = 'kyr'):
