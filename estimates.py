@@ -1,5 +1,7 @@
 from numpy import *
+import matplotlib.pyplot as plt
 
+plt.ion()
 Rsun = 6.95e8
 Msun = 1.98e30
 MBH_MW = (4e6)*Msun
@@ -38,10 +40,34 @@ def basicrate(v,rh,MBH,Nstar,units = 'Gyr'):
 def gravrate(v,rh,MBH,Nstar,units = 'kyr'):
     return 1./time_units(1./(Nstar*(numdense(rh)*pi*G*MBH*rT(MBH))/v),units)
 def Rlc(r,rh,MBH):
-    if r>=rh:
-        return (rT(MBH)*rh)/r**2
-    if r<rh:
-        return (rT(MBH))/r
+    try:
+        len(r)
+        rs = []
+        for i in range(len(r)):
+            if r[i]>=rh:
+               rs.append((rT(MBH)*rh)/r[i]**2)
+            if r[i] < rh:
+                rs.append(rT(MBH)/r[i])
+        return array(rs)
+    except TypeError:
+        if r>=rh:
+            return (rT(MBH)*rh)/r**2
+        if r<rh:
+            return (rT(MBH))/r
+def gamma(r,rh,MBH):
+    rs = []
+    for i in range(len(r)):
+        if r[i] >= rh:
+            v = v_outrh(MBH,rh)
+        if r[i] < rh:
+            v = v_inrh(MBH,r[i])
+        rs.append((numdense(rh)*(r[i]**3)*Rlc(r[i],rh,MBH)*r[i])/v)
+    return array(rs)
 
 print 'Basic rate = ',basicrate(v_typical,rh_MW,MBH_MW,Nstar_MW),'per Gyr'
 print 'Focus rate = ',gravrate(v_typical,rh_MW,MBH_MW,Nstar_MW),'per kyr'
+rtest = arange(1,15,0.1)
+rtest = 10**rtest
+
+plt.figure()
+plt.loglog(rtest,gamma(rtest,rh_MW,MBH_MW))
