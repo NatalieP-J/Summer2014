@@ -7,7 +7,9 @@ import time
 import datetime
 from subprocess import call
 import pickle
+import manage as man
 
+plt.figure()
 Lam = exp(1)# ****************************************************************
 Gconst = 6.67259e-8
 realMsun = 1.989e33
@@ -20,7 +22,7 @@ generate = True
 seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 verbosity = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
-
+bigstatfile = open('status.txt',"wb")
 rtest = arange(-12,12,0.01)
 rtest = 10**rtest
 
@@ -85,12 +87,13 @@ for a in range(len(alphas)):
 
             model = NukerModel('testing',alpha,beta,gamma,1.,1.e5,1.e3,generate)            
             directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,model.r0,model.rho0,model.MBH)
-            statfile = open('{0}/status.txt'.format(directory),"wb")
-            print 'Open statfile'
-            statfile.write('{0}\t{1}\t{2}\n'.format(alpha,beta,gamma))
             if model.generate == True:
                 call(["mkdir","{0}".format(directory)])
-                seton = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"OFF",f:"OFF"}
+                seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+            statfile = open('{0}/status.txt'.format(directory),"wb")
+            statfile.write('{0}\t{1}\t{2}\n'.format(alpha,beta,gamma))
+            bigstatfile.write('\n{0}\t{1}\t{2}\n'.format(alpha,beta,gamma))
+    
 ########******************* CONSTRUCTION FUNCTIONS *******************########
             def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp,conds=False):
                 """
@@ -149,9 +152,15 @@ for a in range(len(alphas)):
                 if nansfrac > 0.3:
                     return nansfrac
                 else:
-                    plt.figure()
+                    plt.clf()
                     if any(t<0 for t in m):
                         plt.loglog(r,abs(m),'.',label = 'Negative values')
+                        plt.ylabel(r'{0}'.format(labels[1]))
+                        plt.xlabel('{0}'.format(labels[0]))
+                        plt.xlim(min(r),max(r))
+                        plt.ylim(min(m),max(m))
+                        plt.legend(loc='best')
+                        plt.savefig('{0}/{1}.png'.format(directory,name))
                     else:
                         plt.loglog(r,m,'.')
                         plt.ylabel(r'{0}'.format(labels[1]))
@@ -187,7 +196,7 @@ for a in range(len(alphas)):
                 """
                 rarray,rchange,rstart = grid(size[0],size[1],size[2],size[3],size[4])
                 tab,problems = func(rarray,verbose)
-                print 'fraction reporting a message: {0}'.format(float(len(problems))/float(len(tab)))
+                print 'fraction reporting a message: {0}/{1} = {2}'.format(len(problems),len(tab),float(len(problems))/float(len(tab)))
                 prob = float(len(problems))/float(len(tab))
                 if problem == True:
                     tab = [i for j, i in enumerate(tab) if j not in problems]
@@ -408,6 +417,7 @@ for a in range(len(alphas)):
                 print 'Mencgood = ',Mencgood
                 statfile.write('Mencgood = {0}'.format(Mencgood))
                 statfile.close()
+                bigstatfile.write('Mencgood = {0}'.format(Mencgood))
                 continue
 
 ########******************* POTENTIAL *******************######## 
@@ -474,6 +484,7 @@ for a in range(len(alphas)):
                 print 'psigood = ',psigood
                 statfile.write('psigood = {0}'.format(psigood))
                 statfile.close()
+                bigstatfile.write('psigood = {0}'.format(psigood))
                 continue
 ########******************* APOCENTER RADIUS *******************######## 
 
@@ -558,6 +569,7 @@ for a in range(len(alphas)):
                 print 'Jc2good = ',Jc2good
                 statfile.write('Jc2good = {0}'.format(Jc2good))
                 statfile.close()
+                bigstatfile.write('Jc2good = {0}'.format(Jc2good))
                 continue
 
 ########******************* g *******************######## 
@@ -614,6 +626,7 @@ for a in range(len(alphas)):
                 print 'ggood = ',ggood
                 statfile.write('ggood = {0}'.format(ggood))
                 statfile.close()
+                bigstatfile.write('ggood = {0}'.format(ggood))
                 continue
 
 ########******************* mathcalG *******************######## 
@@ -684,6 +697,7 @@ for a in range(len(alphas)):
                 print 'Ggood = ',Ggood
                 statfile.write('Ggood = {0}'.format(Ggood))
                 statfile.close()
+                bigstatfile.write('Ggood = {0}'.format(Ggood))
                 continue
 
 ########******************* DISTRIBUTION FUNCTION *******************######## 
@@ -748,11 +762,15 @@ for a in range(len(alphas)):
                 print 'fgood = ',fgood
                 statfile.write('fgood = {0}'.format(fgood))
                 statfile.close()
+                bigstatfile.write('fgood = {0}'.format(fgood))
+                bigstatfile.close()
                 continue
             
             status = 'Pass'
             statfile.write(status)
             statfile.close()
+            bigstatfile.write(status)
+            
             
 
 ########******************* ADDITIONAL FUNCTIONS *******************######## 
@@ -760,7 +778,7 @@ for a in range(len(alphas)):
             def funcq(r):
                 return (4./pi)*log(Lam)*(model.r0_rT/model.MBH)*10**Ggood(log10(r))
 
-
+bigstatfile.close()
 '''
 def Rlc(r):
     interior = 2*(model.MBHnorm./model.r0_rT)*(1./Jc2good(r))
