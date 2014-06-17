@@ -22,7 +22,7 @@ Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
 generate = True
 seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 verbosity = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
-plot = {Menc:"OFF",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
+plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 bigstatfile = open('WMstatus.txt',"wb")
 rtest = arange(-12,12,0.01)
 rtest = 10**rtest
@@ -85,7 +85,7 @@ mubs = array([float(i) for i in data[:,4]])
 M2Ls = array([float(i) for i in data[:,8]])
 rho0s = (1./rbs)*(1./(10)**2)*(206265**2)*M2Ls*10**((MsunV-mubs)/2.5) 
 for i in range(len(alphas)):
-    alpha = 1 #alphas[i]
+    alpha = alphas[i]
     beta = betas[i]
     gamma = gammas[i]
     MBH = MBHs[i]
@@ -100,7 +100,7 @@ for i in range(len(alphas)):
     directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,round(model.r0,-3),round(model.rho0,-3),round(model.MBH,-3))
     if model.generate == True:
         call(["mkdir","{0}".format(directory)])
-        seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"ON",f:"OFF"}
+        seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"ON"}
     statfile = open('{0}/status.txt'.format(directory),"wb")
     statfile.write('\n{0}\t{1}\t{2}'.format(alpha,beta,gamma))
     bigstatfile.write('\n{0}\t{1}\t{2}\t{3}'.format(name,alpha,beta,gamma))
@@ -171,7 +171,7 @@ for i in range(len(alphas)):
                 plt.xlabel('{0}'.format(labels[0]))
                 plt.xlim(min(r),max(r))
                 plt.ylim(min(m),max(m))
-                plt.legend(loc='best')
+                #plt.legend(loc='best')
                 plt.title(r'{0}, $\alpha$ = {1}, $\beta$ ={2}, $\gamma$ = {3}'.format(name,alpha,beta,gamma))
                 plt.savefig('{0}/{1}.png'.format(directory,name))
             else:
@@ -434,9 +434,9 @@ for i in range(len(alphas)):
     Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[14,-3,40,-40,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],False])
     plt.clf()
     plt.loglog(rtest,10**Mencgood(log10(rtest)),'g')
-    Mtotguess = exp((log(model.MBH)-17.19)/2.29)
+    Mtotguess = 5*exp((log(model.MBH)-17.19)/2.29)
     def Menc2(Mtot,r):
-        return Mtot*(r/(r+model.r0))**(beta-1-gamma)
+        return (r/(r+1))**((beta)*(3./4.)-gamma)
     plt.loglog(rtest,Menc2(Mtotguess,rtest),'r')
     plt.xlabel('r')
     plt.ylabel('Menc')

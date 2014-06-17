@@ -74,7 +74,7 @@ class NukerModel:
 
 data = array(man.LoadDataTab('WM04.dat'))
 alphas = array([float(i) for i in data[:,5]])
-betas = array([float(i) + 2. for i in data[:,6]])
+betas = array([float(i) + 1. for i in data[:,6]])
 gammas = array([float(i) + 1. for i in data[:,7]])
 MBHs = array([float(i) for i in data[:,12]])
 MBHs = 10**MBHs
@@ -84,7 +84,7 @@ rbs = 10**rbs
 mubs = array([float(i) for i in data[:,4]])
 M2Ls = array([float(i) for i in data[:,8]])
 rho0s = (1./rbs)*(1./(10)**2)*(206265**2)*M2Ls*10**((MsunV-mubs)/2.5) 
-MBHs = array([4,6,8,10,12])
+MBHs = array([4,6,8,10])
 MBHs = 10**MBHs
 for i in range(len(MBHs)):
     alpha = alphas[17]
