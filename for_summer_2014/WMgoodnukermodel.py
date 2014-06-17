@@ -7,7 +7,6 @@ import time
 import datetime
 from subprocess import call
 import pickle
-import manage as man
 
 plt.figure()
 Lam = exp(1)# ****************************************************************
@@ -26,6 +25,14 @@ plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 bigstatfile = open('WMstatus.txt',"wb")
 rtest = arange(-12,12,0.01)
 rtest = 10**rtest
+
+def LoadDataTab(fname):
+    f=open(fname,'r')
+    data=[]
+    for line in f.readlines():
+        data.append(line.replace('\n','').split('\t'))
+    f.close()
+    return data
 
 ########******************* MODEL FRAMEWORK *******************########
 class NukerModel:
@@ -72,7 +79,7 @@ class NukerModel:
 
 ########******************* PARAMETER TESTS *******************########
 
-data = array(man.LoadDataTab('WM04.dat'))
+data = array(LoadDataTab('WM04.dat'))
 alphas = array([float(i) for i in data[:,5]])
 betas = array([float(i) + 1. for i in data[:,6]])
 gammas = array([float(i) + 1. for i in data[:,7]])
@@ -85,8 +92,8 @@ mubs = array([float(i) for i in data[:,4]])
 M2Ls = array([float(i) for i in data[:,8]])
 rho0s = (1./rbs)*(1./(10)**2)*(206265**2)*M2Ls*10**((MsunV-mubs)/2.5) 
 for i in range(len(alphas)):
-    alpha = alphas[i]
-    beta = betas[i]
+    alpha = 1#alphas[i]
+    beta = 4#betas[i]
     gamma = gammas[i]
     MBH = MBHs[i]
     rb = rbs[i]
@@ -100,7 +107,7 @@ for i in range(len(alphas)):
     directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,round(model.r0,-3),round(model.rho0,-3),round(model.MBH,-3))
     if model.generate == True:
         call(["mkdir","{0}".format(directory)])
-        seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"ON"}
+        seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
     statfile = open('{0}/status.txt'.format(directory),"wb")
     statfile.write('\n{0}\t{1}\t{2}'.format(alpha,beta,gamma))
     bigstatfile.write('\n{0}\t{1}\t{2}\t{3}'.format(name,alpha,beta,gamma))
@@ -433,13 +440,14 @@ for i in range(len(alphas)):
     bigstatfile.write('\nStarting Menc')
     Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[14,-3,40,-40,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],False])
     plt.clf()
-    plt.loglog(rtest,10**Mencgood(log10(rtest)),'g')
+    plt.loglog(rtest,10**Mencgood(log10(rtest)),'g',label = 'Integrated Density')
     Mtotguess = 5*exp((log(model.MBH)-17.19)/2.29)
     def Menc2(Mtot,r):
-        return (r/(r+1))**((beta)*(3./4.)-gamma)
-    plt.loglog(rtest,Menc2(Mtotguess,rtest),'r')
+        return (r/(r+1))**(3-gamma)
+    plt.loglog(rtest,Menc2(Mtotguess,rtest),'r',label = 'Dehnen')
     plt.xlabel('r')
     plt.ylabel('Menc')
+    plt.legend(loc = 'best')
     plt.title(r'{0}, $\alpha$ = {1}, $\beta$ = {2}, $\gamma$ = {3}'.format(name,alpha,beta,gamma))
     plt.savefig('{0}/Mcompare.png'.format(directory))
     if Mencgood == 'Fail':
