@@ -27,7 +27,7 @@ km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
 generate = False
-seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"ON",f:"OFF"}
+seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
@@ -689,6 +689,7 @@ def Rlc(r):
 
 etest = 10**arange(-6,6,0.01)
 plt.loglog(etest,Rlc(etest))
+plt.show()
 
 ########******************* IMPORT DATA TABLES *******************########
 
@@ -697,6 +698,9 @@ bessel = BesselGen(['alpham_table.txt','xi_table.txt','Bessel_table.txt','mpiece
 ########******************* CALCULATE RATE *******************########
 
 def rateinterior(E,u,qmin):
+    """
+    interior of the integral used to calculate rate as function of pericentre
+    """
     sumlim = max([200,2*qmin**-0.5])
     ms = array(1,sumlim,1.)
     alphas = bessel.alpham(ms)
@@ -709,6 +713,12 @@ def rateinterior(E,u,qmin):
                                  
 # dependent on a lot of mystery functions
 def dgdlnrp(rp,Emin = 0.01,Emax=100,verbose = False):
+    """
+    rp - pericentre radius
+    Emin, Emax - bounds of the integral
+    verbose = True - print error messages from integration
+    returns the rate for given rp
+    """
     u = sqrt(rp/model.r0)
     prefactor = (8*pi**2)*model.MBH_Msun*(model.r0_rT**-1)*(model.tdyn0**-1)*u**2
     qmin = funcq(Emax)
