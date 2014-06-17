@@ -9,6 +9,7 @@ import time
 import datetime
 from subprocess import call
 import pickle
+from besselgen import BesselGen
 plt.ion()
 
 alphas = arange(0,10,0.1)
@@ -688,12 +689,16 @@ def Rlc(r):
     return -log(interior)
 
 etest = 10**arange(-6,6,0.01)
-plt.loglog(etest,Rlc(etest))
+plt.loglog(etest,funcq(etest))
 plt.show()
 
 ########******************* IMPORT DATA TABLES *******************########
 
+tic = time.clock()
 bessel = BesselGen(['alpham_table.txt','xi_table.txt','Bessel_table.txt','mpiece_table.txt'])
+toc = time.clock()
+delt = toc-tic
+print 'bessel loaded in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
 
 ########******************* CALCULATE RATE *******************########
 
@@ -702,10 +707,14 @@ def rateinterior(E,u,qmin):
     interior of the integral used to calculate rate as function of pericentre
     """
     sumlim = max([200,2*qmin**-0.5])
-    ms = array(1,sumlim,1.)
+    ms = arange(1,sumlim,1.)
     alphas = bessel.alpham(ms)
     ualphams = u*alphas
     qval = funcq(E)
+    print 'f = ',10**fgood(log10(E))
+    print 'Rlc = ',Rlc(E)
+    print 'qval = ',qval
+    print 'xi = ',bessel.xi(log10(qval))
     part1 = 10**fgood(log10(E))/(1+(qval**-1)*(bessel.xi(log10(qval)))*Rlc(E))
     part2list = (exp(-(alphas**2)*qval/4)*bessel.besselfin(u,ms,ualphams))/alphas
     part2 = 1-2*nsum(part2list)

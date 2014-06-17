@@ -17,7 +17,7 @@ class BesselGen:
             alpha1 = self.ainter(m[(m<10**6)])
             alpha2 = pi*(m[(m>=10**6)] - 0.25)
             return concatenate((alpha1,alpha2))
-        except TypeError:
+        except (TypeError,IndexError):
             if m<10**6:
                 return self.ainter(m)
             elif m>=10**6:
@@ -35,13 +35,13 @@ class BesselGen:
             xi2 = self.xinter(q[(q>=10**qimin)&(q<=xichange)])
             xi3 = q[(q>xichange)]/q[(q>xichange)]
             return cocatenate((xi1,xi2,xi3))
-        except TypeError:
+        except (TypeError,IndexError):
             if q < 10**qimin:
-                return sqrt(4*q/pi)
+                return array(sqrt(4*q/pi))
             elif q >= 10**qimin and q < xichange:
                 return self.xinter(q)
             elif q >= xichange:
-                return 1.
+                return array(1.)
 
     def besselfin(self,u,m,ualpham):
         zimin = 10**-2
@@ -55,7 +55,7 @@ class BesselGen:
             besselfin2 = self.binter(zi[(z>=zimin)&(z<=zimax)])
             besselfin3 = sqrt(2./((m[(z>zimax)]-0.25)*u*pi**2))*cos(pi*(u*(m[(z>zimax)]-0.25)-0.25))
             return concatenate((besselfin1,besselfin2,besselfin3))
-        except IndexError:
+        except (IndexError,TypeError):
             if z<zimin:
                 return 1
             elif z>=zimin and z<=zimax:
