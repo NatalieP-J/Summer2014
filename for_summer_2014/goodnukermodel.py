@@ -690,14 +690,20 @@ def Rlc(r):
 etest = 10**arange(-6,6,0.01)
 plt.loglog(etest,Rlc(etest))
 
+########******************* IMPORT DATA TABLES *******************########
+
+bessel = BesselGen(['alpham_table.txt','xi_table.txt','Bessel_table.txt','mpiece_table.txt'])
+
+########******************* CALCULATE RATE *******************########
+
 def rateinterior(E,u,qmin):
     sumlim = max([200,2*qmin**-0.5])
     ms = array(1,sumlim,1.)
-    alphas = alpham(ms)
+    alphas = bessel.alpham(ms)
     ualphams = u*alphas
     qval = funcq(E)
-    part1 = 10**fgood(log10(E))/(1+(qval**-1)*(xi(log10(qval)))*Rlc(E))
-    part2list = (exp(-(alphas**2)*qval/4)*besselfin(u,ms,ualphams))/alphas
+    part1 = 10**fgood(log10(E))/(1+(qval**-1)*(bessel.xi(log10(qval)))*Rlc(E))
+    part2list = (exp(-(alphas**2)*qval/4)*bessel.besselfin(u,ms,ualphams))/alphas
     part2 = 1-2*nsum(part2list)
     return part1*part2
                                  
