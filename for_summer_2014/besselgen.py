@@ -33,7 +33,7 @@ class BesselGen:
         try:
             xi1 = sqrt(4*q[(q<10**qimin)]/pi)
             xi2 = self.xinter(q[(q>=10**qimin)&(q<=xichange)])
-            xi3 = q[(q>xichange)]/qi[(q>xichange)]
+            xi3 = q[(q>xichange)]/q[(q>xichange)]
             return cocatenate((xi1,xi2,xi3))
         except TypeError:
             if q < 10**qimin:
@@ -43,17 +43,17 @@ class BesselGen:
             elif q >= xichange:
                 return 1.
 
-    def besselfin(self,u,m):
+    def besselfin(self,u,m,ualpham):
         zimin = 10**-2
         zimax = 10**2
         dzi = 10**-2
-        z = u*self.alpham(m)
+        z = ualpham
         zi = ((z-zimin)/dzi)+1
         print zi
         try:
             besselfin1 = zi[(z<zimin)]/zi[(z<zimin)]
             besselfin2 = self.binter(zi[(z>=zimin)&(z<=zimax)])
-            besselfin3 = sqrt(2./((m-0.25)*u[(z>zimax)]*pi**2))*cos(pi*(u[(z>zimax)]*(m-0.25)-0.25))
+            besselfin3 = sqrt(2./((m[(z>zimax)]-0.25)*u*pi**2))*cos(pi*(u*(m[(z>zimax)]-0.25)-0.25))
             return concatenate((besselfin1,besselfin2,besselfin3))
         except IndexError:
             if z<zimin:

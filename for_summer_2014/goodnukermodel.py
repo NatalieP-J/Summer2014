@@ -1,3 +1,5 @@
+import numpy as np
+nsum = np.sum
 from numpy import *
 import scipy.integrate as intg
 from scipy.optimize import root
@@ -17,7 +19,6 @@ alpha = 1.0
 beta = 4.0
 gamma = 1.5
 
-Lam = exp(1)# ****************************************************************
 Gconst = 6.67259e-8
 realMsun = 1.989e33
 Rsun = 6.9599e10
@@ -26,7 +27,7 @@ km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
 generate = False
-seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"ON",f:"OFF"}
 verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
@@ -45,6 +46,8 @@ class NukerModel:
         self.rho0 = rho0
         #black holes mass in units of Msun
         self.MBH = MBH_Msun
+        #Coulomb logarithm
+        self.Lam = self.MBH*0.4
         #black hole mass normalized to galaxy density and radius
         self.Mnorm = self.MBH/(self.rho0*(self.r0)**3)
         #tidal disruption radius
@@ -678,7 +681,7 @@ fgood = compute(prereqs,["f",f],funcf,rtest,[5,-3,12,-12,0.03],Egrid,[model.b-1.
 ########******************* ADDITIONAL FUNCTIONS *******************######## 
 
 def funcq(r):
-    return (4./pi)*log(Lam)*(model.r0_rT/model.MBH)*10**Ggood(log10(r))
+    return (4./pi)*log(model.Lam)*(model.r0_rT/model.MBH)*10**Ggood(log10(r))
 
 def Rlc(r):
     interior = 2*(model.Mnorm/model.r0_rT)*(1./10**Jc2good(log10(r)))
@@ -687,10 +690,29 @@ def Rlc(r):
 etest = 10**arange(-6,6,0.01)
 plt.loglog(etest,Rlc(etest))
 
-'''
+def rateinterior(E,u,qmin):
+    sumlim = max([200,2*qmin**-0.5])
+    ms = array(1,sumlim,1.)
+    alphas = alpham(ms)
+    ualphams = u*alphas
+    qval = funcq(E)
+    part1 = 10**fgood(log10(E))/(1+(qval**-1)*(xi(log10(qval)))*Rlc(E))
+    part2list = (exp(-(alphas**2)*qval/4)*besselfin(u,ms,ualphams))/alphas
+    part2 = 1-2*nsum(part2list)
+    return part1*part2
+                                 
 # dependent on a lot of mystery functions
-def dgdlnrp(Emin = 0.01,Emax=100):
-    prefactor = (8*pi**2)*model.MBH_Msun*(model.r0_rT**-1)*(model.tdyn0**-1)
+def dgdlnrp(rp,Emin = 0.01,Emax=100,verbose = False):
+    u = sqrt(rp/model.r0)
+    prefactor = (8*pi**2)*model.MBH_Msun*(model.r0_rT**-1)*(model.tdyn0**-1)*u**2
     qmin = funcq(Emax)
     qmax = funcq(Emin)
-'''
+    result = intg.quad(rateinterior,Emin,Emax,args = (u,qmin),full_output = 1)
+    t = result[0]
+    try:
+        if result[3] != '':
+            if verbose == True:
+                print 'dgdlnrp, rp = ',rp, 'message = ',result[3]
+    except (IndexError,TypeError):
+        pass
+    return prefactor*t
