@@ -690,7 +690,7 @@ etest = 10**arange(-6,6,0.01)
 ########******************* IMPORT DATA TABLES *******************########
 
 tic = time.clock()
-bessel = BesselGen(['alpham_table.txt','xi_table.txt','Bessel_table.txt','mpiece_table.txt'])
+bessel = BesselGen(['alpham_table.txt','xi_table2.txt','Bessel_table.txt','mpiece_table.txt'])
 toc = time.clock()
 delt = toc-tic
 print 'bessel loaded in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
@@ -704,16 +704,21 @@ def rateinterior(E,u,qmin):
     sumlim = max([200,2*qmin**-0.5])
     ms = arange(1,sumlim,1.)
     alphas = bessel.alpham(ms)
-    ualphams = u*alphas
     qval = funcq(E)
     fval = 10**fgood(log10(E))
-    xival = bessel.xi(log10(qval))
-    bfin = bessel.besselfin(u,ms,ualphams)
+    xival = bessel.xi(qval)
+    qimin = -10.
+    qimax = 1.
+    dqi = 0.03
+    qi = ((log10(qval) - qimin)/dqi)+1.
+    for i in range(len(qval)):
+        print 'qval = ',qval[i], 'qi = ',qi[i],'xi = ',xival[i]
+    bfin = bessel.besselfin(ms,u)
     part1 = array(fval/(1+(qval**-1)*(xival)*Rlc(E)))
     part2list = exp(array(matrix(alphas**2).T*matrix(qval/4)))
     part2list = array([(bfin/alphas)[i]*part2list[i] for i in range(len(alphas))])
     part2 = 1-2*nsum(part2list,axis = 0)
-    return part1*part2
+    return qval#part1*part2
                                  
 # dependent on a lot of mystery functions
 def dgdlnrp(rp,Emin = 0.01,Emax=100,verbose = False):
