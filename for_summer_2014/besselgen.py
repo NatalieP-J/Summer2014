@@ -34,7 +34,7 @@ class BesselGen:
             xi1 = sqrt(4*q[(q<10**qimin)]/pi)
             xi2 = self.xinter(q[(q>=10**qimin)&(q<=xichange)])
             xi3 = q[(q>xichange)]/q[(q>xichange)]
-            return cocatenate((xi1,xi2,xi3))
+            return concatenate((xi1,xi2,xi3))
         except (TypeError,IndexError):
             if q < 10**qimin:
                 return array(sqrt(4*q/pi))
