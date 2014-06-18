@@ -697,7 +697,7 @@ print 'bessel loaded in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
 
 ########******************* CALCULATE RATE *******************########
 
-def rateinterior(E,u,qmin):
+def dgdlnrpinterior(E,u,qmin):
     """
     interior of the integral used to calculate rate as function of pericentre
     """
@@ -718,7 +718,7 @@ def rateinterior(E,u,qmin):
     part2list = exp(array(matrix(alphas**2).T*matrix(qval/4)))
     part2list = array([(bfin/alphas)[i]*part2list[i] for i in range(len(alphas))])
     part2 = 1-2*nsum(part2list,axis = 0)
-    return qval#part1*part2
+    return part1*part2
                                  
 # dependent on a lot of mystery functions
 def dgdlnrp(rp,Emin = 0.01,Emax=100,verbose = False):
@@ -732,12 +732,30 @@ def dgdlnrp(rp,Emin = 0.01,Emax=100,verbose = False):
     prefactor = (8*pi**2)*model.MBH_Msun*(model.r0_rT**-1)*(model.tdyn0**-1)*u**2
     qmin = funcq(Emax)
     qmax = funcq(Emin)
-    result = intg.quad(rateinterior,Emin,Emax,args = (u,qmin),full_output = 1)
+    result = intg.quad(dgdlnrpinterior,Emin,Emax,args = (u,qmin),full_output = 1)
     t = result[0]
     try:
         if result[3] != '':
             if verbose == True:
                 print 'dgdlnrp, rp = ',rp, 'message = ',result[3]
+    except (IndexError,TypeError):
+        pass
+    return prefactor*t
+
+def ginterior(E):
+    qval = funcq(E)
+    return (fgood(E)*qval)/((qval/bessel.xi(qval)) + Rlc(E))
+
+def gdirect(Emin = 0.01,Emax = 100,verbose = False):
+    prefactor = (8*pi**2)*model.MBH_Msun*(model.r0_rT**-1)*(model.tdyn0**-1)
+    qmin = funcq(Emax)
+    qmax = funcq(Emin)
+    result = intg.quad(ginterior,Emin,Emax,full_output = 1)
+    t = result[0]
+    try:
+        if result[3] != '':
+            if verbose == True:
+                print 'direct rate message = ',result[3]
     except (IndexError,TypeError):
         pass
     return prefactor*t
