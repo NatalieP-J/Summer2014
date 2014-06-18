@@ -11,11 +11,6 @@ from subprocess import call
 import pickle
 from besselgen import BesselGen
 plt.ion()
-
-alphas = arange(0,10,0.1)
-betas = arange(0,10,0.1)
-gammas = arange(0,10,0.1)
-
 alpha = 1.0
 beta = 4.0
 gamma = 1.5
@@ -689,8 +684,8 @@ def Rlc(r):
     return -log(interior)
 
 etest = 10**arange(-6,6,0.01)
-plt.loglog(etest,funcq(etest))
-plt.show()
+#plt.loglog(etest,funcq(etest))
+#plt.show()
 
 ########******************* IMPORT DATA TABLES *******************########
 
@@ -711,13 +706,13 @@ def rateinterior(E,u,qmin):
     alphas = bessel.alpham(ms)
     ualphams = u*alphas
     qval = funcq(E)
-    print 'f = ',10**fgood(log10(E))
-    print 'Rlc = ',Rlc(E)
-    print 'qval = ',qval
-    print 'xi = ',bessel.xi(log10(qval))
-    part1 = 10**fgood(log10(E))/(1+(qval**-1)*(bessel.xi(log10(qval)))*Rlc(E))
-    part2list = (exp(-(alphas**2)*qval/4)*bessel.besselfin(u,ms,ualphams))/alphas
-    part2 = 1-2*nsum(part2list)
+    fval = 10**fgood(log10(E))
+    xival = bessel.xi(log10(qval))
+    bfin = bessel.besselfin(u,ms,ualphams)
+    part1 = array(fval/(1+(qval**-1)*(xival)*Rlc(E)))
+    part2list = exp(array(matrix(alphas**2).T*matrix(qval/4)))
+    part2list = array([(bfin/alphas)[i]*part2list[i] for i in range(len(alphas))])
+    part2 = 1-2*nsum(part2list,axis = 0)
     return part1*part2
                                  
 # dependent on a lot of mystery functions

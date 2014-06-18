@@ -48,12 +48,12 @@ class BesselGen:
         zimax = 10**2
         dzi = 10**-2
         z = ualpham
+        #rint 'z = ',z
         zi = ((z-zimin)/dzi)+1
-        print zi
         try:
-            besselfin1 = zi[(z<zimin)]/zi[(z<zimin)]
-            besselfin2 = self.binter(zi[(z>=zimin)&(z<=zimax)])
-            besselfin3 = sqrt(2./((m[(z>zimax)]-0.25)*u*pi**2))*cos(pi*(u*(m[(z>zimax)]-0.25)-0.25))
+            besselfin1 = zi[(zi<zimin)]/zi[(zi<zimin)]
+            besselfin2 = self.binter(zi[(zi>=zimin)&(zi<=zimax)])
+            besselfin3 = sqrt(2./((m[(zi>zimax)]-0.25)*u*pi**2))*cos(pi*(u*(m[(zi>zimax)]-0.25)-0.25))
             return concatenate((besselfin1,besselfin2,besselfin3))
         except (IndexError,TypeError):
             if z<zimin:
