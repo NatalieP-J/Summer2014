@@ -7,7 +7,7 @@ import time
 import datetime
 from subprocess import call
 import pickle
-
+from scipy.special import hyp2f1
 plt.figure()
 Lam = exp(1)# ****************************************************************
 Gconst = 6.67259e-8
@@ -20,7 +20,7 @@ MsunV = 4.83
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
 generate = True
 seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
-verbosity = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+verbosity = {Menc:"ON",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 bigstatfile = open('WMstatus.txt',"wb")
 rtest = arange(-12,12,0.01)
@@ -34,7 +34,7 @@ def LoadDataTab(fname):
     f.close()
     return data
 
-########******************* MODEL FRAMEWORK *******************########
+########******************* NUKER MODEL FRAMEWORK *******************########
 class NukerModel:
     #initialize variables that constitute our model
     def __init__(self,model_name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate=False):
@@ -76,6 +76,44 @@ class NukerModel:
         part3c = (self.b - (self.a*self.b) + self.g + (self.a*self.g) + (2*self.b*self.g))*r**self.a
         part3 = part3a + part3b + part3c
         return part1*part2*part3
+    #analytic expression for mass enclosed found with Mathematica
+    def anaMenc(self,r):
+        const = -4*pi*((-3+self.g)**-1)
+        rfact = r**(3-self.g)
+        hyp = hyp2f1(((3-self.g)/self.a),(-(-self.b+self.g)/self.a),(1+((3-self.g)/self.a)),-r**self.a)
+        return const*rfact*hyp
+
+########******************* DEHNEN MODEL FRAMEWORK *******************########
+class NukerModel:
+    #initialize variables that constitute our model
+    def __init__(self,model_name,gamma,r0pc,rho0,MBH_Msun,generate=False):
+        #name of model
+        self.name = model_name
+        #Fit parameters
+        self.g = gamma
+        #starting radius
+        self.r0 = r0pc
+        #starting density
+        self.rho0 = rho0
+        #black holes mass in units of Msun
+        self.MBH = MBH_Msun
+        #black hole mass normalized to galaxy density and radius
+        self.Mnorm = self.MBH/(self.rho0*(self.r0)**3)
+        #tidal disruption radius
+        self.rT = Rsun*(self.MBH)**(1./3)
+        #number of tidal radii to span galaxy
+        self.r0_rT=(self.r0*pc)/self.rT
+        #dynamical timescale (currently unused)
+        self.tdyn0 = ((Gconst*self.rho0*realMsun)/pc**3)**(-1./2)
+        #start a new directory?
+        self.generate = generate
+    
+    #compute density
+    def rho(self,r):
+        return (r**-self.g)/((r+1)**(4-self.g))
+    #analytic expression for mass enclosed found with Mathematica
+    def anaMenc(self,r):
+        return (r/(r+1))**(3-self.g)
 
 ########******************* PARAMETER TESTS *******************########
 
@@ -439,12 +477,17 @@ for i in range(len(alphas)):
     statfile.write('\nStarting Menc')
     bigstatfile.write('\nStarting Menc')
     Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[14,-3,40,-40,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],False])
-    plt.clf()
-    plt.loglog(rtest,10**Mencgood(log10(rtest)),'g',label = 'Integrated Density')
-    Mtotguess = 5*exp((log(model.MBH)-17.19)/2.29)
-    def Menc2(Mtot,r):
+    def Menc2(r):
         return (r/(r+1))**(3-gamma)
-    plt.loglog(rtest,Menc2(Mtotguess,rtest),'r',label = 'Dehnen')
+    def Menc3(r):
+        const = -4*pi*((-3+model.g)**-1)
+        rfact = r**(3-model.g)
+        hyp = hyp2f1(((3-model.g)/model.a),(-(-model.b+model.g)/model.a),(1+((3-model.g)/model.a)),-r**model.a)
+        return const*rfact*hyp
+    print 'Mdiff = ', Menc3(rtest)/Menc2(rtest)
+    plt.clf()
+    plt.loglog(rtest,Menc3(rtest),'g',label = 'Integrated Density')
+    plt.loglog(rtest,Menc2(rtest),'r',label = 'Dehnen')
     plt.xlabel('r')
     plt.ylabel('Menc')
     plt.legend(loc = 'best')
