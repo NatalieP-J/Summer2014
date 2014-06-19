@@ -21,7 +21,6 @@ class BesselGen:
         delt = tic-toc
         print 'Loaded xi ',delt
         toc = time.clock()
-        #self.xinter = interp1d(arange(0,len(data[:,1])),data[:,1])
         self.xinter = interp1d(data[:,0],data[:,1])
         tic = time.clock()
         delt = tic-toc
@@ -52,8 +51,6 @@ class BesselGen:
         qimin = -10.
         qimax = 1.
         dqi = 0.03
-        qi = ((log10(q) - qimin)/dqi)
-        print qi
         xichange = 10**(floor((qimax-qimin)/dqi)*dqi + qimin)
         try:
             xi1 = sqrt(4*q[(q<10**qimin)]/pi)
@@ -68,12 +65,12 @@ class BesselGen:
             elif q >= xichange:
                 return array(1.)
 
-    def besselfin(self,m,u):
+    def besselfin(self,zi):
         zimin = 10**-2
         zimax = 10**2
         dzi = 10**-2
-        z = self.alpham(m)*u
-        zi = ((z-zimin)/dzi)+1
+        #z = self.alpham(m)*u
+        #zi = ((z-zimin)/dzi)+1
         try:
             besselfin1 = zi[(zi<zimin)]/zi[(zi<zimin)]
             besselfin2 = self.binter(zi[(zi>=zimin)&(zi<=zimax)])
@@ -82,8 +79,11 @@ class BesselGen:
         except (IndexError,TypeError) as e:
             print 'zi = ',zi
             if zi<zimin:
+                print 'in 1'
                 return 1
             elif zi>=zimin and zi<=zimax:
+                print 'in 2'
                 return self.binter(zi)
             elif zi>zimax:
+                print 'in 3'
                 return sqrt(2./((m-0.25)*u*pi**2))*cos(pi*(u*(m-0.25)-0.25))
