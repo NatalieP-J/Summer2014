@@ -4,38 +4,14 @@ import time
 import pickle
 class BesselGen:
     def __init__(self,files):
-        toc = time.clock()
         datafile = open('{0}'.format(files[0]),"rb")
         data = pickle.load(datafile)
-        tic = time.clock()
-        delt = tic-toc
-        print 'Loaded alpham ',delt
-        toc = time.clock()
         self.ainter = interp1d(data[:,0],data[:,1])
-        tic = time.clock()
-        delt = tic-toc
-        print 'Interpolated alpham ',delt
-        toc = time.clock()
         data = loadtxt('{0}'.format(files[1]))
-        tic = time.clock()
-        delt = tic-toc
-        print 'Loaded xi ',delt
-        toc = time.clock()
         self.xinter = interp1d(data[:,0],data[:,1])
-        tic = time.clock()
-        delt = tic-toc
-        print 'Interpolated xi ',delt
-        toc = time.clock()
         data = loadtxt('{0}'.format(files[2]))
-        tic = time.clock()
-        delt = tic-toc
-        print 'Loaded bessel ',delt
-        toc = time.clock()
         self.binter = interp1d(data[:,0],data[:,1])
-        tic = time.clock()
-        delt = tic - toc
-        print 'Interpolated bessel ',delt
-
+        
     def alpham(self,m):
         try:
             alpha1 = self.ainter(m[(m<10**6)])
@@ -65,19 +41,18 @@ class BesselGen:
             elif q >= xichange:
                 return array(1.)
 
-    def besselfin(self,zi):
+    def besselfin(self,m,u):
         zimin = 10**-2
         zimax = 10**2
         dzi = 10**-2
-        #z = self.alpham(m)*u
-        #zi = ((z-zimin)/dzi)+1
+        z = self.alpham(m)*u
+        zi = ((z-zimin)/dzi)+1
         try:
             besselfin1 = zi[(zi<zimin)]/zi[(zi<zimin)]
             besselfin2 = self.binter(zi[(zi>=zimin)&(zi<=zimax)])
             besselfin3 = sqrt(2./((m[(zi>zimax)]-0.25)*u*pi**2))*cos(pi*(u*(m[(zi>zimax)]-0.25)-0.25))
             return concatenate((besselfin1,besselfin2,besselfin3))
         except (IndexError,TypeError) as e:
-            print 'zi = ',zi
             if zi<zimin:
                 print 'in 1'
                 return 1
