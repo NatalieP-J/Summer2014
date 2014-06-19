@@ -23,8 +23,8 @@ pc = 3.1e18
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-generate = True
-seton = {Menc:"ON",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+generate = False
+seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"ON",f:"OFF"}
 verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
@@ -75,7 +75,9 @@ class NukerModel:
 ########******************* CONSTRUCT MODEL *******************########
 
 model = NukerModel('testing',alpha,beta,gamma,1.,1.e5,1.e3,generate)
-rtest = arange(-12,12,0.01)
+rtest = arange(-5,5,0.01)
+rtest = append(rtest,40)
+rtest = insert(rtest,0,-40)
 rtest = 10**rtest
 directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,model.r0,model.rho0,model.MBH)
 if model.generate == True:
@@ -132,15 +134,15 @@ def plotter(name,r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,labe
     """
     m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp,conds)
     plt.figure()
-    plt.loglog(r,m,'.')
+    plt.loglog(r[1:-1],m[1:-1],'c',linewidth = 5)
     plt.ylabel(r'{0}'.format(labels[1]))
     plt.xlabel('{0}'.format(labels[0]))
-    plt.xlim(min(r),max(r))
-    plt.ylim(min(m),max(m))
-    if rstart>r[0] and rchange<r[len(r)-1]:
-        plt.axvline(rstart, color='r',label='Limits of interpolation')
-        plt.axvline(rchange, color='r')
-        plt.legend(loc='best')
+    plt.xlim(min(r[1:-1]),max(r[1:-1]))
+    plt.ylim(min(m[1:-1]),max(m[1:-1]))
+    #if rstart>r[0] and rchange<r[len(r)-1]:
+        #plt.axvline(rstart, color='r',label='Limits of interpolation')
+        #plt.axvline(rchange, color='r')
+        #plt.legend(loc='best')
     plt.savefig('{0}/{1}.png'.format(directory,name))
     #plt.show()
 
@@ -164,7 +166,7 @@ def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,
     computed values
     
     """
-    rarray,rchange,rstart = grid(size[0],size[1],size[2],size[3],size[4])
+    rarray,rchange,rstart = grid(size[0],size[1],size[2])
     tab,problems = func(rarray,verbose)
     print 'fraction reporting a message: {0}'.format(float(len(problems))/float(len(tab)))
     if problem == True:
@@ -175,7 +177,6 @@ def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,
     end = tab[len(rarray)-1]
     m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp,conds)
     inter2 = interp1d(log10(r),log10(m))
-    print log10(r)
     pklrfile = open('{0}/r{1}.pkl'.format(directory,str(func)[10:15]),"wb")
     pickle.dump(r,pklrfile)
     pklrfile.close()
@@ -359,13 +360,15 @@ def Egrid(upstep=5,downstep=-3,step=0.1):
 ########******************* COMPUTE MENC *******************######## 
 
 Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[5,-5,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],False])
+
 def Menc2(r):
     const = -4*pi*((-3+model.g)**-1)
     rfact = r**(3-model.g)
     hyp = hyp2f1(((3-model.g)/model.a),(-(-model.b+model.g)/model.a),(1+((3-model.g)/model.a)),-r**model.a)
     return const*rfact*hyp
-print 'Mdiff = {0}'.format(10**Mencgood(log10(rtest))/Menc2(rtest))
-plt.clf()
+
+#print 'Mdiff = {0}'.format(10**Mencgood(log10(rtest))/Menc2(rtest))
+plt.figure()
 plt.loglog(rtest,Menc2(rtest),'g',label = 'Analytic')
 plt.loglog(rtest,10**Mencgood(log10(rtest)),'r',label = 'Integral')
 plt.xlabel('r')
@@ -383,6 +386,7 @@ def psi2interior(r):
     """
     return model.rho(r)*r
 
+tol = 1e-3
 def psi2(r,verbose=False):
     """
     functional form of psi part 2
@@ -394,7 +398,7 @@ def psi2(r,verbose=False):
         t = r.shape
         psi2s = []
         for i in range(len(r)):
-            temp=intg.quad(psi2interior,r[i],inf,full_output=1)
+            temp=intg.quad(psi2interior,r[i],inf,full_output=1,epsabs = tol,epsrel = tol)
             try:
                 if temp[3]!='':
                     if verbose==True:
@@ -433,26 +437,19 @@ def funcpsi(r,verbose=False):
 
 ########******************* COMPUTE PSI *******************######## 
 
-psigood = compute([],["psi",psi],funcpsi,rtest,[4,-4,0.03],rgrid,[-1,-1],[False,['r','$\psi$'],False])
+psigood = compute([],["psi",psi],funcpsi,rtest,[5,-5,0.03],rgrid,[-1,-1],[False,['r','$\psi$'],False])
 
 def funcpsi2(r):
     const = ((-2+model.b)**-1)
     rfact = r**(2-model.b)
     hyp = hyp2f1(((-2+model.b)/model.a),((model.b-model.g)/model.a),((-2+model.a+model.b)/model.a),-r**-model.a)
     part1 = 4*pi*const*rfact*hyp
-    #const = ((-3+model.g)**-1)
-    #rfact = r**(3-model.b)
-    #hyp = hyp2f1(((3-model.g)/model.a),((-model.b+model.g)/model.a),(1+((3-model.g)/model.a)),-r**model.a)
-    #part2 = -const*rfact*hyp
     part2 = Menc2(r)/r
     part3 = model.Mnorm/r
-    #print 'part 1 = ', part1
-    #print 'part 2 = ', part2
-    #print 'part 3 = ', part3
     return part1 + part2 + part3
 
-print 'psidiff = {0}'.format(10**psigood(log10(rtest))/funcpsi2(rtest))
-plt.clf()
+#print 'psidiff = {0}'.format(10**psigood(log10(rtest))/funcpsi2(rtest))
+plt.figure()
 plt.loglog(rtest,funcpsi2(rtest),'g',label = 'Analytic')
 plt.loglog(rtest,10**psigood(log10(rtest)),'r',label = 'Integral')
 plt.xlabel('r')
@@ -537,7 +534,7 @@ def funcJc2(E,verbose):
 
 prereqs = [Mencgood,"Menc",psigood,"psi"]
 
-Jc2good = compute(prereqs,["Jc2",Jc2],funcJc2,rtest,[3,-3,0.01],Egrid,[-1,-1],[False,['E','Jc2'],False])
+Jc2good = compute(prereqs,["Jc2",Jc2],funcJc2,rtest,[5,-5,0.01],Egrid,[-1,-1],[False,['E','Jc2'],False])
 
 ########******************* g *******************######## 
 
@@ -647,7 +644,12 @@ def funcbG(E,verbose = False):
 ########******************* COMPUTE G *******************######## 
 prereqs = [psigood, "psi",ggood,"g"]
 
-Ggood = compute(prereqs,["G",G],funcbG,rtest,[2,-2,0.1],Egrid,[model.b-4,model.g-4],[False,['E','G'],False])
+Gtest = arange(-2,2,0.01)
+Gtest = append(Gtest,40)
+Gtest = insert(Gtest,0,-40)
+Gtest = 10**Gtest
+
+Ggood = compute(prereqs,["G",G],funcbG,Gtest,[2,-2,0.1],Egrid,[model.b-4,model.g-4],[False,['E','G'],False])
 
 psibG_memo = {}
 part2bG_memo = {}
@@ -709,6 +711,11 @@ def funcf(E,verbose=False):
 ########******************* COMPUTE f *******************######## 
 prereqs = [Mencgood,"Menc",psigood,"psi"]
 
+rtest = arange(-3,5,0.01)
+rtest = append(rtest,40)
+rtest = insert(rtest,0,-40)
+rtest = 10**rtest
+
 fgood = compute(prereqs,["f",f],funcf,rtest,[5,-3,0.03],Egrid,[model.b-1.5,model.g-1.5],[False,['E','f'],False])
 
 ########******************* ADDITIONAL FUNCTIONS *******************######## 
@@ -726,9 +733,8 @@ etest = 10**arange(-6,6,0.01)
 
 ########******************* IMPORT DATA TABLES *******************########
 
-'''
 tic = time.clock()
-bessel = BesselGen(['alpham_table.txt','xi_table2.txt','Bessel_table.txt','mpiece_table.txt'])
+bessel = BesselGen(['alpham_table.pkl','xi_table2.txt','Bessel_table.txt'])
 toc = time.clock()
 delt = toc-tic
 print 'bessel loaded in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
@@ -797,4 +803,3 @@ def gdirect(Emin = 0.01,Emax = 100,verbose = False):
     except (IndexError,TypeError):
         pass
     return prefactor*t
-'''
