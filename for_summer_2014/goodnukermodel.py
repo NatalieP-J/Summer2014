@@ -10,6 +10,7 @@ import datetime
 from subprocess import call
 import pickle
 from besselgen import BesselGen
+from scipy.special import hyp2f1
 plt.ion()
 alpha = 1.0
 beta = 4.0
@@ -22,8 +23,8 @@ pc = 3.1e18
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-generate = False
-seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+generate = True
+seton = {Menc:"ON",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
@@ -79,7 +80,7 @@ rtest = 10**rtest
 directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,model.r0,model.rho0,model.MBH)
 if model.generate == True:
     call(["mkdir","{0}".format(directory)])
-    seton = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"OFF",f:"ON"}
+    seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 ########******************* CONSTRUCTION FUNCTIONS *******************########
 def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp,conds=False):
     """
@@ -170,17 +171,20 @@ def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,
         tab = [i for j, i in enumerate(tab) if j not in problems]
         rarray = [i for j, i in enumerate(rarray) if j not in problems]
     inter = interp1d(log10(rarray),log10(tab))
-    pklrfile = open('{0}/r{1}.pkl'.format(directory,str(func)[10:15]),"wb")
-    pickle.dump(rarray,pklrfile)
-    pklrfile.close()
-    pklffile = open('{0}/{1}.pkl'.format(directory,str(func)[10:15]),"wb")
-    pickle.dump(tab,pklffile)
-    pklffile.close()
     start = tab[0]
     end = tab[len(rarray)-1]
+    m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp,conds)
+    inter2 = interp1d(log10(r),log10(m))
+    print log10(r)
+    pklrfile = open('{0}/r{1}.pkl'.format(directory,str(func)[10:15]),"wb")
+    pickle.dump(r,pklrfile)
+    pklrfile.close()
+    pklffile = open('{0}/{1}.pkl'.format(directory,str(func)[10:15]),"wb")
+    pickle.dump(m,pklffile)
+    pklffile.close()
     if plotting != False:
         plotter(str(func)[10:15],r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,plotting)
-    return inter
+    return inter2
 
 def compute(dependencies,name,function,rtest,size,grid,exps,kwargs):
     """
@@ -261,6 +265,7 @@ def Minterior(r):
     """
     return model.rho(r)*r**2
 
+tol = 1.e-3
 def funcMenc(r,verbose=False):
     """
     functional form of Menc
@@ -272,7 +277,7 @@ def funcMenc(r,verbose=False):
         t = r.shape
         Mencs = []
         for i in range(len(r)):
-            temp = intg.quad(Minterior,0,r[i],full_output=1)
+            temp = intg.quad(Minterior,0,r[i],full_output=1,epsabs = tol,epsrel = tol)
             try:
                 if temp[3]!='':
                     problems.append(i)
@@ -280,12 +285,7 @@ def funcMenc(r,verbose=False):
                         print 'Menc, r = ',r[i],'message = ',temp[3],'\n'
             except (IndexError, TypeError):
                 pass
-            if r[i] > 10**10:
-                Mencs.append(Mencs[i-1])
-            elif temp[0] >= 0:
-                Mencs.append(4*pi*temp[0])
-            elif temp[0] < 0 or r[i] > 10**10:
-                Mencs.append(Mencs[i-1])
+            Mencs.append(4*pi*temp[0])
         return array(Mencs),array(problems)
     except AttributeError:
         problem = []
@@ -322,7 +322,7 @@ def rH():
 
 ########******************* CONSTRUCTION FUNCTIONS *******************########
 
-def rgrid(upstep=5,downstep=-5,up=12,down=-12,step=0.03):
+def rgrid(upstep=5,downstep=-5,step=0.03):
     """
     constructs a grid in radius and adds one point at each extreme (up and down)
     returns 10**grid
@@ -333,8 +333,6 @@ def rgrid(upstep=5,downstep=-5,up=12,down=-12,step=0.03):
     rimax = log10(rmax) + upstep
     dri = step
     rarray = arange(rimin,rimax,dri)
-    rarray = append(rarray,up)
-    rarray = insert(rarray,0,down)
     rarray = 10**rarray
     rchange = rarray[len(rarray)-1]
     rstart = rarray[0]
@@ -342,7 +340,7 @@ def rgrid(upstep=5,downstep=-5,up=12,down=-12,step=0.03):
 
 rarray,rchange,rstart = rgrid(5,-5,0.03)
 
-def Egrid(upstep=5,downstep=-3,up=12,down=-12,step=0.1):
+def Egrid(upstep=5,downstep=-3,step=0.1):
     """
     constructs a grid in energy and adds one point at each extreme (up and down)
     returns 10**grid
@@ -353,8 +351,6 @@ def Egrid(upstep=5,downstep=-3,up=12,down=-12,step=0.1):
     eimax = log10(model.Mnorm/rmin) + upstep
     dei = step
     Earray = arange(eimin,eimax,dei)
-    Earray = append(Earray,up)
-    Earray = insert(Earray,0,down)
     Earray = 10**Earray
     Echange = Earray[len(Earray)-1]
     Estart = Earray[0]
@@ -362,7 +358,22 @@ def Egrid(upstep=5,downstep=-3,up=12,down=-12,step=0.1):
 
 ########******************* COMPUTE MENC *******************######## 
 
-Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[3,-3,40,-40,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],False])
+Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[5,-5,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],False])
+def Menc2(r):
+    const = -4*pi*((-3+model.g)**-1)
+    rfact = r**(3-model.g)
+    hyp = hyp2f1(((3-model.g)/model.a),(-(-model.b+model.g)/model.a),(1+((3-model.g)/model.a)),-r**model.a)
+    return const*rfact*hyp
+print 'Mdiff = {0}'.format(10**Mencgood(log10(rtest))/Menc2(rtest))
+plt.clf()
+plt.loglog(rtest,Menc2(rtest),'g',label = 'Analytic')
+plt.loglog(rtest,10**Mencgood(log10(rtest)),'r',label = 'Integral')
+plt.xlabel('r')
+plt.ylabel('Menc')
+plt.legend(loc = 'best')
+plt.title(r'{0}, $\alpha$ = {1}, $\beta$ = {2}, $\gamma$ = {3}'.format(model.name,alpha,beta,gamma))
+plt.show()
+plt.savefig('{0}/Mcompare.png'.format(directory))
 
 ########******************* POTENTIAL *******************######## 
         
@@ -417,13 +428,39 @@ def funcpsi(r,verbose=False):
     if part2[1] != []:
         problems = concatenate((problems,array(part2[1])))
     if part3[1] != []:
-        print part3[1]
         problems = concatenate((problems,array(part3[1])))
     return part1 + (part2[0]/r) + part3[0],problems
 
 ########******************* COMPUTE PSI *******************######## 
 
-psigood = compute([],["psi",psi],funcpsi,rtest,[3,-3,40,-40,0.03],rgrid,[-1,-1],[False,['r','$\psi$'],False])
+psigood = compute([],["psi",psi],funcpsi,rtest,[4,-4,0.03],rgrid,[-1,-1],[False,['r','$\psi$'],False])
+
+def funcpsi2(r):
+    const = ((-2+model.b)**-1)
+    rfact = r**(2-model.b)
+    hyp = hyp2f1(((-2+model.b)/model.a),((model.b-model.g)/model.a),((-2+model.a+model.b)/model.a),-r**-model.a)
+    part1 = 4*pi*const*rfact*hyp
+    #const = ((-3+model.g)**-1)
+    #rfact = r**(3-model.b)
+    #hyp = hyp2f1(((3-model.g)/model.a),((-model.b+model.g)/model.a),(1+((3-model.g)/model.a)),-r**model.a)
+    #part2 = -const*rfact*hyp
+    part2 = Menc2(r)/r
+    part3 = model.Mnorm/r
+    #print 'part 1 = ', part1
+    #print 'part 2 = ', part2
+    #print 'part 3 = ', part3
+    return part1 + part2 + part3
+
+print 'psidiff = {0}'.format(10**psigood(log10(rtest))/funcpsi2(rtest))
+plt.clf()
+plt.loglog(rtest,funcpsi2(rtest),'g',label = 'Analytic')
+plt.loglog(rtest,10**psigood(log10(rtest)),'r',label = 'Integral')
+plt.xlabel('r')
+plt.ylabel('psi')
+plt.legend(loc = 'best')
+plt.title(r'{0}, $\alpha$ = {1}, $\beta$ = {2}, $\gamma$ = {3}'.format(model.name,alpha,beta,gamma))
+plt.show()
+plt.savefig('{0}/psicompare.png'.format(directory))
 
 ########******************* APOCENTER RADIUS *******************######## 
 
@@ -500,7 +537,7 @@ def funcJc2(E,verbose):
 
 prereqs = [Mencgood,"Menc",psigood,"psi"]
 
-Jc2good = compute(prereqs,["Jc2",Jc2],funcJc2,rtest,[3,-3,12,-12,0.01],Egrid,[-1,-1],[False,['E','Jc2'],False])
+Jc2good = compute(prereqs,["Jc2",Jc2],funcJc2,rtest,[3,-3,0.01],Egrid,[-1,-1],[False,['E','Jc2'],False])
 
 ########******************* g *******************######## 
 
@@ -550,7 +587,7 @@ def funclg(E,verbose=False):
 ########******************* COMPUTE g *******************######## 
 prereqs = [psigood,"psi"]
 
-ggood = compute(prereqs,["g",g],funclg,rtest,[3,-3,20,-20,0.1],Egrid,[model.b-0.5,model.g-0.5],[False,['E','g'],False])
+ggood = compute(prereqs,["g",g],funclg,rtest,[3,-3,0.1],Egrid,[model.b-0.5,model.g-0.5],[False,['E','g'],False])
 
 ########******************* mathcalG *******************######## 
 
@@ -610,7 +647,7 @@ def funcbG(E,verbose = False):
 ########******************* COMPUTE G *******************######## 
 prereqs = [psigood, "psi",ggood,"g"]
 
-Ggood = compute(prereqs,["G",G],funcbG,rtest,[2,-2,12,-12,0.1],Egrid,[model.b-4,model.g-4],[False,['E','G'],False])
+Ggood = compute(prereqs,["G",G],funcbG,rtest,[2,-2,0.1],Egrid,[model.b-4,model.g-4],[False,['E','G'],False])
 
 psibG_memo = {}
 part2bG_memo = {}
@@ -672,7 +709,7 @@ def funcf(E,verbose=False):
 ########******************* COMPUTE f *******************######## 
 prereqs = [Mencgood,"Menc",psigood,"psi"]
 
-fgood = compute(prereqs,["f",f],funcf,rtest,[5,-3,12,-12,0.03],Egrid,[model.b-1.5,model.g-1.5],[False,['E','f'],False])
+fgood = compute(prereqs,["f",f],funcf,rtest,[5,-3,0.03],Egrid,[model.b-1.5,model.g-1.5],[False,['E','f'],False])
 
 ########******************* ADDITIONAL FUNCTIONS *******************######## 
 
@@ -689,6 +726,7 @@ etest = 10**arange(-6,6,0.01)
 
 ########******************* IMPORT DATA TABLES *******************########
 
+'''
 tic = time.clock()
 bessel = BesselGen(['alpham_table.txt','xi_table2.txt','Bessel_table.txt','mpiece_table.txt'])
 toc = time.clock()
@@ -759,3 +797,4 @@ def gdirect(Emin = 0.01,Emax = 100,verbose = False):
     except (IndexError,TypeError):
         pass
     return prefactor*t
+'''
