@@ -24,7 +24,7 @@ km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
 generate = False
-seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"ON",f:"OFF"}
+seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
@@ -366,7 +366,7 @@ def Menc2(r):
     rfact = r**(3-model.g)
     hyp = hyp2f1(((3-model.g)/model.a),(-(-model.b+model.g)/model.a),(1+((3-model.g)/model.a)),-r**model.a)
     return const*rfact*hyp
-
+'''
 #print 'Mdiff = {0}'.format(10**Mencgood(log10(rtest))/Menc2(rtest))
 plt.figure()
 plt.loglog(rtest,Menc2(rtest),'g',label = 'Analytic')
@@ -377,7 +377,7 @@ plt.legend(loc = 'best')
 plt.title(r'{0}, $\alpha$ = {1}, $\beta$ = {2}, $\gamma$ = {3}'.format(model.name,alpha,beta,gamma))
 plt.show()
 plt.savefig('{0}/Mcompare.png'.format(directory))
-
+'''
 ########******************* POTENTIAL *******************######## 
         
 def psi2interior(r):
@@ -448,6 +448,7 @@ def funcpsi2(r):
     part3 = model.Mnorm/r
     return part1 + part2 + part3
 
+'''
 #print 'psidiff = {0}'.format(10**psigood(log10(rtest))/funcpsi2(rtest))
 plt.figure()
 plt.loglog(rtest,funcpsi2(rtest),'g',label = 'Analytic')
@@ -458,7 +459,7 @@ plt.legend(loc = 'best')
 plt.title(r'{0}, $\alpha$ = {1}, $\beta$ = {2}, $\gamma$ = {3}'.format(model.name,alpha,beta,gamma))
 plt.show()
 plt.savefig('{0}/psicompare.png'.format(directory))
-
+'''
 ########******************* APOCENTER RADIUS *******************######## 
 
 def rapoimplicit(r,E):
@@ -727,7 +728,7 @@ def Rlc(r):
     interior = 2*(model.Mnorm/model.r0_rT)*(1./10**Jc2good(log10(r)))
     return -log(interior)
 
-etest = 10**arange(-6,6,0.01)
+etest = 10**arange(-2,2,0.01)
 #plt.loglog(etest,funcq(etest))
 #plt.show()
 
@@ -755,16 +756,17 @@ def dgdlnrpinterior(E,u,qmin):
     qimax = 1.
     dqi = 0.03
     qi = ((log10(qval) - qimin)/dqi)+1.
-    for i in range(len(qval)):
-        print 'qval = ',qval[i], 'qi = ',qi[i],'xi = ',xival[i]
     bfin = bessel.besselfin(ms,u)
     part1 = array(fval/(1+(qval**-1)*(xival)*Rlc(E)))
-    part2list = exp(array(matrix(alphas**2).T*matrix(qval/4)))
+    part2list = exp(-array(matrix(alphas**2).T*matrix(qval/4)))
     part2list = array([(bfin/alphas)[i]*part2list[i] for i in range(len(alphas))])
     part2 = 1-2*nsum(part2list,axis = 0)
     return part1*part2
-                                 
-# dependent on a lot of mystery functions
+ 
+rps = arange(-5,0,0.01)
+rps = 10**rps                                
+rps *= model.rT
+
 def dgdlnrp(rp,Emin = 0.01,Emax=100,verbose = False):
     """
     rp - pericentre radius
@@ -772,8 +774,8 @@ def dgdlnrp(rp,Emin = 0.01,Emax=100,verbose = False):
     verbose = True - print error messages from integration
     returns the rate for given rp
     """
-    u = sqrt(rp/model.r0)
-    prefactor = (8*pi**2)*model.MBH_Msun*(model.r0_rT**-1)*(model.tdyn0**-1)*u**2
+    u = sqrt(rp/model.rT)
+    prefactor = (8*pi**2)*model.MBH*(model.r0_rT**-1)*(model.tdyn0**-1)*u**2
     qmin = funcq(Emax)
     qmax = funcq(Emin)
     result = intg.quad(dgdlnrpinterior,Emin,Emax,args = (u,qmin),full_output = 1)
@@ -784,13 +786,13 @@ def dgdlnrp(rp,Emin = 0.01,Emax=100,verbose = False):
                 print 'dgdlnrp, rp = ',rp, 'message = ',result[3]
     except (IndexError,TypeError):
         pass
-    return prefactor*t
+    return prefactor*t*3600*365 #units yr^-1
 
 def ginterior(E):
     qval = funcq(E)
     return (fgood(E)*qval)/((qval/bessel.xi(qval)) + Rlc(E))
 
-def gdirect(Emin = 0.01,Emax = 100,verbose = False):
+def gdirect(Emin = 0.01,Emax = model.Mnorm*(model.r0_rT),verbose = False):
     prefactor = (8*pi**2)*model.MBH_Msun*(model.r0_rT**-1)*(model.tdyn0**-1)
     qmin = funcq(Emax)
     qmax = funcq(Emin)
