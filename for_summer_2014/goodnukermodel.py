@@ -12,10 +12,17 @@ import pickle
 from besselgen import BesselGen
 from scipy.special import hyp2f1
 plt.ion()
-alpha = 1.0
-beta = 4.0
-gamma = 1.5
-
+alpha = 7.52#1.0
+beta = 3.13#4.0
+gamma = 1.98#1.5
+r0pc = 1.
+rb = 10**2.38
+mub = 19.98
+M2L = 6.27
+MsunV = 4.83
+rho0 = 1e5
+rho0 = (1./rb)*(1./(10)**2)*(206265**2)*M2L*10**((MsunV-mub)/2.5) 
+MBH_Msun = 10**6.04#1e3
 Gconst = 6.67259e-8
 realMsun = 1.989e33
 Rsun = 6.9599e10
@@ -24,9 +31,9 @@ km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
 generate = False
-seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
-verbosity = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
-plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
+seton = {Menc:"OFF",psi:"OFF",Jc2:"ON",g:"OFF",G:"OFF",f:"OFF"}
+verbosity = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+plot = {Menc:"OFF",psi:"OFF",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
 class NukerModel:
     #initialize variables that constitute our model
@@ -74,7 +81,7 @@ class NukerModel:
                                 
 ########******************* CONSTRUCT MODEL *******************########
 
-model = NukerModel('testing',alpha,beta,gamma,1.,1.e5,1.e3,generate)
+model = NukerModel('NGC4467',alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate)
 rtest = arange(-5,5,0.01)
 rtest = append(rtest,40)
 rtest = insert(rtest,0,-40)
@@ -82,7 +89,7 @@ rtest = 10**rtest
 directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,model.r0,model.rho0,model.MBH)
 if model.generate == True:
     call(["mkdir","{0}".format(directory)])
-    seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+    seton = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* CONSTRUCTION FUNCTIONS *******************########
 def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp,conds=False):
     """
@@ -240,6 +247,7 @@ def compute(dependencies,name,function,rtest,size,grid,exps,kwargs):
             print '{0}good ran in \t {1}'.format(strname,str(datetime.timedelta(seconds=delt)))
             return good
         except TypeError as e:
+            print 'e = ',e
             print 'To compute {0}, please turn {1} ON'.format(strname,dependencies[i+1])
     elif seton[name] != "ON":
         try:
@@ -288,7 +296,7 @@ def funcMenc(r,verbose=False):
                 pass
             Mencs.append(4*pi*temp[0])
         return array(Mencs),array(problems)
-    except AttributeError:
+    except (AttributeError,TypeError):
         problem = []
         temp = 4*pi*intg.quad(Minterior,0,r)[0]
         try:
@@ -309,7 +317,7 @@ def rHimplicit(r):
     """
     return abs(model.Mnorm-funcMenc(r)[0])
 
-def rH():
+def rH(verbose=False):
     """
     finds root of rHimplicit
     """
@@ -317,8 +325,9 @@ def rH():
     if rresult.success == True:
         return rresult.x
     elif rresult.success == False:
-        print 'Failed to evaluate rH'
-        print rresult.message
+        if verbose == True:
+            print 'Failed to evaluate rH'
+            print rresult.message
         return rresult.x
 
 ########******************* CONSTRUCTION FUNCTIONS *******************########
