@@ -11,6 +11,8 @@ class BesselGen:
         self.xinter = interp1d(data[:,0],data[:,1])
         data = loadtxt('{0}'.format(files[2]))
         self.binter = interp1d(data[:,0],data[:,1])
+        data = loadtxt('{0}'.format(files[3]))
+        self.minter = interp1d(data[:,0],data[:,1])
         
     def alpham(self,m):
         try:
@@ -58,3 +60,15 @@ class BesselGen:
                 return self.binter(z)
             elif z>zimax:
                 return sqrt(2./((m-0.25)*u*pi**2))*cos(pi*(u*(m-0.25)-0.25))
+
+    def mpiece(self,m):
+        mlim = 200.
+        try:
+            mpiece1 = self.minter(m[(m<=mlim)])
+            mpiece2 = (-1)**(m-1)*sqrt(2*m - 0.5)
+            return concatenate((mpiece1,mpiece2))
+        except TypeError:
+            if m<=mlim:
+                return self.minter(m)
+            elif m>mlim:
+                return (-1)**(m-1)*sqrt(2*m - 0.5)

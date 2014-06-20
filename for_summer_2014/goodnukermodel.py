@@ -744,7 +744,7 @@ etest = 10**arange(-2,2,0.01)
 ########******************* IMPORT DATA TABLES *******************########
 
 tic = time.clock()
-bessel = BesselGen(['alpham_table.pkl','xi_table2.txt','Bessel_table.txt'])
+bessel = BesselGen(['alpham_table.pkl','xi_table2.txt','Bessel_table.txt','mpiece_table.txt'])
 toc = time.clock()
 delt = toc-tic
 print 'bessel loaded in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
@@ -766,9 +766,10 @@ def dgdlnrpinterior(E,u,qmin):
     dqi = 0.03
     qi = ((log10(qval) - qimin)/dqi)+1.
     bfin = bessel.besselfin(ms,u)
+    mpiece = bessel.mpiece(ms)
     part1 = array(fval/(1+(qval**-1)*(xival)*Rlc(E)))
     part2list = exp(-array(matrix(alphas**2).T*matrix(qval/4)))
-    part2list = array([(bfin/alphas)[i]*part2list[i] for i in range(len(alphas))])
+    part2list = array([(bfin/mpiece)[i]*part2list[i] for i in range(len(alphas))])
     part2 = 1-2*nsum(part2list,axis = 0)
     return part1*part2
  
