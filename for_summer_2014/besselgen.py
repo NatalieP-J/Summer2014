@@ -46,19 +46,15 @@ class BesselGen:
         zimax = 10**2
         dzi = 10**-2
         z = self.alpham(m)*u
-        zi = ((z-zimin)/dzi)+1
         try:
-            besselfin1 = zi[(zi<zimin)]/zi[(zi<zimin)]
-            besselfin2 = self.binter(zi[(zi>=zimin)&(zi<=zimax)])
-            besselfin3 = sqrt(2./((m[(zi>zimax)]-0.25)*u*pi**2))*cos(pi*(u*(m[(zi>zimax)]-0.25)-0.25))
+            besselfin1 = z[(z<zimin)]/z[(z<zimin)]
+            besselfin2 = self.binter(z[(z>=zimin)&(z<=zimax)])
+            besselfin3 = sqrt(2./((m[(z>zimax)]-0.25)*u*pi**2))*cos(pi*(u*(m[(z>zimax)]-0.25)-0.25))
             return concatenate((besselfin1,besselfin2,besselfin3))
         except (IndexError,TypeError) as e:
-            if zi<zimin:
-                print 'in 1'
+            if z<zimin:
                 return 1
-            elif zi>=zimin and zi<=zimax:
-                print 'in 2'
-                return self.binter(zi)
-            elif zi>zimax:
-                print 'in 3'
+            elif z>=zimin and z<=zimax:
+                return self.binter(z)
+            elif z>zimax:
                 return sqrt(2./((m-0.25)*u*pi**2))*cos(pi*(u*(m-0.25)-0.25))
