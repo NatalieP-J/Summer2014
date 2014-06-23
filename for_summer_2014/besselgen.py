@@ -65,7 +65,7 @@ class BesselGen:
         mlim = 200.
         try:
             mpiece1 = self.minter(m[(m<=mlim)])
-            mpiece2 = (-1)**(m-1)*sqrt(2*m - 0.5)
+            mpiece2 = (-1)**(m[m>mlim]-1)*sqrt(2*m[m>mlim] - 0.5)
             return concatenate((mpiece1,mpiece2))
         except TypeError:
             if m<=mlim:

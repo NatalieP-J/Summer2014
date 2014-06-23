@@ -12,11 +12,12 @@ import pickle
 from besselgen import BesselGen
 from scipy.special import hyp2f1
 plt.ion()
-alpha = 7.52#1.0
+alpha = 7.52 #1.0
 beta = 3.13#4.0
 gamma = 1.98#1.5
 r0pc = 1.
 rb = 10**2.38
+r0pc = rb
 mub = 19.98
 M2L = 6.27
 MsunV = 4.83
@@ -30,8 +31,8 @@ pc = 3.1e18
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-generate = False
-seton = {Menc:"OFF",psi:"OFF",Jc2:"ON",g:"OFF",G:"OFF",f:"OFF"}
+generate = True
+seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 verbosity = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 plot = {Menc:"OFF",psi:"OFF",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
@@ -81,7 +82,7 @@ class NukerModel:
                                 
 ########******************* CONSTRUCT MODEL *******************########
 
-model = NukerModel('NGC4467',alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate)
+model = NukerModel('testing',alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate)
 rtest = arange(-5,5,0.01)
 rtest = append(rtest,40)
 rtest = insert(rtest,0,-40)
@@ -788,15 +789,30 @@ def dgdlnrp(rp,Emin = 0.01,Emax=100,verbose = False):
     prefactor = (8*pi**2)*model.MBH*(model.r0_rT**-1)*(model.tdyn0**-1)*u**2
     qmin = funcq(Emax)
     qmax = funcq(Emin)
-    result = intg.quad(dgdlnrpinterior,Emin,Emax,args = (u,qmin),full_output = 1)
-    t = result[0]
     try:
-        if result[3] != '':
-            if verbose == True:
-                print 'dgdlnrp, rp = ',rp, 'message = ',result[3]
-    except (IndexError,TypeError):
-        pass
-    return prefactor*t*3600*365 #units yr^-1
+    	result_list = []
+    	for i in range(len(rp)):
+    		print i+1, ' of ', len(rp)
+    		result = intg.quad(dgdlnrpinterior,Emin,Emax,args = (u[i],qmin),full_output = 1)
+    		t = result[0]
+    		result_list.append(prefactor[i]*t*3600*365)
+    		try:
+        		if result[3] != '':
+        			if verbose == True:
+        				print 'dgdlnrp, rp = ',rp, 'message = ',result[3]
+        	except (IndexError,TypeError):
+        		pass
+        return array(result_list)
+    except AttributeError:
+    	result = intg.quad(dgdlnrpinterior,Emin,Emax,args = (u[i],qmin),full_output = 1)
+    	t = result[0]
+    	try:
+    		if result[3] != '':
+    			if verbose == True:
+    				print 'dgdlnrp, rp = ',rp, 'message = ',result[3]
+    	except (IndexError,TypeError):
+    		pass
+    	return prefactor*t*3600*365 #units yr^-1
 
 def ginterior(E):
     qval = funcq(E)
