@@ -31,9 +31,9 @@ pc = 3.1e18
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-generate = True
+generate = False
 seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
-verbosity = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+verbosity = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 plot = {Menc:"OFF",psi:"OFF",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
 class NukerModel:
@@ -83,7 +83,7 @@ class NukerModel:
 ########******************* CONSTRUCT MODEL *******************########
 
 model = NukerModel('testing',alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate)
-rtest = arange(-5,5,0.01)
+rtest = arange(-7,6,0.01)
 rtest = append(rtest,40)
 rtest = insert(rtest,0,-40)
 rtest = 10**rtest
@@ -369,7 +369,7 @@ def Egrid(upstep=5,downstep=-3,step=0.1):
 
 ########******************* COMPUTE MENC *******************######## 
 
-Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[5,-5,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],False])
+Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[4,-4,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],False])
 
 def Menc2(r):
     const = -4*pi*((-3+model.g)**-1)
@@ -447,7 +447,7 @@ def funcpsi(r,verbose=False):
 
 ########******************* COMPUTE PSI *******************######## 
 
-psigood = compute([],["psi",psi],funcpsi,rtest,[5,-5,0.03],rgrid,[-1,-1],[False,['r','$\psi$'],False])
+psigood = compute([],["psi",psi],funcpsi,rtest,[4,-6,0.03],rgrid,[-1,-1],[False,['r','$\psi$'],False])
 
 def funcpsi2(r):
     const = ((-2+model.b)**-1)
@@ -655,12 +655,12 @@ def funcbG(E,verbose = False):
 ########******************* COMPUTE G *******************######## 
 prereqs = [psigood, "psi",ggood,"g"]
 
-Gtest = arange(-2,2,0.01)
+Gtest = arange(-5,5,0.01)
 Gtest = append(Gtest,40)
 Gtest = insert(Gtest,0,-40)
 Gtest = 10**Gtest
 
-Ggood = compute(prereqs,["G",G],funcbG,Gtest,[2,-2,0.1],Egrid,[model.b-4,model.g-4],[False,['E','G'],False])
+Ggood = compute(prereqs,["G",G],funcbG,Gtest,[3,-3,0.1],Egrid,[model.b-4,model.g-4],[False,['E','G'],False])
 
 psibG_memo = {}
 part2bG_memo = {}
@@ -722,12 +722,12 @@ def funcf(E,verbose=False):
 ########******************* COMPUTE f *******************######## 
 prereqs = [Mencgood,"Menc",psigood,"psi"]
 
-rtest = arange(-3,5,0.01)
-rtest = append(rtest,40)
-rtest = insert(rtest,0,-40)
-rtest = 10**rtest
+ftest = arange(-3,5,0.01)
+ftest = append(ftest,40)
+ftest = insert(ftest,0,-40)
+ftest = 10**ftest
 
-fgood = compute(prereqs,["f",f],funcf,rtest,[5,-3,0.03],Egrid,[model.b-1.5,model.g-1.5],[False,['E','f'],False])
+fgood = compute(prereqs,["f",f],funcf,ftest,[5,-3,0.03],Egrid,[model.b-1.5,model.g-1.5],[False,['E','f'],False])
 
 ########******************* ADDITIONAL FUNCTIONS *******************######## 
 
@@ -793,13 +793,13 @@ def dgdlnrp(rp,Emin = 0.01,Emax=100,verbose = False):
     	result_list = []
     	for i in range(len(rp)):
     		print i+1, ' of ', len(rp)
-    		result = intg.quad(dgdlnrpinterior,Emin,Emax,args = (u[i],qmin),full_output = 1)
+    		result = intg.quad(dgdlnrpinterior,Emin,Emax,args = (u[i],qmin),limit = 100,full_output = 1)
     		t = result[0]
     		result_list.append(prefactor[i]*t*3600*365)
     		try:
         		if result[3] != '':
         			if verbose == True:
-        				print 'dgdlnrp, rp = ',rp, 'message = ',result[3]
+        				print 'dgdlnrp, rp = ',rp[i], 'message = ',result[3]
         	except (IndexError,TypeError):
         		pass
         return array(result_list)
