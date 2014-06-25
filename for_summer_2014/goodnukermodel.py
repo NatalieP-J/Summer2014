@@ -11,6 +11,7 @@ from subprocess import call
 import pickle
 from besselgen import BesselGen
 from scipy.special import hyp2f1
+import matplotlib
 plt.ion()
 alpha = 7.52 #1.0
 beta = 3.13#4.0
@@ -82,11 +83,31 @@ class NukerModel:
                                 
 ########******************* CONSTRUCT MODEL *******************########
 
-model = NukerModel('testing',alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate)
+model = NukerModel('NGC4467',alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate)
+'''
+model1 = NukerModel('plot',1,4,1.5,1.,1e5,1e3,generate)
+model2 = NukerModel('plot',7,3.1,0.5,1,1e5,1e3,generate)
+model3 = NukerModel('plot',40,5,2.3,1,1e5,1e3,generate)
+'''
 rtest = arange(-7,6,0.01)
 rtest = append(rtest,40)
 rtest = insert(rtest,0,-40)
 rtest = 10**rtest
+'''
+font = {'family' : 'normal',
+        'weight' : 'normal',
+        'size'   : 25}
+matplotlib.rc('font', **font)
+plt.figure()
+plt.loglog(rtest[1:-1],model1.rho(rtest[1:-1]),'m',linewidth = 5.,label = r'$\alpha$ = {0}, $\beta$ = {1}, $\gamma$ = {2}'.format(1,4,1.5))
+plt.loglog(rtest[1:-1],model2.rho(rtest[1:-1]),'DarkOrange',linewidth = 5.,label = r'$\alpha$ = {0}, $\beta$ = {1}, $\gamma$ = {2}'.format(7,3.1,0.5))
+plt.loglog(rtest[1:-1],model3.rho(rtest[1:-1]),'c',linewidth = 5.,label = r'$\alpha$ = {0}, $\beta$ = {1}, $\gamma$ = {2}'.format(40,5,2.3))
+plt.axvline(1)
+plt.xlabel('radius (normalized to break radius)')
+plt.ylabel('density')
+plt.legend(loc = 'best')
+plt.title('NUKER MODELS')
+'''
 directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,model.r0,model.rho0,model.MBH)
 if model.generate == True:
     call(["mkdir","{0}".format(directory)])
@@ -774,7 +795,8 @@ def dgdlnrpinterior(E,u,qmin):
     part2 = 1-2*nsum(part2list,axis = 0)
     return part1*part2
  
-rps = arange(-5,0,0.01)
+rps = arange(-5,-2,0.01)
+rps = concatenate((rps,arange(-2,0,0.001)))
 rps = 10**rps                                
 rps *= model.rT
 
@@ -793,7 +815,7 @@ def dgdlnrp(rp,Emin = 0.01,Emax=100,verbose = False):
     	result_list = []
     	for i in range(len(rp)):
     		print i+1, ' of ', len(rp)
-    		result = intg.quad(dgdlnrpinterior,Emin,Emax,args = (u[i],qmin),limit = 100,full_output = 1)
+    		result = intg.quad(dgdlnrpinterior,Emin,Emax,args = (u[i],qmin),limit = 75,full_output = 1)
     		t = result[0]
     		result_list.append(prefactor[i]*t*3600*365)
     		try:
