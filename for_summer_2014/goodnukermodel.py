@@ -33,7 +33,7 @@ km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
 generate = False
-seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"ON",f:"OFF"}
 verbosity = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 plot = {Menc:"OFF",psi:"OFF",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
@@ -655,7 +655,7 @@ def funcbG(E,verbose = False):
             print i+1, 'of', len(E)
             rapoval = rapo(E[i])
             try:
-                temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E[i],),epsabs = tolerance,epsrel = tolerance)
+                temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 1e-4, lambda r: 1,args = (E[i],),epsabs = tolerance,epsrel = tolerance)
             except UserWarning as e:
                 if verbose == True:
                     print 'G, E = ', E[i], 'message = ', e
@@ -783,10 +783,6 @@ def dgdlnrpinterior(E,u,qmin):
     qval = funcq(E)
     fval = 10**fgood(log10(E))
     xival = bessel.xi(qval)
-    qimin = -10.
-    qimax = 1.
-    dqi = 0.03
-    qi = ((log10(qval) - qimin)/dqi)+1.
     bfin = bessel.besselfin(ms,u)
     mpiece = bessel.mpiece(ms)
     part1 = array(fval/(1+(qval**-1)*(xival)*Rlc(E)))
@@ -795,8 +791,9 @@ def dgdlnrpinterior(E,u,qmin):
     part2 = 1-2*nsum(part2list,axis = 0)
     return part1*part2
  
-rps = arange(-5,-2,0.01)
-rps = concatenate((rps,arange(-2,0,0.001)))
+rps = arange(-2,0,0.1)
+#rps = concatenate((rps,arange(-2,0,0.001)))
+#rps = arange(-1,5,0.1)
 rps = 10**rps                                
 rps *= model.rT
 
@@ -811,11 +808,12 @@ def dgdlnrp(rp,Emin = 0.01,Emax=100,verbose = False):
     prefactor = (8*pi**2)*model.MBH*(model.r0_rT**-1)*(model.tdyn0**-1)*u**2
     qmin = funcq(Emax)
     qmax = funcq(Emin)
+    qmin = 0.0000208168
     try:
     	result_list = []
     	for i in range(len(rp)):
     		print i+1, ' of ', len(rp)
-    		result = intg.quad(dgdlnrpinterior,Emin,Emax,args = (u[i],qmin),limit = 75,full_output = 1)
+    		result = intg.quad(dgdlnrpinterior,Emin,Emax,args = (u[i],qmin),full_output = 1)
     		t = result[0]
     		result_list.append(prefactor[i]*t*3600*365)
     		try:
