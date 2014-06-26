@@ -83,7 +83,7 @@ class NukerModel:
                                 
 ########******************* CONSTRUCT MODEL *******************########
 
-model = NukerModel('NGC4467',alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate)
+model = NukerModel('testing',alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate)
 '''
 model1 = NukerModel('plot',1,4,1.5,1.,1e5,1e3,generate)
 model2 = NukerModel('plot',7,3.1,0.5,1,1e5,1e3,generate)
