@@ -33,7 +33,7 @@ km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
 generate = False
-seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"ON",f:"OFF"}
+seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 verbosity = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 plot = {Menc:"OFF",psi:"OFF",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
@@ -84,30 +84,35 @@ class NukerModel:
 ########******************* CONSTRUCT MODEL *******************########
 
 model = NukerModel('testing',alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate)
-'''
-model1 = NukerModel('plot',1,4,1.5,1.,1e5,1e3,generate)
-model2 = NukerModel('plot',7,3.1,0.5,1,1e5,1e3,generate)
-model3 = NukerModel('plot',40,5,2.3,1,1e5,1e3,generate)
-'''
-rtest = arange(-7,6,0.01)
+
+model1 = NukerModel('plot',7.52,3.13,1.98,1,1e5,1e3,generate)
+model2 = NukerModel('plot',0.19,2.71,1.5,1,1e5,1e3,generate)
+model3 = NukerModel('plot',2.32,2.66,1.06,1,1e5,1e3,generate)
+
+rtest = arange(-3,3,0.01)
 rtest = append(rtest,40)
 rtest = insert(rtest,0,-40)
 rtest = 10**rtest
-'''
+
 font = {'family' : 'normal',
         'weight' : 'normal',
         'size'   : 25}
 matplotlib.rc('font', **font)
 plt.figure()
-plt.loglog(rtest[1:-1],model1.rho(rtest[1:-1]),'m',linewidth = 5.,label = r'$\alpha$ = {0}, $\beta$ = {1}, $\gamma$ = {2}'.format(1,4,1.5))
-plt.loglog(rtest[1:-1],model2.rho(rtest[1:-1]),'DarkOrange',linewidth = 5.,label = r'$\alpha$ = {0}, $\beta$ = {1}, $\gamma$ = {2}'.format(7,3.1,0.5))
-plt.loglog(rtest[1:-1],model3.rho(rtest[1:-1]),'c',linewidth = 5.,label = r'$\alpha$ = {0}, $\beta$ = {1}, $\gamma$ = {2}'.format(40,5,2.3))
-plt.axvline(1)
-plt.xlabel('radius (normalized to break radius)')
-plt.ylabel('density')
+#plt.loglog(rtest[1:-1],model1.rho(rtest[1:-1])/max(model1.rho(rtest[1:-1])),'m',linewidth = 5.,label = r'$\alpha$ = {0}, $\beta$ = {1}, $\gamma$ = {2}'.format(7.52,3.13,1.98))
+#plt.loglog(rtest[1:-1],model2.rho(rtest[1:-1])/max(model2.rho(rtest[1:-1])),'DarkOrange',linewidth = 5.,label = r'$\alpha$ = {0}, $\beta$ = {1}, $\gamma$ = {2}'.format(0.19,2.71,1.5))
+#plt.loglog(rtest[1:-1],model3.rho(rtest[1:-1])/max(model3.rho(rtest[1:-1])),'c',linewidth = 5.,label = r'$\alpha$ = {0}, $\beta$ = {1}, $\gamma$ = {2}'.format(2.31,2.66,1.06))
+#plt.axvline(1)
+plt.loglog(rtest[1:-1],model1.rho(rtest[1:-1]),'m',linewidth = 5.,label = r'$\alpha$ = {0}, $\beta$ = {1}, $\gamma$ = {2}'.format(7.52,3.13,1.98))
+plt.loglog(rtest[1:-1],model2.rho(rtest[1:-1]),'DarkOrange',linewidth = 5.,label = r'$\alpha$ = {0}, $\beta$ = {1}, $\gamma$ = {2}'.format(0.19,2.71,1.5))
+plt.loglog(rtest[1:-1],model3.rho(rtest[1:-1]),'c',linewidth = 5.,label = r'$\alpha$ = {0}, $\beta$ = {1}, $\gamma$ = {2}'.format(2.31,2.66,1.06))
+#plt.axvline(1)
+#plt.ylim(1e-10,10)
+plt.xlabel(r'radius [$r_b$]')
+plt.ylabel(r'density [$\rho_0$]')
 plt.legend(loc = 'best')
 plt.title('NUKER MODELS')
-'''
+
 directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,model.r0,model.rho0,model.MBH)
 if model.generate == True:
     call(["mkdir","{0}".format(directory)])
@@ -566,7 +571,7 @@ def funcJc2(E,verbose):
 
 prereqs = [Mencgood,"Menc",psigood,"psi"]
 
-Jc2good = compute(prereqs,["Jc2",Jc2],funcJc2,rtest,[5,-5,0.01],Egrid,[-1,-1],[False,['E','Jc2'],False])
+Jc2good = compute(prereqs,["Jc2",Jc2],funcJc2,rtest,[3,-3,0.01],Egrid,[-1,-1],[False,['E','Jc2'],False])
 
 ########******************* g *******************######## 
 
@@ -791,31 +796,31 @@ def dgdlnrpinterior(E,u,qmin):
     part2 = 1-2*nsum(part2list,axis = 0)
     return part1*part2
  
-rps = arange(-2,0,0.1)
+rps = arange(-5,0,0.1)
 #rps = concatenate((rps,arange(-2,0,0.001)))
-#rps = arange(-1,5,0.1)
+#rps = arange(-0.01,0,0.001)
 rps = 10**rps                                
-rps *= model.rT
+#rps *= model.rT
 
-def dgdlnrp(rp,Emin = 0.01,Emax=100,verbose = False):
+def dgdlnrp(u,Emin = 0.01,Emax=100,verbose = False):
     """
     rp - pericentre radius
     Emin, Emax - bounds of the integral
     verbose = True - print error messages from integration
     returns the rate for given rp
     """
-    u = sqrt(rp/model.rT)
-    prefactor = (8*pi**2)*model.MBH*(model.r0_rT**-1)*(model.tdyn0**-1)*u**2
+    #u = sqrt(rp/model.rT)
+    prefactor = (8*pi**2)*model.MBH*(model.r0_rT**-1)*((model.tdyn0/(3600*24*365))**-1)
+    #print 'prefactor = ',prefactor
     qmin = funcq(Emax)
     qmax = funcq(Emin)
-    qmin = 0.0000208168
     try:
     	result_list = []
-    	for i in range(len(rp)):
-    		print i+1, ' of ', len(rp)
-    		result = intg.quad(dgdlnrpinterior,Emin,Emax,args = (u[i],qmin),full_output = 1)
+    	for i in range(len(u)):
+    		print i+1, ' of ', len(u)
+    		result = intg.romberg(dgdlnrpinterior,Emin,Emax,args = (u[i],qmin),divmax = 20)#,full_output = 1)
     		t = result[0]
-    		result_list.append(prefactor[i]*t*3600*365)
+    		result_list.append(prefactor*(u[i]**2)*t)
     		try:
         		if result[3] != '':
         			if verbose == True:
@@ -823,8 +828,8 @@ def dgdlnrp(rp,Emin = 0.01,Emax=100,verbose = False):
         	except (IndexError,TypeError):
         		pass
         return array(result_list)
-    except AttributeError:
-    	result = intg.quad(dgdlnrpinterior,Emin,Emax,args = (u[i],qmin),full_output = 1)
+    except (AttributeError,TypeError) as e:
+    	result = intg.romberg(dgdlnrpinterior,Emin,Emax,args = (u,qmin),divmax = 20)#,full_output = 1)
     	t = result[0]
     	try:
     		if result[3] != '':
@@ -832,14 +837,24 @@ def dgdlnrp(rp,Emin = 0.01,Emax=100,verbose = False):
     				print 'dgdlnrp, rp = ',rp, 'message = ',result[3]
     	except (IndexError,TypeError):
     		pass
-    	return prefactor*t*3600*365 #units yr^-1
-
+    	return prefactor*(u**2)*t #units yr^-1
+'''
+d = dgdlnrp(rps)
+plt.figure()
+plt.plot(rps,d)
+plt.xlabel('u')
+plt.ylabel(r'$\frac{d\gamma}{d ln r_p}$')
+plt.figure()
+plt.loglog(rps,d)
+plt.xlabel('u')
+plt.ylabel(r'$\frac{d\gamma}{d ln r_p}$')
+'''
 def ginterior(E):
     qval = funcq(E)
-    return (fgood(E)*qval)/((qval/bessel.xi(qval)) + Rlc(E))
+    return (10**fgood(log10(E))*qval)/((qval/bessel.xi(qval)) + Rlc(E))
 
-def gdirect(Emin = 0.01,Emax = model.Mnorm*(model.r0_rT),verbose = False):
-    prefactor = (8*pi**2)*model.MBH_Msun*(model.r0_rT**-1)*(model.tdyn0**-1)
+def gdirect(Emin = 0.01,Emax = 100,verbose = False):
+    prefactor = (8*pi**2)*model.MBH*(model.r0_rT**-1)*(model.tdyn0**-1)
     qmin = funcq(Emax)
     qmax = funcq(Emin)
     result = intg.quad(ginterior,Emin,Emax,full_output = 1)
