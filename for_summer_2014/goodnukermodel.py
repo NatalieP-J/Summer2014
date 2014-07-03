@@ -13,18 +13,18 @@ from besselgen import BesselGen
 from scipy.special import hyp2f1
 import matplotlib
 plt.ion()
-alpha = 7.52 #1.0
-beta = 3.13#4.0
-gamma = 1.98#1.5
+alpha = 2.94#7.52 #1.0
+beta = 2.23#3.13#4.0
+gamma = 1.80#1.98#1.5
 r0pc = 1.
-rb = 10**2.38
+rb = 10**2.46#10**2.38
 r0pc = rb
-mub = 19.98
-M2L = 6.27
+mub = 18.83#19.98
+M2L = 7.25#6.27
 MsunV = 4.83
 rho0 = 1e5
 rho0 = (1./rb)*(1./(10)**2)*(206265**2)*M2L*10**((MsunV-mub)/2.5) 
-MBH_Msun = 10**6.04#1e3
+MBH_Msun = 10**7.11#10**6.04#1e3
 Gconst = 6.67259e-8
 realMsun = 1.989e33
 Rsun = 6.9599e10
@@ -33,9 +33,9 @@ km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
 generate = False
-seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+seton = {Menc:"OFF",psi:"ON",Jc2:"ON",g:"ON",G:"OFF",f:"OFF"}
 verbosity = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
-plot = {Menc:"OFF",psi:"OFF",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
+plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
 class NukerModel:
     #initialize variables that constitute our model
@@ -83,17 +83,18 @@ class NukerModel:
                                 
 ########******************* CONSTRUCT MODEL *******************########
 
-model = NukerModel('testing',alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate)
+model = NukerModel('NGC4551',alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate)
 
+'''
 model1 = NukerModel('plot',7.52,3.13,1.98,1,1e5,1e3,generate)
 model2 = NukerModel('plot',0.19,2.71,1.5,1,1e5,1e3,generate)
 model3 = NukerModel('plot',2.32,2.66,1.06,1,1e5,1e3,generate)
-
-rtest = arange(-3,3,0.01)
+'''
+rtest = arange(-7,6,0.01)
 rtest = append(rtest,40)
 rtest = insert(rtest,0,-40)
 rtest = 10**rtest
-
+'''
 font = {'family' : 'normal',
         'weight' : 'normal',
         'size'   : 25}
@@ -112,7 +113,7 @@ plt.xlabel(r'radius [$r_b$]')
 plt.ylabel(r'density [$\rho_0$]')
 plt.legend(loc = 'best')
 plt.title('NUKER MODELS')
-
+'''
 directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,model.r0,model.rho0,model.MBH)
 if model.generate == True:
     call(["mkdir","{0}".format(directory)])
@@ -299,6 +300,7 @@ def Minterior(r):
     """
     interior of the Menc integral
     """
+    #print r
     return model.rho(r)*r**2
 
 tol = 1.e-3
@@ -342,20 +344,20 @@ def rHimplicit(r):
     """
     equation that has its minimum when r = rH
     """
-    return abs(model.Mnorm-funcMenc(r)[0])
+    return abs(model.Mnorm-funcMenc(abs(r))[0])
 
-def rH(verbose=False):
+def rH(verbose=True):
     """
     finds root of rHimplicit
     """
     rresult=root(rHimplicit,1e-4)
     if rresult.success == True:
-        return rresult.x
+        return abs(rresult.x)
     elif rresult.success == False:
         if verbose == True:
             print 'Failed to evaluate rH'
             print rresult.message
-        return rresult.x
+        return abs(rresult.x)
 
 ########******************* CONSTRUCTION FUNCTIONS *******************########
 
@@ -395,7 +397,7 @@ def Egrid(upstep=5,downstep=-3,step=0.1):
 
 ########******************* COMPUTE MENC *******************######## 
 
-Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[4,-4,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],False])
+Mencgood = compute([],["Menc",Menc],funcMenc,rtest,[4,-6,0.03],rgrid,[3-model.g,0],[[2,0,3-model.b,4*pi*model.rho(rchange)*(rchange**3)],['r','M'],False])
 
 def Menc2(r):
     const = -4*pi*((-3+model.g)**-1)
@@ -473,7 +475,7 @@ def funcpsi(r,verbose=False):
 
 ########******************* COMPUTE PSI *******************######## 
 
-psigood = compute([],["psi",psi],funcpsi,rtest,[4,-6,0.03],rgrid,[-1,-1],[False,['r','$\psi$'],False])
+psigood = compute([],["psi",psi],funcpsi,rtest,[4.3,-6,0.03],rgrid,[-1,-1],[False,['r','$\psi$'],False])
 
 def funcpsi2(r):
     const = ((-2+model.b)**-1)
@@ -571,7 +573,7 @@ def funcJc2(E,verbose):
 
 prereqs = [Mencgood,"Menc",psigood,"psi"]
 
-Jc2good = compute(prereqs,["Jc2",Jc2],funcJc2,rtest,[3,-3,0.01],Egrid,[-1,-1],[False,['E','Jc2'],False])
+Jc2good = compute(prereqs,["Jc2",Jc2],funcJc2,rtest,[3,-4,0.01],Egrid,[-1,-1],[False,['E','Jc2'],False])
 
 ########******************* g *******************######## 
 
