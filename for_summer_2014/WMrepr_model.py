@@ -38,11 +38,13 @@ fs = []
 qs = []
 Rlcs = []
 
+generates = [False,False,False,False,True]
+
 for i in range(len(masses)):
     MBH_Msun = 10**masses[i]
     print 'MBH = ',MBH_Msun
     Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-    generate = True
+    generate = generates[i]
     seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
     verbosity = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
     plot = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
@@ -354,18 +356,34 @@ for i in range(len(masses)):
     def rapoimplicit(r,E):
         return abs(10**psigood(log10(abs(r)))-E)
 
-    def rapo(E):
-        if E**-1 > 0.2:
-            rguess = 10*E**-1
-        elif E**-1 < 0.2:
-            rguess = 0.01*E**-1
-        rresult = root(rapoimplicit,rguess,args=E)
-        if rresult.success == True:
-            return abs(rresult.x)
-        elif rresult.success == False:
-            print 'Failed to evaluate rapo'
-            print rresult.message
-            return abs(rresult.x)
+    def rapo(e):
+        try:
+            for i in range(len(e)):
+                E = e[i]
+                if E**-1 > 0.2:
+                    rguess = 10*E**-1
+                elif E**-1 < 0.2:
+                    rguess = 0.01*E**-1
+                rresult = root(rapoimplicit,rguess,args=E)
+                if rresult.success == True:
+                    return abs(rresult.x)
+                elif rresult.success == False:
+                    print 'Failed to evaluate rapo'
+                    print rresult.message
+                    return abs(rresult.x)
+        except (TypeError,AttributeError):
+            E = e
+            if E**-1 > 0.2:
+                rguess = 10*E**-1
+            elif E**-1 < 0.2:
+                rguess = 0.01*E**-1
+            rresult = root(rapoimplicit,rguess,args=E)
+            if rresult.success == True:
+                return abs(rresult.x)
+            elif rresult.success == False:
+                print 'Failed to evaluate rapo'
+                print rresult.message
+                return abs(rresult.x)
 
 ########******************* CIRCULAR ANGULAR MOMENTUM *******************######## 
 
@@ -462,16 +480,19 @@ for i in range(len(masses)):
     part3bG_memo = {}
 
     def bGinterior(theta,r,E):
-        if not r in psibG_memo:
-            psibG_memo[r] = 10**psigood(log10(r))
-        psir = psibG_memo[r]
+        #if not r in psibG_memo:
+        #    psibG_memo[r] = 10**psigood(log10(r))
+        #psir = psibG_memo[r]
+        psir = 10**psigood(log10(r))
         part1 = (r**2)/sqrt(psir-E)
-        if not log10(psir*(1-theta) + E*theta) in part2bG_memo:
-            part2bG_memo[log10(psir*(1-theta) + E*theta)] = 10**ggood(log10(psir*(1-theta) + E*theta))
-        part2 = part2bG_memo[log10(psir*(1-theta) + E*theta)]
-        if not theta in part3bG_memo:
-            part3bG_memo[theta]= (1./sqrt(theta))-sqrt(theta)
-        part3 = part3bG_memo[theta]
+        #if not log10(psir*(1-theta) + E*theta) in part2bG_memo:
+        #    part2bG_memo[log10(psir*(1-theta) + E*theta)] = 10**ggood(log10(psir*(1-theta) + E*theta))
+        #part2 = part2bG_memo[log10(psir*(1-theta) + E*theta)]
+        part2 = 10**ggood(log10(psir*(1-theta) + E*theta))
+        #if not theta in part3bG_memo:
+        #    part3bG_memo[theta]= (1./sqrt(theta))-sqrt(theta)
+        #part3 = part3bG_memo[theta]
+        part3 = (1./sqrt(theta))-sqrt(theta)
         return part1*part2*part3
 
     def funcbG(E,verbose = False):
