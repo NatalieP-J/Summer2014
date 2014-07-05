@@ -38,7 +38,7 @@ fs = []
 qs = []
 Rlcs = []
 
-generates = [False,False,False,False,True]
+generates = [False,False,False,False,False]
 
 for i in range(len(masses)):
     MBH_Msun = 10**masses[i]
@@ -358,6 +358,7 @@ for i in range(len(masses)):
 
     def rapo(e):
         try:
+            rs = []
             for i in range(len(e)):
                 E = e[i]
                 if E**-1 > 0.2:
@@ -366,11 +367,12 @@ for i in range(len(masses)):
                     rguess = 0.01*E**-1
                 rresult = root(rapoimplicit,rguess,args=E)
                 if rresult.success == True:
-                    return abs(rresult.x)
+                    rs.append(abs(rresult.x))
                 elif rresult.success == False:
                     print 'Failed to evaluate rapo'
                     print rresult.message
-                    return abs(rresult.x)
+                    rs.append(abs(rresult.x))
+            return array(rs)
         except (TypeError,AttributeError):
             E = e
             if E**-1 > 0.2:
