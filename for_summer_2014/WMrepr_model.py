@@ -19,14 +19,14 @@ Rsun = 6.9599e10
 pc = 3.1e18
 km = 10**5
 yr = 365*24*3600
-alpha = 2.94#7.52 #1.0
-beta = 2.23#3.13#4.0
-gamma = 1.80#1.98#1.5
+alpha = 0.95#2.94#7.52 #1.0
+beta = 2.5#2.23#3.13#4.0
+gamma = 1.14#1.80#1.98#1.5
 r0pc = 1.
-rb = 10**2.46#10**2.38
+rb = 10**2.65#10**2.46#10**2.38
 r0pc = rb
-mub = 18.83#19.98
-M2L = 7.25#6.27
+mub = 18.33#18.83#19.98
+M2L = 7.54#7.25#6.27
 MsunV = 4.83
 rho0 = 1e5
 rho0 = (1./rb)*(1./(10)**2)*(206265**2)*M2L*10**((MsunV-mub)/2.5) 
@@ -38,7 +38,9 @@ fs = []
 qs = []
 Rlcs = []
 
-generates = [False,False,False,False,False]
+plotarrays = [arange(0.9,2.1,0.01),arange(0.9,2.1,0.01),arange(0.9,4,0.01),arange(0.9,4,0.01),arange(0.9,4,0.01)]
+
+generates = [True,True,True,True,True]
 
 for i in range(len(masses)):
     MBH_Msun = 10**masses[i]
@@ -48,8 +50,7 @@ for i in range(len(masses)):
     seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
     verbosity = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
     plot = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
-    plotarray = arange(-0.5,4,0.2)
-    plotarray = 10**plotarray
+    plotarray = 10**plotarrays[i]
 
 ########******************* MODEL FRAMEWORK *******************########
     class NukerModel:
@@ -98,7 +99,7 @@ for i in range(len(masses)):
                                 
 ########******************* CONSTRUCT MODEL *******************########
 
-    model = NukerModel('NGC4551',alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate)
+    model = NukerModel('NGC4168',alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate)
 
     rtest = arange(-7,6,0.01)
     rtest = append(rtest,40)
@@ -604,13 +605,43 @@ for i in range(len(masses)):
 
     def Rlc(r):
         interior = 2*(model.Mnorm/model.r0_rT)*(1./10**Jc2good(log10(r)))
-        return -log(interior)
+        return interior
+
+    def lnRlc(r):
+        return -log(Rlc(r))
 
     rapos.append(rapo(plotarray))
     fs.append(10**(fgood(log10(plotarray))))
     qs.append(funcq(plotarray))
     Rlcs.append(Rlc(plotarray))
 
+plt.figure()
+for i in range(len(rapos)):
+    plt.loglog(10**plotarrays[i],rapos[i],label = 'log10(mass) = {0}'.format(masses[i]))
+plt.xlabel('E')
+plt.ylabel(r'$r_{apo}$')
+plt.legend(loc = 'best')
+
+plt.figure()
+for i in range(len(fs)):
+    plt.loglog(10**plotarrays[i],fs[i],label = 'log10(mass) = {0}'.format(masses[i]))
+plt.xlabel('E')
+plt.ylabel('f')
+plt.legend(loc = 'best')
+
+plt.figure()
+for i in range(len(qs)):
+    plt.loglog(10**plotarrays[i],qs[i],label = 'log10(mass) = {0}'.format(masses[i]))
+plt.xlabel('E')
+plt.ylabel('q')
+plt.legend(loc = 'best')
+
+plt.figure()
+for i in range(len(Rlcs)):
+    plt.loglog(10**plotarrays[i],Rlcs[i],label = 'log10(mass) = {0}'.format(masses[i]))
+plt.xlabel('E')
+plt.ylabel(r'$R_{lc}$')
+plt.legend(loc = 'best')
 
 ########******************* IMPORT DATA TABLES *******************########
 
@@ -634,7 +665,7 @@ def dgdlnrpinterior(E,u,qmin):
     xival = bessel.xi(qval)
     bfin = bessel.besselfin(ms,u)
     mpiece = bessel.mpiece(ms)
-    part1 = array(fval/(1+(qval**-1)*(xival)*Rlc(E)))
+    part1 = array(fval/(1+(qval**-1)*(xival)*lnRlc(E)))
     part2list = exp(-array(matrix(alphas**2).T*matrix(qval/4)))
     part2list = array([(bfin/mpiece)[i]*part2list[i] for i in range(len(alphas))])
     part2 = 1-2*nsum(part2list,axis = 0)
@@ -695,7 +726,7 @@ plt.ylabel(r'$\frac{d\gamma}{d ln r_p}$')
 '''
 def ginterior(E):
     qval = funcq(E)
-    return (10**fgood(log10(E))*qval)/((qval/bessel.xi(qval)) + Rlc(E))
+    return (10**fgood(log10(E))*qval)/((qval/bessel.xi(qval)) + lnRlc(E))
 
 def gdirect(Emin = 0.01,Emax = 100,verbose = False):
     prefactor = (8*pi**2)*model.MBH*(model.r0_rT**-1)*(model.tdyn0**-1)
