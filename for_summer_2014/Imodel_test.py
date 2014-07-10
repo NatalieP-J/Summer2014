@@ -124,17 +124,24 @@ class NukerModel:
     def I(self,r):
         return self.factor*(r**-self.g)*(1+(r**self.a))**(-(self.b-self.g)/self.a)
 
+
     def dIdR_2(self,r):
         return self.I(r)*((-self.g/r)-(self.b-self.g)*(r**(self.a-1))*(1+(r**self.a))**-1)
 
     def d2IdR2_2(self,r):
+        return self.a*(self.dIdR_2(r) + (self.g/r)*self.I(r)) + ((self.g/r)**2)*self.I(r) - self.dIdR_2(r)*((1-2*self.g)/r)
+
+    def d3IdR3_2(self,r):
+        return 0
+    
+    def d2IdR2_3(self,r):
         part1 = (-self.g/r)*(self.dIdR_2(r) - (self.I(r)/r))
         part2a = (self.g-self.b)*(r**(self.a-1))*(1+(r**self.a))**-1
         part2b = (self.dIdR_2(r) + (1./r)*((self.a-1) - self.a*(r**self.a)*(1+(r**self.a))**1)*self.I(r))
         part2 = part2a*part2b
         return part1 + part2
     
-    def d3IdR3_2(self,r):
+    def d3IdR3_3(self,r):
         A = self.a
         R = r**self.a
         Rm = r**(self.a-1)
@@ -201,7 +208,7 @@ class NukerModel:
             rargs = tuple((r,))
             lows = 0
             highs = pi/2.
-        return -(1./pi)*integrator(r,[self.rhointerior,'rho'],lows,highs,args = rargs,verbose = verbose)[0]
+        return (-1./pi)*integrator(r,[self.rhointerior,'rho'],lows,highs,args = rargs,verbose = verbose)[0]
     
     def d2rhodr2interior(self,theta,r):
         return self.dI3dR3_2(r/cos(theta))/cos(theta)**3
@@ -216,7 +223,7 @@ class NukerModel:
             rargs = tuple((r,))
             lows = 0
             highs = pi/2.
-        return -integrator(r,[self.rhointerior,'rho'],lows,highs,args = rargs,verbose = verbose)[0]
+        return (-1./pi)*integrator(r,[self.rhointerior,'rho'],lows,highs,args = rargs,verbose = verbose)[0]
     
     def oldrho(self,r):
         G = self.g + 1
@@ -312,8 +319,8 @@ plt.legend(loc = 'best')
 plt.show()
 
 
-rhovals = abs(model.drhodr(rtest))
-rhovals2 = abs(model.olddrhodr(rtest))
+rhovals = model.drhodr(rtest)
+rhovals2 = model.olddrhodr(rtest)
 plt.figure()
 plt.title(r'$\alpha = {0},\beta = {1},\gamma = {2}$'.format(model.a,model.b,model.g))
 plt.xlabel('r')
@@ -333,4 +340,3 @@ plt.loglog(rtest[1:-1],rhovals[1:-1],label = r'New $\frac{d^2\rho}{dr^2}$')
 plt.loglog(rtest[1:-1],rhovals2[1:-1],label = r'Old $\frac{d^2\rho}{dr^2}$')
 plt.legend(loc = 'best')
 plt.show()
-
