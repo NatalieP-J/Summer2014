@@ -13,18 +13,18 @@ from besselgen import BesselGen
 from scipy.special import hyp2f1
 import matplotlib
 plt.ion()
-alpha = 2.94#7.52 #1.0
-beta = 2.23#3.13#4.0
-gamma = 1.80#1.98#1.5
+alpha = 7.52 #1.0
+beta = 3.13-1#4.0
+gamma = 1.98-1#1.5
 r0pc = 1.
-rb = 10**2.46#10**2.38
+rb = 10**2.38
 r0pc = rb
-mub = 18.83#19.98
-M2L = 7.25#6.27
+mub = 19.98
+M2L = 6.27
 MsunV = 4.83
 rho0 = 1e5
 rho0 = (1./rb)*(1./(10)**2)*(206265**2)*M2L*10**((MsunV-mub)/2.5) 
-MBH_Msun = 10**7.11#10**6.04#1e3
+MBH_Msun = 10**6.04#1e3
 Gconst = 6.67259e-8
 realMsun = 1.989e33
 Rsun = 6.9599e10
@@ -32,47 +32,25 @@ pc = 3.1e18
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-generate = False
-seton = {Menc:"OFF",psi:"ON",Jc2:"ON",g:"ON",G:"OFF",f:"OFF"}
-verbosity = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+generate =False
+seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"ON"}
+verbosity = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
 
-from nuker import NukerModel
+from Imodel_test import NukerModel
                                 
-########******************* CONSTRUCT MODEL *******************########
+########******************* CONSTRUCT MODEL **3*****************########
 
-model = NukerModel('NGC4551',alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate)
+model = NukerModel('ImodelNGC4467',alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate)
 
-'''
-model1 = NukerModel('plot',7.52,3.13,1.98,1,1e5,1e3,generate)
-model2 = NukerModel('plot',0.19,2.71,1.5,1,1e5,1e3,generate)
-model3 = NukerModel('plot',2.32,2.66,1.06,1,1e5,1e3,generate)
-'''
+model.getrho()
+
 rtest = arange(-7,6,0.01)
 rtest = append(rtest,40)
 rtest = insert(rtest,0,-40)
 rtest = 10**rtest
-'''
-font = {'family' : 'normal',
-        'weight' : 'normal',
-        'size'   : 25}
-matplotlib.rc('font', **font)
-plt.figure()
-#plt.loglog(rtest[1:-1],model1.rho(rtest[1:-1])/max(model1.rho(rtest[1:-1])),'m',linewidth = 5.,label = r'$\alpha$ = {0}, $\beta$ = {1}, $\gamma$ = {2}'.format(7.52,3.13,1.98))
-#plt.loglog(rtest[1:-1],model2.rho(rtest[1:-1])/max(model2.rho(rtest[1:-1])),'DarkOrange',linewidth = 5.,label = r'$\alpha$ = {0}, $\beta$ = {1}, $\gamma$ = {2}'.format(0.19,2.71,1.5))
-#plt.loglog(rtest[1:-1],model3.rho(rtest[1:-1])/max(model3.rho(rtest[1:-1])),'c',linewidth = 5.,label = r'$\alpha$ = {0}, $\beta$ = {1}, $\gamma$ = {2}'.format(2.31,2.66,1.06))
-#plt.axvline(1)
-plt.loglog(rtest[1:-1],model1.rho(rtest[1:-1]),'m',linewidth = 5.,label = r'$\alpha$ = {0}, $\beta$ = {1}, $\gamma$ = {2}'.format(7.52,3.13,1.98))
-plt.loglog(rtest[1:-1],model2.rho(rtest[1:-1]),'DarkOrange',linewidth = 5.,label = r'$\alpha$ = {0}, $\beta$ = {1}, $\gamma$ = {2}'.format(0.19,2.71,1.5))
-plt.loglog(rtest[1:-1],model3.rho(rtest[1:-1]),'c',linewidth = 5.,label = r'$\alpha$ = {0}, $\beta$ = {1}, $\gamma$ = {2}'.format(2.31,2.66,1.06))
-#plt.axvline(1)
-#plt.ylim(1e-10,10)
-plt.xlabel(r'radius [$r_b$]')
-plt.ylabel(r'density [$\rho_0$]')
-plt.legend(loc = 'best')
-plt.title('NUKER MODELS')
-'''
+
 directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,model.r0,model.rho0,model.MBH)
 if model.generate == True:
     call(["mkdir","{0}".format(directory)])
@@ -542,7 +520,7 @@ def lginterior(r,E):
     """
     return (model.drhodr(1./r))*(r**-2)*((sqrt(abs(E-10**psigood(log10(1./r)))))**-1)
     
-def funclg(E,verbose=False):
+def funclg(E,verbose=False): #removed negative from final answer while incorporating alternate Nuker model
     """
     functional form of g
     relies on ginterior
@@ -563,7 +541,7 @@ def funclg(E,verbose=False):
                     problems.append(i)
             except (IndexError,TypeError):
                 pass
-            gans.append(-pi*t)
+            gans.append(pi*t)
         return array(gans),problems
     except (AttributeError,TypeError) as e:
         problem = []
@@ -577,7 +555,7 @@ def funclg(E,verbose=False):
                 problem = [E]
         except (IndexError,TypeError):
             pass
-        return -pi*t, problem
+        return pi*t, problem
 
 ########******************* COMPUTE g *******************######## 
 prereqs = [psigood,"psi"]
@@ -660,7 +638,7 @@ def finterior(r,E,rapoval):
     psi = (10**psigood(log10(var)))[0]
     Mencvar = (10**Mencgood(log10(var)))[0]
     Mencrap = (10**Mencgood(log10(rapoval)))[0]
-    result1 = (var**3)*(1./sqrt(abs(E-psi)))*model.d2rhodr2(var)
+    result1 = (var**3)*(1./sqrt(abs(E-psi)))*model.oldd2rhodr2(var)
     result2 = (var**2)*(1./sqrt(abs(E-psi)))*model.drhodr(var)
     result3 = -(var**2)*(1./sqrt(abs(E-psi)))*(1./(2*rapoval))*model.drhodr(var)*((model.Mnorm*(r-1) + r*Mencvar - Mencrap)/abs(E-psi))  
     return result1+result2+result3
@@ -763,6 +741,80 @@ rps = arange(-5,0,0.1)
 rps = 10**rps                                
 #rps *= model.rT
 
+rps = array([  0.00000000e+00,   1.00000000e-04,   4.00000000e-04,
+         9.00000000e-04,   1.60000000e-03,   2.50000000e-03,
+         3.60000000e-03,   4.90000000e-03,   6.40000000e-03,
+         8.10000000e-03,   1.00000000e-02,   1.21000000e-02,
+         1.44000000e-02,   1.69000000e-02,   1.96000000e-02,
+         2.25000000e-02,   2.56000000e-02,   2.89000000e-02,
+         3.24000000e-02,   3.61000000e-02,   4.00000000e-02,
+         4.41000000e-02,   4.84000000e-02,   5.29000000e-02,
+         5.76000000e-02,   6.25000000e-02,   6.76000000e-02,
+         7.29000000e-02,   7.84000000e-02,   8.41000000e-02,
+         9.00000000e-02,   9.61000000e-02,   1.02400000e-01,
+         1.08900000e-01,   1.15600000e-01,   1.22500000e-01,
+         1.29600000e-01,   1.36900000e-01,   1.44400000e-01,
+         1.52100000e-01,   1.60000000e-01,   1.68100000e-01,
+         1.76400000e-01,   1.84900000e-01,   1.93600000e-01,
+         2.02500000e-01,   2.11600000e-01,   2.20900000e-01,
+         2.30400000e-01,   2.40100000e-01,   2.50000000e-01,
+         2.60100000e-01,   2.70400000e-01,   2.80900000e-01,
+         2.91600000e-01,   3.02500000e-01,   3.13600000e-01,
+         3.24900000e-01,   3.36400000e-01,   3.48100000e-01,
+         3.60000000e-01,   3.72100000e-01,   3.84400000e-01,
+         3.96900000e-01,   4.09600000e-01,   4.22500000e-01,
+         4.35600000e-01,   4.48900000e-01,   4.62400000e-01,
+         4.76100000e-01,   4.90000000e-01,   5.04100000e-01,
+         5.18400000e-01,   5.32900000e-01,   5.47600000e-01,
+         5.62500000e-01,   5.77600000e-01,   5.92900000e-01,
+         6.08400000e-01,   6.24100000e-01,   6.40000000e-01,
+         6.56100000e-01,   6.72400000e-01,   6.88900000e-01,
+         7.05600000e-01,   7.22500000e-01,   7.39600000e-01,
+         7.56900000e-01,   7.74400000e-01,   7.92100000e-01,
+         8.10000000e-01,   8.28100000e-01,   8.46400000e-01,
+         8.64900000e-01,   8.83600000e-01,   9.02500000e-01,
+         9.21600000e-01,   9.40900000e-01,   9.60400000e-01,
+         9.80100000e-01])
+
+rps = rps[1:]
+
+realrate = array([  0.00000000e+00,   1.67623931e-08,   6.70704114e-08,
+         1.50987061e-07,   2.68540076e-07,   4.20107520e-07,
+         6.05648287e-07,   8.25473505e-07,   1.07985916e-06,
+         1.36912840e-06,   1.69364784e-06,   2.05383223e-06,
+         2.45014392e-06,   2.88309310e-06,   3.35324407e-06,
+         3.86120693e-06,   4.40765754e-06,   4.99331246e-06,
+         5.61896220e-06,   6.28544482e-06,   6.99367337e-06,
+         7.74461703e-06,   8.53927080e-06,   9.37882966e-06,
+         1.02644506e-05,   1.11975475e-05,   1.21790553e-05,
+         1.32108644e-05,   1.42946151e-05,   1.54311459e-05,
+         1.66229669e-05,   1.78717320e-05,   1.91801245e-05,
+         2.05481363e-05,   2.19811017e-05,   2.34787930e-05,
+         2.50435708e-05,   2.66804352e-05,   2.83911928e-05,
+         3.01803631e-05,   3.20482782e-05,   3.39998869e-05,
+         3.60366259e-05,   3.81665921e-05,   4.03923401e-05,
+         4.27188113e-05,   4.51547181e-05,   4.76973813e-05,
+         5.03511016e-05,   5.31371028e-05,   5.60480559e-05,
+         5.90873746e-05,   6.22843374e-05,   6.56188410e-05,
+         6.91278333e-05,   7.27947147e-05,   7.66542472e-05,
+         8.06983829e-05,   8.49559547e-05,   8.94176335e-05,
+         9.41300019e-05,   9.90694215e-05,   1.04303229e-04,
+         1.09792035e-04,   1.15621399e-04,   1.21765590e-04,
+         1.28253146e-04,   1.35164856e-04,   1.42468763e-04,
+         1.50222354e-04,   1.58510996e-04,   1.67310778e-04,
+         1.76697072e-04,   1.86782795e-04,   1.97559741e-04,
+         2.09110822e-04,   2.21587562e-04,   2.35068054e-04,
+         2.49616163e-04,   2.65405425e-04,   2.82650108e-04,
+         3.01498380e-04,   3.22157117e-04,   3.44937632e-04,
+         3.70241108e-04,   3.98480030e-04,   4.30110166e-04,
+         4.65850896e-04,   5.06669269e-04,   5.53734344e-04,
+         6.08614360e-04,   6.73498288e-04,   7.51634395e-04,
+         8.47924562e-04,   9.70024338e-04,   1.13091795e-03,
+         1.35718390e-03,   1.69284273e-03,   2.28540635e-03,
+         3.72563196e-03])
+
+realrate = realrate[1:]
+
 def dgdlnrp(u,Emin = 0.01,Emax=100,verbose = False):
     """
     rp - pericentre radius
@@ -809,6 +861,14 @@ plt.figure()
 plt.loglog(rps,d)
 plt.xlabel('u')
 plt.ylabel(r'$\frac{d\gamma}{d ln r_p}$')
+
+pklrfile = open('{0}/rrate.pkl'.format(directory),"wb")
+pickle.dump(rps,pklrfile)
+pklrfile.close()
+
+pklrfile = open('{0}/rate.pkl'.format(directory),"wb")
+pickle.dump(d,pklrfile)
+pklrfile.close()
 '''
 def ginterior(E):
     qval = funcq(E)

@@ -19,20 +19,20 @@ Rsun = 6.9599e10
 pc = 3.1e18
 km = 10**5
 yr = 365*24*3600
-alpha = 0.95#2.94#7.52 #1.0
-beta = 2.5#2.23#3.13#4.0
-gamma = 1.14#1.80#1.98#1.5
+alpha = 2.94#7.52 #1.0
+beta = 2.23#3.13#4.0
+gamma = 1.80#1.98#1.5
 r0pc = 1.
-rb = 10**2.65#10**2.46#10**2.38
+rb = 10**2.46#10**2.38
 r0pc = rb
-mub = 18.33#18.83#19.98
-M2L = 7.54#7.25#6.27
+mub = 18.83#19.98
+M2L = 7.25#6.27
 MsunV = 4.83
 rho0 = 1e5
 rho0 = (1./rb)*(1./(10)**2)*(206265**2)*M2L*10**((MsunV-mub)/2.5) 
 MBH_Msun = 10**7.11#10**6.04#1e3
 masses = [4,6,8,10,12]
-
+galname = 'NGC4551'
 rapos = []
 fs = []
 qs = []
@@ -40,7 +40,7 @@ Rlcs = []
 
 plotarrays = [arange(0.9,2.1,0.01),arange(0.9,2.1,0.01),arange(0.9,4,0.01),arange(0.9,4,0.01),arange(0.9,4,0.01)]
 
-generates = [True,True,True,True,True]
+generates = [False,False,False,False,False]
 
 for i in range(len(masses)):
     MBH_Msun = 10**masses[i]
@@ -99,7 +99,7 @@ for i in range(len(masses)):
                                 
 ########******************* CONSTRUCT MODEL *******************########
 
-    model = NukerModel('NGC4168',alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate)
+    model = NukerModel(galname,alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate)
 
     rtest = arange(-7,6,0.01)
     rtest = append(rtest,40)
@@ -620,28 +620,36 @@ for i in range(len(rapos)):
     plt.loglog(10**plotarrays[i],rapos[i],label = 'log10(mass) = {0}'.format(masses[i]))
 plt.xlabel('E')
 plt.ylabel(r'$r_{apo}$')
+plt.title(galname)
 plt.legend(loc = 'best')
+plt.savefig('{0}/rapofig.png'.format(galname))
 
 plt.figure()
 for i in range(len(fs)):
     plt.loglog(10**plotarrays[i],fs[i],label = 'log10(mass) = {0}'.format(masses[i]))
 plt.xlabel('E')
 plt.ylabel('f')
+plt.title(galname)
 plt.legend(loc = 'best')
+plt.savefig('{0}/ffig.png'.format(galname))
 
 plt.figure()
 for i in range(len(qs)):
     plt.loglog(10**plotarrays[i],qs[i],label = 'log10(mass) = {0}'.format(masses[i]))
 plt.xlabel('E')
 plt.ylabel('q')
+plt.title(galname)
 plt.legend(loc = 'best')
+plt.savefig('{0}/qfig.png'.format(galname))
 
 plt.figure()
 for i in range(len(Rlcs)):
     plt.loglog(10**plotarrays[i],Rlcs[i],label = 'log10(mass) = {0}'.format(masses[i]))
 plt.xlabel('E')
 plt.ylabel(r'$R_{lc}$')
+plt.title(galname)
 plt.legend(loc = 'best')
+plt.savefig('{0}/Rlcfig.png'.format(galname))
 
 ########******************* IMPORT DATA TABLES *******************########
 

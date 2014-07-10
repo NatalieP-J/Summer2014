@@ -1,5 +1,12 @@
 from numpy import *
 
+Gconst = 6.67259e-8
+realMsun = 1.989e33
+Rsun = 6.9599e10
+pc = 3.1e18
+km = 10**5
+yr = 365*24*3600
+
 class NukerModel:
     #initialize variables that constitute our model
     def __init__(self,model_name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate=False):

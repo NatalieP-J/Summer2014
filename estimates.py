@@ -63,7 +63,7 @@ def gamma(r,rh,MBH):
             v = v_inrh(MBH,r[i])
         rs.append((numdense(rh)*(r[i]**3)*Rlc(r[i],rh,MBH)*r[i])/v)
     return array(rs)
-
+'''
 print 'Basic rate = ',basicrate(v_typical,rh_MW,MBH_MW,Nstar_MW),'per Gyr'
 print 'Focus rate = ',gravrate(v_typical,rh_MW,MBH_MW,Nstar_MW),'per kyr'
 rtest = arange(1,15,0.1)
@@ -71,3 +71,4 @@ rtest = 10**rtest
 
 plt.figure()
 plt.loglog(rtest,gamma(rtest,rh_MW,MBH_MW))
+'''
