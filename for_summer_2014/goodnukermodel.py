@@ -13,6 +13,10 @@ from besselgen import BesselGen
 from scipy.special import hyp2f1
 import matplotlib
 plt.ion()
+try:
+    call(['rm -f', 'Imodel_test.pyc'])
+except OSError:
+    pass
 alpha = 7.52 #1.0
 beta = 3.13-1#4.0
 gamma = 1.98-1#1.5
@@ -32,8 +36,8 @@ pc = 3.1e18
 km = 10**5
 yr = 365*24*3600
 Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-generate =True
-seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"ON",G:"OFF",f:"ON"}
+generate =False
+seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 verbosity = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* MODEL FRAMEWORK *******************########
@@ -54,7 +58,7 @@ rtest = 10**rtest
 directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,model.r0,model.rho0,model.MBH)
 if model.generate == True:
     call(["mkdir","{0}".format(directory)])
-    seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"ON",G:"OFF",f:"ON"}
+    seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 ########******************* CONSTRUCTION FUNCTIONS *******************########
 def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp,conds=False):
     """
@@ -541,7 +545,7 @@ def funclg(E,verbose=False): #removed negative from final answer while incorpora
                     problems.append(i)
             except (IndexError,TypeError):
                 pass
-            gans.append(pi*t)
+            gans.append(-pi*t)
         return array(gans),problems
     except (AttributeError,TypeError) as e:
         problem = []
@@ -555,7 +559,7 @@ def funclg(E,verbose=False): #removed negative from final answer while incorpora
                 problem = [E]
         except (IndexError,TypeError):
             pass
-        return pi*t, problem
+        return -pi*t, problem
 
 ########******************* COMPUTE g *******************######## 
 prereqs = [psigood,"psi"]
@@ -638,8 +642,8 @@ def finterior(r,E,rapoval):
     psi = (10**psigood(log10(var)))[0]
     Mencvar = (10**Mencgood(log10(var)))[0]
     Mencrap = (10**Mencgood(log10(rapoval)))[0]
-    result1 = (var**3)*(1./sqrt(abs(E-psi)))*model.d2rhodr2(var)
-    result2 = (var**2)*(1./sqrt(abs(E-psi)))*model.drhodr(var)
+    result1 = (var**3)*(1./sqrt(abs(E-psi)))*model.d2rhodr2(var) 
+    result2 = (var**2)*(1./sqrt(abs(E-psi)))*model.drhodr(var) 
     result3 = -(var**2)*(1./sqrt(abs(E-psi)))*(1./(2*rapoval))*model.drhodr(var)*((model.Mnorm*(r-1) + r*Mencvar - Mencrap)/abs(E-psi))  
     return result1+result2+result3
 
@@ -851,7 +855,7 @@ def dgdlnrp(u,Emin = 0.01,Emax=100,verbose = False):
     	except (IndexError,TypeError):
     		pass
     	return prefactor*(u**2)*t #units yr^-1
-'''
+
 d = dgdlnrp(rps)
 plt.figure()
 plt.plot(rps,d)
@@ -865,11 +869,11 @@ plt.ylabel(r'$\frac{d\gamma}{d ln r_p}$')
 pklrfile = open('{0}/rrate.pkl'.format(directory),"wb")
 pickle.dump(rps,pklrfile)
 pklrfile.close()
-
+plt.ylabel(r'$\frac{d^2\rho}{dr^2}$')
 pklrfile = open('{0}/rate.pkl'.format(directory),"wb")
 pickle.dump(d,pklrfile)
 pklrfile.close()
-'''
+
 def ginterior(E):
     qval = funcq(E)
     return (10**fgood(log10(E))*qval)/((qval/bessel.xi(qval)) + Rlc(E))

@@ -124,37 +124,15 @@ class NukerModel:
     def I(self,r):
         return self.factor*(r**-self.g)*(1+(r**self.a))**(-(self.b-self.g)/self.a)
 
-
     def dIdR_2(self,r):
-        return self.I(r)*((-self.g/r)-(self.b-self.g)*(r**(self.a-1))*(1+(r**self.a))**-1)
+        return -(self.I(r)/(r*(1+r**self.a)))*(self.g + self.b*r**self.a)
 
     def d2IdR2_2(self,r):
-        return self.a*(self.dIdR_2(r) + (self.g/r)*self.I(r)) + ((self.g/r)**2)*self.I(r) - self.dIdR_2(r)*((1-2*self.g)/r)
+        return (self.I(r)/(r*(1+r**self.a))**2)*((r**(2*self.a))*self.b*(1+self.b) + self.g + (self.g**2) + (r**self.a)*(self.b-self.a*self.b + self.g + 2*self.b*self.g))
 
     def d3IdR3_2(self,r):
-        return 0
-    
-    def d2IdR2_3(self,r):
-        part1 = (-self.g/r)*(self.dIdR_2(r) - (self.I(r)/r))
-        part2a = (self.g-self.b)*(r**(self.a-1))*(1+(r**self.a))**-1
-        part2b = (self.dIdR_2(r) + (1./r)*((self.a-1) - self.a*(r**self.a)*(1+(r**self.a))**1)*self.I(r))
-        part2 = part2a*part2b
-        return part1 + part2
-    
-    def d3IdR3_3(self,r):
-        A = self.a
-        R = r**self.a
-        Rm = r**(self.a-1)
-        Rexp = (1+(r**self.a))**-1
-        part1 = (-self.g/r)*(self.d2IdR2_2(r) - (2./r)*self.dIdR_2(r) + (2./r**2)*self.I(r))
-        part2fac = (self.g-self.b)*(Rm*Rexp)
-        part2a = ((A-1)/r - Rm*Rexp*A)*(self.dIdR_2(r) + (1./r)*((A-1)-A*R*Rexp)*self.I(r))
-        part2b = self.d2IdR2_2(r)
-        part2c = (-1./r**2)*((A-1)-A*R*Rexp)*self.I(r)
-        part2d = (A**2/r)*Rm*Rexp*(-1 + R*Rexp)*self.I(r)
-        part2e = (1./r)*((A-1)-A*R*Rexp)*self.dIdR_2(r)
-        part2 = part2fac*(part2a+part2b+part2c+part2d+part2e)
-        return part1 + part2
+        return (self.I(r)/(r*(1+r**self.a))**3)*((-r**(3*self.a))*self.b*(1+self.b)*(2+self.b) - self.g*(1 + self.g)*(2+self.g) + (r**(2*self.a))*((-1+self.a)*self.b*(4+self.a+3*self.b) - (2+(self.a**2) + 3*self.a*(1+self.b) + 3*self.b*(2+self.b))*self.g) + (r**self.a)*((1+self.a)*(-4+self.a-3*self.g)*self.g - self.b*(2+(self.a**2) - 3*self.a*(1+self.g) + 3*self.g*(2+self.g))))
+
 
     #compute surface density first derivative
     def dIdR(self,r):
@@ -196,7 +174,7 @@ class NukerModel:
         return -(1./pi)*integrator(r,[self.rhointerior,'rho'],lows,highs,args = rargs,verbose = verbose)[0]
         
     def drhodrinterior(self,theta,r):
-        return self.dI2dR2_2(r/cos(theta))/cos(theta)**2
+        return self.d2IdR2_2(r/cos(theta))/cos(theta)**2
 
     def funcdrhodr(self,r,verbose = False):
         try:
@@ -208,10 +186,10 @@ class NukerModel:
             rargs = tuple((r,))
             lows = 0
             highs = pi/2.
-        return (-1./pi)*integrator(r,[self.rhointerior,'rho'],lows,highs,args = rargs,verbose = verbose)[0]
+        return (1./pi)*integrator(r,[self.drhodrinterior,'drhodr'],lows,highs,args = rargs,verbose = verbose)[0]
     
     def d2rhodr2interior(self,theta,r):
-        return self.dI3dR3_2(r/cos(theta))/cos(theta)**3
+        return self.d3IdR3_2(r/cos(theta))/cos(theta)**3
 
     def funcd2rhodr2(self,r,verbose = False):
         try:
@@ -223,7 +201,7 @@ class NukerModel:
             rargs = tuple((r,))
             lows = 0
             highs = pi/2.
-        return (-1./pi)*integrator(r,[self.rhointerior,'rho'],lows,highs,args = rargs,verbose = verbose)[0]
+        return (1./pi)*integrator(r,[self.d2rhodr2interior,'d2rhodr2'],lows,highs,args = rargs,verbose = verbose)[0]
     
     def oldrho(self,r):
         G = self.g + 1
@@ -234,7 +212,18 @@ class NukerModel:
         G = self.g + 1
         B = self.b + 1
         return (-r**(-1-G))*((1+r**self.a)**((G-self.a-B)/self.a))*(G+B*r**self.a)
-    #and second derivatives
+    
+    def olddrhodr_2(self,r):
+        G = self.g + 1
+        B = self.b + 1
+        return self.oldrho(r)*((-G/r) + ((G-B)/self.a)*((1+r**self.a)**-1)*self.a*(r**(self.a-1)))
+    
+    def oldd2rhodr2_2(self,r):
+        G = self.g + 1
+        B = self.b + 1
+        return (self.olddrhodr_2(r)**2/self.oldrho(r)) + self.oldrho(r)*((G/r**2) + ((self.olddrhodr_2(r)/self.oldrho(r)) + (G/r))*(1./r)*(self.a - 1 -self.a*r**self.a))
+                               
+
     def oldd2rhodr2(self,r):
         G = self.g + 1
         B = self.b + 1
@@ -260,11 +249,11 @@ class NukerModel:
             pklrfile = open('{0}/{1}.pkl'.format(self.directory,'rho'),"wb")
             pickle.dump(tab1,pklrfile)
             pklrfile.close()
-            tab2 = self.funcdrhodr(rtest)
+            tab2 = abs(self.funcdrhodr(rtest))
             pklrfile = open('{0}/{1}.pkl'.format(self.directory,'drhodr'),"wb")
             pickle.dump(tab2,pklrfile)
             pklrfile.close()
-            tab3 = self.funcd2rhodr2(rtest)
+            tab3 = abs(self.funcd2rhodr2(rtest))
             pklrfile = open('{0}/{1}.pkl'.format(self.directory,'d2rhodr2'),"wb")
             pickle.dump(tab3,pklrfile)
             pklrfile.close()
@@ -295,14 +284,14 @@ class NukerModel:
         return 10**self.inter1(log10(r))
     
     def drhodr(self,r):
-        return 10**self.inter2(log10(r))
+        return -10**self.inter2(log10(r))
     
     def d2rhodr2(self,r):
         return 10**self.inter3(log10(r))
 
 
 ########******************* CONSTRUCT MODEL *******************########
-
+'''
 model = NukerModel(galname,alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate)
 
 model.getrho()
@@ -319,8 +308,8 @@ plt.legend(loc = 'best')
 plt.show()
 
 
-rhovals = model.drhodr(rtest)
-rhovals2 = model.olddrhodr(rtest)
+rhovals = abs(model.drhodr(rtest))
+rhovals2 = abs(model.olddrhodr(rtest))
 plt.figure()
 plt.title(r'$\alpha = {0},\beta = {1},\gamma = {2}$'.format(model.a,model.b,model.g))
 plt.xlabel('r')
@@ -340,3 +329,18 @@ plt.loglog(rtest[1:-1],rhovals[1:-1],label = r'New $\frac{d^2\rho}{dr^2}$')
 plt.loglog(rtest[1:-1],rhovals2[1:-1],label = r'Old $\frac{d^2\rho}{dr^2}$')
 plt.legend(loc = 'best')
 plt.show()
+'''
+'''
+rhovals = model.d2rhodr2(rtest)
+rhovals2 = abs(model.drhodr(rtest))
+rhovals3 = model.rho(rtest)
+plt.figure()
+plt.title(r'$\alpha = {0},\beta = {1},\gamma = {2}$'.format(model.a,model.b,model.g))
+plt.xlabel('r')
+plt.loglog(rtest[1:-1],rhovals[1:-1],label = r'New $\frac{d^2\rho}{dr^2}$')
+plt.loglog(rtest[1:-1],rhovals2[1:-1],label = r'Old $\frac{d^2\rho}{dr^2}$')
+plt.loglog(rtest[1:-1],rhovals3[1:-1],'r')
+#plt.legend(loc = 'best')
+plt.show()
+'''
+
