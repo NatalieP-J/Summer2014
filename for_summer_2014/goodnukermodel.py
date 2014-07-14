@@ -745,6 +745,9 @@ rps = arange(-5,0,0.1)
 rps = 10**rps                                
 #rps *= model.rT
 
+rps = arange(-1,0,0.01)
+rps = 10**rps
+'''
 rps = array([  0.00000000e+00,   1.00000000e-04,   4.00000000e-04,
          9.00000000e-04,   1.60000000e-03,   2.50000000e-03,
          3.60000000e-03,   4.90000000e-03,   6.40000000e-03,
@@ -781,7 +784,7 @@ rps = array([  0.00000000e+00,   1.00000000e-04,   4.00000000e-04,
          9.80100000e-01])
 
 rps = rps[1:]
-
+'''
 realrate = array([  0.00000000e+00,   1.67623931e-08,   6.70704114e-08,
          1.50987061e-07,   2.68540076e-07,   4.20107520e-07,
          6.05648287e-07,   8.25473505e-07,   1.07985916e-06,
@@ -857,10 +860,12 @@ def dgdlnrp(u,Emin = 0.01,Emax=100,verbose = False):
     	return prefactor*(u**2)*t #units yr^-1
 
 d = dgdlnrp(rps)
+'''
 plt.figure()
 plt.plot(rps,d)
 plt.xlabel('u')
 plt.ylabel(r'$\frac{d\gamma}{d ln r_p}$')
+'''
 plt.figure()
 plt.loglog(rps,d)
 plt.xlabel('u')
