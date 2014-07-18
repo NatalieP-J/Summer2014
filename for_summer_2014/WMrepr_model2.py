@@ -13,33 +13,33 @@ from besselgen import BesselGen
 from scipy.special import hyp2f1
 import matplotlib
 Gconst = 6.67259e-8
-Gconst2 = 4.91e-15 #pc^3/Msun*yr^2
 realMsun = 1.989e33
 Rsun = 6.9599e10
 pc = 3.1e18
 km = 10**5
 yr = 365*24*3600
-alpha = 2.94#7.52 #1.0
-beta = 2.23#3.13#4.0
-gamma = 1.80#1.98#1.5
+alpha = 0.95#2.94#7.52 #1.0
+beta = 2.5#2.23#3.13#4.0
+gamma = 1.14#1.80#1.98#1.5
 r0pc = 1.
-rb = 10**2.46#10**2.38
+rb = 10**2.65#10**2.46#10**2.38
 r0pc = rb
-mub = 18.83#19.98
-M2L = 7.25#6.27
+mub = 18.33#18.83#19.98
+M2L = 7.54#7.25#6.27
 MsunV = 4.83
 rho0 = 1e5
 rho0 = (1./rb)*(1./(10)**2)*(206265**2)*M2L*10**((MsunV-mub)/2.5) 
 MBH_Msun = 10**7.11#10**6.04#1e3
 masses = [4,6,8,10,12]
-dist = 15.3 #Mpc
-galname = 'NGC4551'
+masses1= [6,8,10]
+galname = 'NGC4168'
+dist = 36.4 #Mpc
 rapos = []
 fs = []
 qs = []
 Rlcs = []
-Ps = []
 Fs = []
+Ps = []
 
 ########******************* IMPORT DATA TABLES *******************########
 
@@ -51,19 +51,19 @@ print 'bessel loaded in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
 
 ########******************* INITIALIZE LOOP *******************########
 
-plotarrays = [arange(0.9,2.1,0.005),arange(0.9,2.1,0.005),arange(0.9,4,0.005),arange(0.9,4,0.005),arange(0.9,4,0.005)]
-
+plotarrays = [arange(0.9,2.1,0.01),arange(0.9,2.1,0.01),arange(0.9,4,0.01),arange(0.9,4,0.01),arange(0.9,4,0.01)]
+plotarrays1 = [arange(0.9,2.1,0.01),arange(0.9,4,0.01),arange(0.9,4,0.01)]
 generates = [False,False,False,False,False]
 
-for i in range(len(masses)):
+for i in range(1,4):#len(masses)):
     MBH_Msun = 10**masses[i]
     print 'MBH = ',MBH_Msun
     Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
     generate = generates[i]
     seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
     verbosity = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
-    plot = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
-    plotarray = (10**plotarrays[i])
+    plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
+    plotarray = 10**plotarrays[i]
 
 ########******************* MODEL FRAMEWORK *******************########
     class NukerModel:
@@ -643,29 +643,30 @@ for i in range(len(masses)):
         vals = np.where(isnan(qtest)==False)
         E = E[vals]
         return [E,4*(pi**2)*(10**Jc2good(log10(E)))*funcq(E)*Rlc(E)*(10**fgood(log10(E)))/logR0(E)]
-    
+
+
+
     rapos.append(rapo(plotarray))
     fs.append(10**(fgood(log10(plotarray))))
     qs.append(funcq(plotarray))
     Rlcs.append(Rlc(plotarray))
-    Ps.append(P(plotarray))
     Fs.append(F(plotarray))
-                                               
+    Ps.append(P(plotarray))
 
 #plt.figure()
 plt.suptitle(galname)
 plt.subplot(326)
 for i in range(len(rapos)):
-    plt.loglog(Fs[i][0],Fs[i][1]*yr,label = 'MBH {0}'.format(masses[i]))
+    plt.loglog(Fs[i][0],Fs[i][1],label = 'MBH {0}'.format(masses1[i]))
 plt.xlabel('E')
 plt.ylabel(r'F')
 #plt.title(galname)
-#plt.legend(loc = 'best')
+plt.legend(loc = 'best')
 #plt.savefig('{0}/Ffig.png'.format(galname))
 plt.subplot(322)
 #plt.figure()
 for i in range(len(rapos)):
-    plt.loglog(10**plotarrays[i],Ps[i],label = 'log10(mass) = {0}'.format(masses[i]))
+    plt.loglog(10**plotarrays1[i],Ps[i],label = 'log10(mass) = {0}'.format(masses[i]))
 plt.xlabel('E')
 plt.ylabel(r'P')
 #plt.title(galname)
@@ -674,7 +675,7 @@ plt.ylabel(r'P')
 plt.subplot(321)
 #plt.figure()
 for i in range(len(rapos)):
-    plt.loglog(10**plotarrays[i],rapos[i]/dist,label = 'log10(mass) = {0}'.format(masses[i]))
+    plt.loglog(10**plotarrays1[i],rapos[i]/dist,label = 'log10(mass) = {0}'.format(masses[i]))
 plt.xlabel('E')
 plt.ylabel(r'$r_{apo}$["]')
 #plt.title(galname)
@@ -683,7 +684,7 @@ plt.ylabel(r'$r_{apo}$["]')
 plt.subplot(323)
 #plt.figure()
 for i in range(len(fs)):
-    plt.loglog(10**plotarrays[i],fs[i],label = 'log10(mass) = {0}'.format(masses[i]))
+    plt.loglog(10**plotarrays1[i],fs[i],label = 'log10(mass) = {0}'.format(masses[i]))
 plt.xlabel('E')
 plt.ylabel('f')
 #plt.title(galname)
@@ -692,7 +693,7 @@ plt.ylabel('f')
 plt.subplot(325)
 #plt.figure()
 for i in range(len(qs)):
-    plt.loglog(10**plotarrays[i],qs[i],label = 'log10(mass) = {0}'.format(masses[i]))
+    plt.loglog(10**plotarrays1[i],qs[i],label = 'log10(mass) = {0}'.format(masses[i]))
 plt.xlabel('E')
 plt.ylabel('q')
 #plt.title(galname)
@@ -701,7 +702,7 @@ plt.ylabel('q')
 plt.subplot(324)
 #plt.figure()
 for i in range(len(Rlcs)):
-    plt.loglog(10**plotarrays[i],Rlcs[i],label = 'log10(mass) = {0}'.format(masses[i]))
+    plt.loglog(10**plotarrays1[i],Rlcs[i],label = 'log10(mass) = {0}'.format(masses[i]))
 plt.xlabel('E')
 plt.ylabel(r'$R_{lc}$')
 #plt.title(galname)
@@ -711,7 +712,6 @@ mng = plt.get_current_fig_manager()
 mng.resize(*mng.window.maxsize())
 plt.show()
 plt.savefig('WM{0}allplot.png'.format(galname))
-
 ########******************* CALCULATE RATE *******************########
 
 def dgdlnrpinterior(E,u,qmin):
