@@ -18,8 +18,8 @@ try:
 except OSError:
     pass
 alpha = 7.52 #1.0
-beta = 3.13-1#4.0
-gamma = 1.98-1#1.5
+beta = 3.13#4.0
+gamma = 1.98#1.5
 r0pc = 1.
 rb = 10**2.38
 r0pc = rb
@@ -39,7 +39,7 @@ Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
 generate =False
 seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 verbosity = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
-plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
+plot = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"OFF"}
 ########******************* MODEL FRAMEWORK *******************########
 
 from Imodel_test import NukerModel
@@ -48,17 +48,17 @@ from Imodel_test import NukerModel
 
 model = NukerModel('ImodelNGC4467',alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate)
 
-model.getrho()
+#model.getrho()
 
 rtest = arange(-7,6,0.01)
 rtest = append(rtest,40)
 rtest = insert(rtest,0,-40)
 rtest = 10**rtest
 
-directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.b,model.g,model.r0,model.rho0,model.MBH)
+directory = "{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}".format(model.name,model.a,model.B,model.G,model.r0,model.rho0,model.MBH)
 if model.generate == True:
     call(["mkdir","{0}".format(directory)])
-    seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+    seton = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
 ########******************* CONSTRUCTION FUNCTIONS *******************########
 def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp,conds=False):
     """
@@ -114,6 +114,7 @@ def plotter(name,r,inter,rstart,rchange,start,end,smallrexp,largerexp,conds,labe
     plt.ylabel(r'{0}'.format(labels[1]))
     plt.xlabel('{0}'.format(labels[0]))
     plt.xlim(min(r[1:-1]),max(r[1:-1]))
+    #plt.xlim(10**-7,10**7)
     plt.ylim(min(m[1:-1]),max(m[1:-1]))
     #if rstart>r[0] and rchange<r[len(r)-1]:
         #plt.axvline(rstart, color='r',label='Limits of interpolation')
@@ -144,6 +145,7 @@ def makegood(func,r,size,grid,smallrexp,largerexp,verbose = False,conds = False,
     """
     rarray,rchange,rstart = grid(size[0],size[1],size[2])
     tab,problems = func(rarray,verbose)
+    tab = abs(tab)
     print 'fraction reporting a message: {0}'.format(float(len(problems))/float(len(tab)))
     if problem == True:
         tab = [i for j, i in enumerate(tab) if j not in problems]
@@ -721,6 +723,53 @@ print 'bessel loaded in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
 
 ########******************* CALCULATE RATE *******************########
 
+Menc2 = loadtxt('thesisMenctable.dat')
+Mencgood2 = interp1d(Menc2[:,0],Menc2[:,1])
+psi2 = loadtxt('thesispsitable.dat')
+psigood2= interp1d(psi2[:,0],psi2[:,1])
+Jc22 = loadtxt('thesisJc2table.dat')
+Jc2good2 = interp1d(Jc22[:,0],Jc22[:,1])
+g2 = loadtxt('thesisgtable.dat')
+ggood2 = interp1d(g2[:,0],g2[:,1])
+G2 = loadtxt('thesismathcalGtable.dat')
+Ggood2 = interp1d(G2[:,0],G2[:,1])
+f2 = loadtxt('thesisftable.dat')
+fgood2 = interp1d(f2[:,0],f2[:,1])
+
+rtest = rtest[1:-1]
+'''
+plt.figure()
+plt.loglog(rtest,10**fgood(log10(rtest)))
+plt.loglog(rtest,10**fgood2(log10(rtest)))
+plt.xlabel('E')
+plt.ylabel('f')
+plt.figure()
+plt.loglog(rtest,10**ggood(log10(rtest)))
+plt.loglog(rtest,10**ggood2(log10(rtest)))
+plt.xlabel('E')
+plt.ylabel('g')
+plt.figure()
+plt.loglog(rtest,10**Ggood(log10(rtest)))
+plt.loglog(rtest,10**Ggood2(log10(rtest)))
+plt.xlabel('E')
+plt.ylabel('G')
+plt.figure()
+plt.loglog(rtest,10**Mencgood(log10(rtest)))
+plt.loglog(rtest,10**Mencgood2(log10(rtest)))
+plt.xlabel('r')
+plt.ylabel(r'$M_{enc}$')
+plt.figure()
+plt.loglog(rtest,10**psigood(log10(rtest)))
+plt.loglog(rtest,10**psigood2(log10(rtest)))
+plt.xlabel('r')
+plt.ylabel(r'$\psi$')
+plt.figure()
+plt.loglog(rtest,10**Jc2good(log10(rtest)))
+plt.loglog(rtest,10**Jc2good2(log10(rtest)))
+plt.xlabel('E')
+plt.ylabel(r'$J_c^2$')
+'''
+
 def dgdlnrpinterior(E,u,qmin):
     """
     interior of the integral used to calculate rate as function of pericentre
@@ -738,17 +787,19 @@ def dgdlnrpinterior(E,u,qmin):
     part2list = array([(bfin/mpiece)[i]*part2list[i] for i in range(len(alphas))])
     part2 = 1-2*nsum(part2list,axis = 0)
     return part1*part2
- 
+
+
 rps = arange(-5,0,0.1)
 #rps = concatenate((rps,arange(-2,0,0.001)))
 #rps = arange(-0.01,0,0.001)
 rps = 10**rps                                
 #rps *= model.rT
 
-rps = arange(-1,0,0.01)
-rps = 10**rps
+#rps = arange(-2,-1,0.001)
+#rps = append(rps,arange(-1,0,0.001))
+#rps = 10**rps
 
-rps2 = array([  0.00000000e+00,   1.00000000e-04,   4.00000000e-04,
+rps0 = array([  0.00000000e+00,   1.00000000e-04,   4.00000000e-04,
          9.00000000e-04,   1.60000000e-03,   2.50000000e-03,
          3.60000000e-03,   4.90000000e-03,   6.40000000e-03,
          8.10000000e-03,   1.00000000e-02,   1.21000000e-02,
@@ -782,8 +833,6 @@ rps2 = array([  0.00000000e+00,   1.00000000e-04,   4.00000000e-04,
          8.64900000e-01,   8.83600000e-01,   9.02500000e-01,
          9.21600000e-01,   9.40900000e-01,   9.60400000e-01,
          9.80100000e-01])
-
-rps = rps[1:]
 
 realrate = array([  0.00000000e+00,   1.67623931e-08,   6.70704114e-08,
          1.50987061e-07,   2.68540076e-07,   4.20107520e-07,
@@ -819,8 +868,6 @@ realrate = array([  0.00000000e+00,   1.67623931e-08,   6.70704114e-08,
          8.47924562e-04,   9.70024338e-04,   1.13091795e-03,
          1.35718390e-03,   1.69284273e-03,   2.28540635e-03,
          3.72563196e-03])
-
-realrate = realrate[1:]
 
 def dgdlnrp(u,Emin = 0.01,Emax=100,verbose = False):
     """
@@ -858,23 +905,41 @@ def dgdlnrp(u,Emin = 0.01,Emax=100,verbose = False):
     	except (IndexError,TypeError):
     		pass
     	return prefactor*(u**2)*t #units yr^-1
+'''
+pklrfile = open('{0}/rrate.pkl'.format(directory),"rb")
+rps = pickle.load(pklrfile)
+pklrfile.close()
+pklrfile = open('{0}/rate.pkl'.format(directory),"rb")
+d = pickle.load(pklrfile)
+pklrfile.close()
+pklrfile = open('NGC4467_a7.52_b3.13_g1.98_r239.883291902_rho9.68542367551_MBH1096478.19614/rrate.pkl',"rb")
+rps2 = pickle.load(pklrfile)
+pklrfile.close()
+pklrfile = open('NGC4467_a7.52_b3.13_g1.98_r239.883291902_rho9.68542367551_MBH1096478.19614/rate.pkl',"rb")
+d2 = pickle.load(pklrfile)
+pklrfile.close()
+'''
+d = dgdlnrp(rps0[1:])
 
-d = dgdlnrp(rps)
 '''
 plt.figure()
 plt.plot(rps,d)
 plt.xlabel('u')
 plt.ylabel(r'$\frac{d\gamma}{d ln r_p}$')
 '''
+#therate = loadtxt('thesisrate_Jul21gen.dat')
 plt.figure()
-plt.loglog(rps,d)
-plt.xlabel('u')
+plt.loglog(rps0[1:]**2,d, label = 'Python')
+#plt.loglog(rps**2,loadtxt('thesisrate_Jul16gen.dat')*3600*24*365,label = 'Thesisgen')
+plt.loglog(rps0,realrate,label = 'Thesis')
+plt.loglog(therate[:,0]**2,therate[:,1]*3600*24*365, label = 'July 21')
+plt.xlabel(r'$u^2$')
 plt.ylabel(r'$\frac{d\gamma}{d ln r_p}$')
+plt.title('Thesis vs Python')
 
 pklrfile = open('{0}/rrate.pkl'.format(directory),"wb")
 pickle.dump(rps,pklrfile)
 pklrfile.close()
-plt.ylabel(r'$\frac{d^2\rho}{dr^2}$')
 pklrfile = open('{0}/rate.pkl'.format(directory),"wb")
 pickle.dump(d,pklrfile)
 pklrfile.close()
@@ -896,3 +961,5 @@ def gdirect(Emin = 0.01,Emax = 100,verbose = False):
     except (IndexError,TypeError):
         pass
     return prefactor*t
+
+print('\a')
