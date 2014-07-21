@@ -387,7 +387,8 @@ for i in range(len(masses)):
                     print rresult.message
                     rs.append(abs(rresult.x))
             return array(rs)
-        except (TypeError,AttributeError):
+        except (TypeError,AttributeError) as err:
+            print err
             E = e
             if E**-1 > 0.2:
                 rguess = 10*E**-1
@@ -613,6 +614,8 @@ for i in range(len(masses)):
 
 ########******************* ADDITIONAL FUNCTIONS *******************######## 
 
+    
+
     def funcq(r):
         return (4./pi)*log(model.Lam)*(model.r0_rT/model.MBH)*10**Ggood(log10(r))
 
@@ -644,7 +647,8 @@ for i in range(len(masses)):
         E = E[vals]
         return [E,4*(pi**2)*(10**Jc2good(log10(E)))*funcq(E)*Rlc(E)*(10**fgood(log10(E)))/logR0(E)]
     
-    rapos.append(rapo(plotarray))
+    rho1 = model.rho0*((realMsun/(pc**3)))
+    rapos.append(model.r0*rapo(plotarray))
     fs.append(10**(fgood(log10(plotarray))))
     qs.append(funcq(plotarray))
     Rlcs.append(Rlc(plotarray))
@@ -674,7 +678,7 @@ plt.ylabel(r'P')
 plt.subplot(321)
 #plt.figure()
 for i in range(len(rapos)):
-    plt.loglog(10**plotarrays[i],rapos[i]/dist,label = 'log10(mass) = {0}'.format(masses[i]))
+    plt.loglog(10**plotarrays[i],rapos[i]/(dist*1000),label = 'log10(mass) = {0}'.format(masses[i]))
 plt.xlabel('E')
 plt.ylabel(r'$r_{apo}$["]')
 #plt.title(galname)
