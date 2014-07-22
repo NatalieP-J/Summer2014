@@ -614,7 +614,9 @@ for i in range(len(masses)):
 
 ########******************* ADDITIONAL FUNCTIONS *******************######## 
 
-    
+    fconst = (sqrt((Gconst**3)*model.rho0*realMsun*((model.r0*pc)**-1)*((10*pc)**-2))*realMsun*((model.r0*pc)**3))**-1
+    sig = sqrt(Gconst*model.MBH*realMsun/rH()*pc)
+    fconst2 = (1./(((rH())**3)*sig**3))*model.MBH*sqrt(2)/4.
 
     def funcq(r):
         return (4./pi)*log(model.Lam)*(model.r0_rT/model.MBH)*10**Ggood(log10(r))
@@ -642,12 +644,12 @@ for i in range(len(masses)):
                 return Rlc(E)*exp(-0.186*q - 0.824*sqrt(q))
 
     def F(E):
+        Jconst = Gconst*(model.rho0*realMsun*((model.r0*pc)**-1)*((10*pc)**-2)*(model.r0*pc)**4)
         qtest = funcq(E)
         vals = np.where(isnan(qtest)==False)
         E = E[vals]
-        return [E,4*(pi**2)*(10**Jc2good(log10(E)))*funcq(E)*Rlc(E)*(10**fgood(log10(E)))/logR0(E)]
+        return [E,(100000**2)*4*(pi**2)*(Jconst*10**Jc2good(log10(E)))*funcq(E)*Rlc(E)*(fconst*10**fgood(log10(E)))/logR0(E)]
     
-    rho1 = model.rho0*((realMsun/(pc**3)))
     rapos.append(model.r0*rapo(plotarray))
     fs.append(10**(fgood(log10(plotarray))))
     qs.append(funcq(plotarray))
@@ -711,8 +713,8 @@ plt.ylabel(r'$R_{lc}$')
 #plt.title(galname)
 #plt.legend(loc = 'best')
 #plt.savefig('{0}/Rlcfig.png'.format(galname))
-mng = plt.get_current_fig_manager()
-mng.resize(*mng.window.maxsize())
+#mng = plt.get_current_fig_manager()
+#mng.resize(*mng.window.maxsize())
 plt.show()
 plt.savefig('WM{0}allplot.png'.format(galname))
 
