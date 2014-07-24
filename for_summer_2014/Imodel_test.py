@@ -98,6 +98,9 @@ class NukerModel:
         self.a = alpha
         self.b = beta
         self.g = gamma
+        #luminosity Nuker fit parameters
+        self.B = beta-1
+        self.G = gamma-1
         #starting radius
         self.r0 = r0pc
         #starting density
@@ -119,19 +122,19 @@ class NukerModel:
         #start a new directory?
         self.generate = generate
         #directory name
-        self.directory = 'Nuker/{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}'.format(self.name,self.a,self.b,self.g,self.r0,self.rho0,self.MBH)
+        self.directory = 'Nuker/{0}_a{1}_b{2}_g{3}_r{4}_rho{5}_MBH{6}'.format(self.name,self.a,self.B,self.G,self.r0,self.rho0,self.MBH)
     
     def I(self,r):
-        return self.factor*(r**-self.g)*(1+(r**self.a))**(-(self.b-self.g)/self.a)
+        return self.factor*(r**-self.G)*(1+(r**self.a))**(-(self.B-self.G)/self.a)
 
     def dIdR_2(self,r):
-        return -(self.I(r)/(r*(1+r**self.a)))*(self.g + self.b*r**self.a)
+        return -(self.I(r)/(r*(1+r**self.a)))*(self.G + self.B*r**self.a)
 
     def d2IdR2_2(self,r):
-        return (self.I(r)/(r*(1+r**self.a))**2)*((r**(2*self.a))*self.b*(1+self.b) + self.g + (self.g**2) + (r**self.a)*(self.b-self.a*self.b + self.g + 2*self.b*self.g))
+        return (self.I(r)/(r*(1+r**self.a))**2)*((r**(2*self.a))*self.B*(1+self.B) + self.G + (self.G**2) + (r**self.a)*(self.B-self.a*self.B + self.G + 2*self.B*self.G))
 
     def d3IdR3_2(self,r):
-        return (self.I(r)/(r*(1+r**self.a))**3)*((-r**(3*self.a))*self.b*(1+self.b)*(2+self.b) - self.g*(1 + self.g)*(2+self.g) + (r**(2*self.a))*((-1+self.a)*self.b*(4+self.a+3*self.b) - (2+(self.a**2) + 3*self.a*(1+self.b) + 3*self.b*(2+self.b))*self.g) + (r**self.a)*((1+self.a)*(-4+self.a-3*self.g)*self.g - self.b*(2+(self.a**2) - 3*self.a*(1+self.g) + 3*self.g*(2+self.g))))
+        return (self.I(r)/(r*(1+r**self.a))**3)*((-r**(3*self.a))*self.B*(1+self.B)*(2+self.B) - self.G*(1 + self.G)*(2+self.G) + (r**(2*self.a))*((-1+self.a)*self.B*(4+self.a+3*self.B) - (2+(self.a**2) + 3*self.a*(1+self.B) + 3*self.B*(2+self.B))*self.G) + (r**self.a)*((1+self.a)*(-4+self.a-3*self.G)*self.G - self.B*(2+(self.a**2) - 3*self.a*(1+self.G) + 3*self.G*(2+self.G))))
 
 
     #compute surface density first derivative
@@ -288,6 +291,42 @@ class NukerModel:
     
     def d2rhodr2(self,r):
         return 10**self.inter3(log10(r))
+
+    def rho(self,r,verbose = False):
+        try:
+            r.shape
+            rargs = [tuple((i,)) for i in r]
+            lows = zeros(len(r))
+            highs = zeros(len(r)) + pi/2.   
+        except (AttributeError,TypeError):
+            rargs = tuple((r,))
+            lows = 0
+            highs = pi/2.
+        return -(1./pi)*integrator(r,[self.rhointerior,'rho'],lows,highs,args = rargs,verbose = verbose)[0]
+
+    def drhodr(self,r,verbose = False):
+        try:
+            r.shape
+            rargs = [tuple((i,)) for i in r]
+            lows = zeros(len(r))
+            highs = zeros(len(r)) + pi/2. 
+        except (AttributeError,TypeError):
+            rargs = tuple((r,))
+            lows = 0
+            highs = pi/2.
+        return (1./pi)*integrator(r,[self.drhodrinterior,'drhodr'],lows,highs,args = rargs,verbose = verbose)[0]
+
+    def d2rhodr2(self,r,verbose = False):
+        try:
+            r.shape
+            rargs = [tuple((i,)) for i in r]
+            lows = zeros(len(r))
+            highs = zeros(len(r)) + pi/2. 
+        except (AttributeError,TypeError):
+            rargs = tuple((r,))
+            lows = 0
+            highs = pi/2.
+        return (1./pi)*integrator(r,[self.d2rhodr2interior,'d2rhodr2'],lows,highs,args = rargs,verbose = verbose)[0]
 
 
 ########******************* CONSTRUCT MODEL *******************########
