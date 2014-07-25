@@ -716,7 +716,7 @@ etest = 10**arange(-2,2,0.01)
 ########******************* IMPORT DATA TABLES *******************########
 
 tic = time.clock()
-bessel = BesselGen(['alpham_table.pkl','xi_table2.txt','Bessel_table.txt','mpiece_table.txt'])
+bessel = BesselGen(['alpham_table.pkl','xi_table.txt','Bessel_table.txt','mpiece_table.txt'])
 toc = time.clock()
 delt = toc-tic
 print 'bessel loaded in \t {0}'.format(str(datetime.timedelta(seconds=delt)))
@@ -1006,4 +1006,4 @@ def gdirect(Emin = 0.01,Emax = 100,verbose = False):
         pass
     return prefactor*t
 
-print('\a')
+

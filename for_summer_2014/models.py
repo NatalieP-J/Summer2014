@@ -384,10 +384,10 @@ class SersicModeldIdR:
         return -self.I(r)*(self.b/self.n)*r**(-1.+(1./n))
 
     def dI2dR2(self,r):
-        return self.I(r)*(self.b/self.n**2)*(-1+self.n+self.b*r**(1./n))*r**(-2.+(1.n))
+        return self.I(r)*(self.b/self.n**2)*(-1+self.n+self.b*r**(1./n))*r**(-2.+(1./n))
     
     def dI3dR3(self,r):
-        return self.I(r)*(self.b/self.n**3)*(-1+3*self.n-2*self.n**2-3*self.b*(-1+n)*r**(1./n)-k**2*r**(2./n))*r**(-3+(1.n))
+        return self.I(r)*(self.b/self.n**3)*(-1+3*self.n-2*self.n**2-3*self.b*(-1+n)*r**(1./n)-k**2*r**(2./n))*r**(-3+(1./n))
 
     #use luminosity density to compute rho
     def rhointerior(self,theta,r):
@@ -482,10 +482,10 @@ class SersicModelGenRho:
         return -self.I(r)*(self.b/self.n)*r**(-1.+(1./n))
 
     def dI2dR2(self,r):
-        return self.I(r)*(self.b/self.n**2)*(-1+self.n+self.b*r**(1./n))*r**(-2.+(1.n))
+        return self.I(r)*(self.b/self.n**2)*(-1+self.n+self.b*r**(1./n))*r**(-2.+(1./n))
     
     def dI3dR3(self,r):
-        return self.I(r)*(self.b/self.n**3)*(-1+3*self.n-2*self.n**2-3*self.b*(-1+n)*r**(1./n)-k**2*r**(2./n))*r**(-3+(1.n))
+        return self.I(r)*(self.b/self.n**3)*(-1+3*self.n-2*self.n**2-3*self.b*(-1+n)*r**(1./n)-k**2*r**(2./n))*r**(-3+(1./n))
 
     #use luminosity density to compute rho
     def rhointerior(self,theta,r):
