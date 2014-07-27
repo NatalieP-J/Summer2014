@@ -2,21 +2,13 @@ from numpy import *
 from rhoratefcns import *
 from subprocess import call
 from matplotlib.backends.backend_pdf import PdfPages
+from manage import *
 
 DISPLAY = True
-GENERATE = False
+GENERATE = True
 
-alpha = 7.52
-beta = 3.13
-gamma = 1.98
-r0pc = 1.
-rb = 10**2.38
-r0pc = rb
-mub = 19.98
-M2L = 6.27
+
 MsunV = 4.83
-rho0 = findrho0(rb,M2L,mub)
-MBH_Msun = 10**6.04
 Gconst = 6.67259e-8
 realMsun = 1.989e33
 Rsun = 6.9599e10
@@ -32,7 +24,7 @@ rtest = 10**rtest
 def getrate(model):
     
     Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-    seton = {Menc:"ON",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+    seton = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
     verbosity = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 
     if model.generate == True:
@@ -95,14 +87,39 @@ def getrate(model):
     if DISPLAY == True:
         plt.show()
 
-    return Mencgood,psigood,Jc2good,ggood,#Ggood,fgood
+    return Mencgood,psigood,Jc2good,ggood,Ggood,fgood
 
+WMdat = array(LoadDataTab('WM04.dat'))[:,][:-10]
+names = WMdat[:,0]
+dists = WMdat[:,2]
+rbs = 10**WM[:,3]
+mubs = WM[:,4]
+alphas = WM[:,5]
+betas = WM[:,6] + 1
+gammas = WM[:,7] + 1
+M2Ls = WM[:,8] + 1
+MBH1s = 10**WM[:,10]
+MBH2s = 10**WM[:,12]
 
-#choose model from rho or genrho options
-#for example:
 from models import NukerModelRho
-model = NukerModelRho('NGC4467',alpha,beta,gamma,r0pc,rho0,MBH_Msun,GENERATE)
-Mencgood,psigood,Jc2good,ggood,Ggood,fgood = getrate(model)
+for galaxy in range(len(WMdat)):
+    print galaxy+1, ' of ',len(WMdat)
+    name = names[galaxy]
+    alpha = alphas[galaxy]
+    beta = betas[galaxy]
+    gamma = gammas[galaxy]
+    M2L = M2Ls[galaxy]
+    MBH_Msun = MBH1s[galaxy]
+    rb = rbs[galaxy]
+    mub = mubs[galaxy]
+    rho0 = findrho0(rb,M2L,mub)
+    model = NukerModelRho(name,alpha,beta,gamma,rb,rho0,MBH_Msun,GENERATE)
+    Mencgood,psigood,Jc2good,ggood,Ggood,fgood = getrate(model)
+    MBH_Msun = MBH2s[galaxy]
+    model = NukerModelRho(name,alpha,beta,gamma,rb,rho0,MBH_Msun,GENERATE)
+    Mencgood,psigood,Jc2good,ggood,Ggood,fgood = getrate(model)
+
+
 
 
 
