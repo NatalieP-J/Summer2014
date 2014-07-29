@@ -1,5 +1,6 @@
 from numpy import *
 import math
+from subprocess import call
 Gconst = 6.67259e-8
 realMsun = 1.989e33
 Rsun = 6.9599e10
