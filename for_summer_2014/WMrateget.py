@@ -2,7 +2,6 @@ from numpy import *
 from rhoratefcns import *
 from subprocess import call
 from matplotlib.backends.backend_pdf import PdfPages
-from manage import *
 
 try:
     call(['rm -f', 'rhoratefcns.pyc'])
@@ -112,6 +111,15 @@ def getrate(model):
 
                             return Mencgood,psigood,Jc2good,ggood,Ggood,fgood
 
+
+def LoadDataTab(fname):
+    f=open(fname,'r')
+    data=[]
+    for line in f.readlines():
+        data.append(line.replace('\n','').split('\t'))
+    f.close()
+    return data
+
 WM = array(LoadDataTab('WM04.dat'))[:,][:-10]
 names = WM[:,0]
 dists = array([float(i) for i in WM[:,2]])
@@ -137,9 +145,11 @@ for galaxy in range(4,len(WM)):
     mub = mubs[galaxy]
     rho0 = findrho0(rb,M2L,mub)
     model = NukerModelGenRho('{0}1'.format(name),alpha,beta,gamma,rb,rho0,MBH_Msun,GENERATE)
+    model.getrho()
     Mencgood,psigood,Jc2good,ggood,Ggood,fgood = getrate(model)
     MBH_Msun = MBH2s[galaxy]
     model = NukerModelGenRho('{0}2'.format(name),alpha,beta,gamma,rb,rho0,MBH_Msun,GENERATE)
+    model.getrho()
     Mencgood,psigood,Jc2good,ggood,Ggood,fgood = getrate(model)
 
 
