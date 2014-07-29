@@ -132,7 +132,7 @@ M2Ls = array([float(i) for i in WM[:,8]])
 MBH1s = 10**array([float(i) for i in WM[:,10]])
 MBH2s = 10**array([float(i) for i in WM[:,12]])
 
-from models import NukerModelRho
+from models import NukerModelGenRho
 for galaxy in range(4,len(WM)):
     print galaxy+1, ' of ',len(WM)
     name = names[galaxy]
