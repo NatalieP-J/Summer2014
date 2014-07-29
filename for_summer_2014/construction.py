@@ -53,6 +53,7 @@ def plotter(model,name,r,ract,tab,inter,rstart,rchange,start,end,smallrexp,large
     plt.ylim(min(m[1:-1]),max(m[1:-1]))
     plt.title(model.name)
     plt.savefig('{0}/{1}.pdf'.format(model.directory,name))
+    plt.close()
 
 def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,verbose,plotting,problem = True):
     """
@@ -76,23 +77,29 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,verbose,plotting,probl
     model = prereqs[0]
     rarray,rchange,rstart = grid([model],size[0],size[1],size[2])
     tab,problems = func(rarray,verbose,prereqs)
-    print 'fraction reporting a message: {0}'.format(float(len(problems))/float(len(tab)))
-    if problem == True:
-        tab = [i for j, i in enumerate(tab) if j not in problems]
-        rarray = [i for j, i in enumerate(rarray) if j not in problems]
-    inter = interp1d(log10(rarray),log10(tab))
-    start = tab[0]
-    end = tab[len(rarray)-1]
-    m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp)
-    inter2 = interp1d(log10(r),log10(m))
-    pklrfile = open('{0}/r{1}.pkl'.format(model.directory,str(func)[10:15]),"wb")
-    pickle.dump(r,pklrfile)
-    pklrfile.close()
-    pklffile = open('{0}/{1}.pkl'.format(model.directory,str(func)[10:15]),"wb")
-    pickle.dump(m,pklffile)
-    pklffile.close()
-    plotter(model,str(func)[10:15],r,rarray,tab,inter,rstart,rchange,start,end,smallrexp,largerexp,plotting)
-    return inter2
+    frac = float(len(problems))/float(len(tab))
+    print 'fraction reporting a message: {0}'.format(frac)
+    if frac != 1.0:
+        if problem == True:
+            tab = [i for j, i in enumerate(tab) if j not in problems]
+            rarray = [i for j, i in enumerate(rarray) if j not in problems]
+        lrarray = log10(rarray)
+        ltab = log10(tab)
+        inter = interp1d(lrarray,ltab)
+        start = tab[0]
+        end = tab[len(rarray)-1]
+        m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp)
+        inter2 = interp1d(log10(r),log10(m))
+        pklrfile = open('{0}/r{1}.pkl'.format(model.directory,str(func)[10:15]),"wb")
+        pickle.dump(r,pklrfile)
+        pklrfile.close()
+        pklffile = open('{0}/{1}.pkl'.format(model.directory,str(func)[10:15]),"wb")
+        pickle.dump(m,pklffile)
+        pklffile.close()
+        plotter(model,str(func)[10:15],r,rarray,tab,inter,rstart,rchange,start,end,smallrexp,largerexp,plotting)
+        return inter2
+    elif frac == 1.0:
+        return 0
 
 def compute(dependencies,name,function,rtest,size,grid,exps,kwargs,create):
     """

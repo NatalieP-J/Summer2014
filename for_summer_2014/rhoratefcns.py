@@ -6,6 +6,12 @@ from scipy.optimize import root
 import matplotlib.pyplot as plt
 from besselgen import BesselGen
 from construction import *
+from subprocess import call
+
+try:
+    call(['rm -f', 'construction.pyc'])
+except OSError:
+    pass
 
 def findrho0(rb,M2L,mub):
     MsunV = 4.83
@@ -246,11 +252,7 @@ def funclg(E,verbose,prereqs):
 
 ########******************* mathcalG *******************########
 
-psibG_memo = {}
-part2bG_memo = {}
-part3bG_memo = {}
-
-def bGinterior(theta,r,E,prereqs):
+def bGinterior(theta,r,E,prereqs,psibG_memo,part2bG_memo,part3bG_memo):
     """
     interior of G integral
     """
@@ -273,6 +275,9 @@ def funcbG(E,verbose,prereqs):
     relies on Ginterior
     returns mathcalG(E)
     """
+    psibG_memo = {}
+    part2bG_memo = {}
+    part3bG_memo = {}
     model,psigood,ggood = prereqs
     tolerance = 1.49e-8
     try:
@@ -283,22 +288,28 @@ def funcbG(E,verbose,prereqs):
             print i+1, 'of', len(E)
             rapoval = rapo(E[i],[psigood])
             try:
-                temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 1e-4, lambda r: 1,args = (E[i],prereqs),epsabs = tolerance,epsrel = tolerance)
+                temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 1e-4, lambda r: 1,args = (E[i],prereqs,psibG_memo,part2bG_memo,part3bG_memo),epsabs = tolerance,epsrel = tolerance)
             except UserWarning as e:
                 if verbose == True:
                     print 'G, E = ', E[i], 'message = ', e
                 problems.append(i)
             Gans.append(temp[0])
+        psibG_memo = {}
+        part2bG_memo = {}
+        part3bG_memo = {}
         return array(Gans),problems
     except AttributeError:
         rapoval = rapo(E,psigood)
         problem = []
         try:
-            temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E,prereqs))
+            temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E,prereqs,psibG_memo,part2bG_memo,part3bG_memo))
         except UserWarning as e:
             if verbose == True:
                 print 'G, E = ', E, 'message = ', temp[3]
             problem = [E]
+        psibG_memo = {}
+        part2bG_memo = {}
+        part3bG_memo = {}
         return temp[0],problem
 
 ########******************* DISTRIBUTION FUNCTION *******************######## 
@@ -328,7 +339,7 @@ def funcf(E,verbose,prereqs):
         pre = []
         for index in range(len(E)):
             rapoval = rapo(E[index],[psigood])
-            pre.append(1./(sqrt(8)*pi**2*(model.Mnorm + 10**Mencgood(log10(rapoval)))))
+            pre.append(1./(sqrt(8)*pi**2*(model.Mnorm + 10**float(Mencgood(log10(rapoval))))))
             plist.append(tuple((E[index],rapoval,prereqs)))
     elif isinstance(E,(int,float))==True:
         dls = 0
