@@ -136,10 +136,10 @@ for galaxy in range(4,len(WM)):
     rb = rbs[galaxy]
     mub = mubs[galaxy]
     rho0 = findrho0(rb,M2L,mub)
-    model = NukerModelRho('{0}1'.format(name),alpha,beta,gamma,rb,rho0,MBH_Msun,GENERATE)
+    model = NukerModelGenRho('{0}1'.format(name),alpha,beta,gamma,rb,rho0,MBH_Msun,GENERATE)
     Mencgood,psigood,Jc2good,ggood,Ggood,fgood = getrate(model)
     MBH_Msun = MBH2s[galaxy]
-    model = NukerModelRho('{0}2'.format(name),alpha,beta,gamma,rb,rho0,MBH_Msun,GENERATE)
+    model = NukerModelGenRho('{0}2'.format(name),alpha,beta,gamma,rb,rho0,MBH_Msun,GENERATE)
     Mencgood,psigood,Jc2good,ggood,Ggood,fgood = getrate(model)
 
 
