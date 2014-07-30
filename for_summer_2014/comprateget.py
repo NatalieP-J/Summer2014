@@ -82,8 +82,44 @@ from models import NukerModelRho
 model = NukerModelRho(name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,GENERATE)
 Mencgood,psigood,Jc2good,ggood,Ggood,fgood = getrate(model)
 from models import NukerModelGenRho
-model1 = NukerModelGenRho(name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,GENERATE)
+model1 = NukerModelGenRho('{0}1'.format(name),alpha,beta,gamma,r0pc,rho0,MBH_Msun,GENERATE)
 Mencgood1,psigood1,Jc2good1,ggood1,Ggood1,fgood1 = getrate(model1)
 
+rtest2 = arange(-4,4,0.01)
+rtest2 = 10**rtest2
 
+plt.figure()
+plt.loglog(rtest2,10**Mencgood(log10(rtest2)))
+plt.loglog(rtest2,10**Mencgood1(log10(rtest2)))
+plt.ylabel(r'$M_{enc}$')
+plt.xlabel(r'$r$')
 
+plt.figure()
+plt.loglog(rtest2,10**psigood(log10(rtest2)))
+plt.loglog(rtest2,10**psigood1(log10(rtest2)))
+plt.ylabel(r'$\psi$')
+plt.xlabel(r'$r$')
+
+plt.figure()
+plt.loglog(rtest2,10**Jc2good(log10(rtest2)))
+plt.loglog(rtest2,10**Jc2good1(log10(rtest2)))
+plt.ylabel(r'$J_c^2$')
+plt.xlabel(r'$E$')
+
+plt.figure()
+plt.loglog(rtest2,10**ggood(log10(rtest2)))
+plt.loglog(rtest2,10**ggood1(log10(rtest2)))
+plt.ylabel(r'$g$')
+plt.xlabel(r'$E$')
+
+plt.figure()
+plt.loglog(rtest2,10**Ggood(log10(rtest2)))
+plt.loglog(rtest2,10**Ggood1(log10(rtest2)))
+plt.ylabel(r'$G$')
+plt.xlabel(r'$E$')
+
+plt.figure()
+plt.loglog(rtest2,10**fgood(log10(rtest2)))
+plt.loglog(rtest2,10**fgood1(log10(rtest2)))
+plt.ylabel(r'$f$')
+plt.xlabel(r'$E$')
