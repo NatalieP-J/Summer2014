@@ -83,6 +83,7 @@ model = NukerModelRho(name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,GENERATE)
 Mencgood,psigood,Jc2good,ggood,Ggood,fgood = getrate(model)
 from models import NukerModelGenRho
 model1 = NukerModelGenRho('{0}1'.format(name),alpha,beta,gamma,r0pc,rho0,MBH_Msun,GENERATE)
+model1.getrho()
 Mencgood1,psigood1,Jc2good1,ggood1,Ggood1,fgood1 = getrate(model1)
 
 rtest2 = arange(-4,4,0.01)

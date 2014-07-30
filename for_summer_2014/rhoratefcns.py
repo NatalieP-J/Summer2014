@@ -257,16 +257,19 @@ def bGinterior(theta,r,E,prereqs,psibG_memo,part2bG_memo,part3bG_memo):
     interior of G integral
     """
     model,psigood,ggood = prereqs
-    if not r in psibG_memo:
-        psibG_memo[r] = 10**psigood(log10(r))
-    psir = psibG_memo[r]
+    #if not r in psibG_memo:
+    #    psibG_memo[r] = 10**psigood(log10(r))
+    #psir = psibG_memo[r]
+    psir = 10**psigood(log10(r))
     part1 = (r**2)/sqrt(psir-E)
-    if not log10(psir*(1-theta) + E*theta) in part2bG_memo:
-        part2bG_memo[log10(psir*(1-theta) + E*theta)] = 10**ggood(log10(psir*(1-theta) + E*theta))
-    part2 = part2bG_memo[log10(psir*(1-theta) + E*theta)]
-    if not theta in part3bG_memo:
-        part3bG_memo[theta]= (1./sqrt(theta))-sqrt(theta)
-    part3 = part3bG_memo[theta]
+    #if not log10(psir*(1-theta) + E*theta) in part2bG_memo:
+    #    part2bG_memo[log10(psir*(1-theta) + E*theta)] = 10**ggood(log10(psir*(1-theta) + E*theta))
+    #part2 = part2bG_memo[log10(psir*(1-theta) + E*theta)]
+    part2 = 10**ggood(log10(psir*(1-theta) + E*theta))
+    #if not theta in part3bG_memo:
+    #    part3bG_memo[theta]= (1./sqrt(theta))-sqrt(theta)
+    #part3 = part3bG_memo[theta]
+    part3 =(1./sqrt(theta))-sqrt(theta) 
     return part1*part2*part3
 
 def funcbG(E,verbose,prereqs):
