@@ -47,7 +47,7 @@ class NukerModeldIdR:
         #start a new directory?
         self.generate = generate
         #directory name
-        self.directory = 'NukerGals/{0}_dIdR_a{1}_b{2}_g{3}_MBH{4}'.format(self.name,self.a,self.b,self.g,self.MBH)
+        self.directory = 'NukerRhoGals/{0}_dIdR_a{1}_b{2}_g{3}_MBH{4}'.format(self.name,self.a,self.b,self.g,self.MBH)
     
     #compute luminosity density
     def I(self,r):
@@ -146,7 +146,7 @@ class NukerModelGenRho:
         #start a new directory?
         self.generate = generate
         #directory name
-        self.directory = 'NukerGals/{0}_GenRho_a{1}_b{2}_g{3}_MBH{4}'.format(self.name,self.a,self.b,self.g,self.MBH)
+        self.directory = 'NukerRhoGals/{0}_GenRho_a{1}_b{2}_g{3}_MBH{4}'.format(self.name,self.a,self.b,self.g,self.MBH)
     
     #compute luminosity density
     def I(self,r):
@@ -294,7 +294,7 @@ class NukerModelRho:
         #start a new directory?
         self.generate = generate
         #directory name
-        self.directory = 'NukerGals/{0}_Rho_a{1}_b{2}_g{3}_MBH{4}'.format(self.name,self.a,self.b,self.g,self.MBH)
+        self.directory = 'NukerRhoGals/{0}_Rho_a{1}_b{2}_g{3}_MBH{4}'.format(self.name,self.a,self.b,self.g,self.MBH)
 
     #compute density
     def rho(self,r):
@@ -348,7 +348,7 @@ class SersicModeldIdR:
         #start a new directory?
         self.generate = generate
         #directory name
-        self.directory = 'SersicGals/{0}_dIdR_n{1}_MBH{2}'.format(self.name,self.n.self.MBH)
+        self.directory = 'SersicRhoGals/{0}_dIdR_n{1}_MBH{2}'.format(self.name,self.n.self.MBH)
 
     def I(self,r):
         return exp(-self.b*(r**(1./self.n)))
@@ -446,7 +446,7 @@ class SersicModelGenRho:
         #start a new directory?
         self.generate = generate
         #directory name
-        self.directory = 'SersicGals/{0}_GenRho_n{1}_MBH{2}'.format(self.name,self.n.self.MBH)
+        self.directory = 'SersicRhoGals/{0}_GenRho_n{1}_MBH{2}'.format(self.name,self.n.self.MBH)
 
     def I(self,r):
         return exp(-self.b*(r**(1./self.n)))
@@ -598,7 +598,7 @@ class SersicModelRho:
         #start a new directory?
         self.generate = generate
         #directory name
-        self.directory = 'SersicGals/{0}_Rho_n{1}_MBH{2}'.format(self.name,self.n.self.MBH)
+        self.directory = 'SersicRhoGals/{0}_Rho_n{1}_MBH{2}'.format(self.name,self.n.self.MBH)
     
     #Compute density
     def rho(self,r):
