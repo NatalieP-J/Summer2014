@@ -3,7 +3,7 @@ from rhoratefcns import *
 from subprocess import call
 from matplotlib.backends.backend_pdf import PdfPages
 
-GENERATE = True
+GENERATE = False
 
 MsunV = 4.83
 Gconst = 6.67259e-8
@@ -22,53 +22,178 @@ def getrate(model):
     
     Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
     seton = {Menc:"ON",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+    
+    model.statfile.write('Plotting off\n')
+
+    model.statfile.write('Menc:\t')
+    rarray,rchange,rstart = rgrid([model],4,-6,0.03)
+    Mencgood = compute([model],["Menc",Menc],funcMenc,rtest,[4,-6,0.03],rgrid,[3-model.g,0],[False,False],[seton[Menc],verbosity[Menc]])
+
+    if Mencgood == 0:
+        model.statfile.write('\nFailed to evaluate Menc')
+        return 0,0,0,0,0,0
+    
+    elif Mencgood != 0:
+
+        model.statfile.write('\npsi:\t')
+        psigood = compute([model,'Model'],["psi",psi],funcpsi,rtest,[4.3,-6,0.03],rgrid,[-1,-1],[False,False],[seton[psi],verbosity[psi]])
+    
+        if psigood == 0:
+            model.statfile.write('\nFailed to evaluate psi')
+            return Mencgood,0,0,0,0,0
+
+        elif psigood != 0:
+            Jprereqs = [model,'Model',Mencgood,"Menc",psigood,"psi"]
+    
+            model.statfile.write('\nJc2:\t')
+            Jc2good = compute(Jprereqs,["Jc2",Jc2],funcJc2,rtest,[3,-4,0.01],Egrid,[-1,-1],[False,False],[seton[Jc2],verbosity[Jc2]])
+
+            if Jc2good == 0:
+                model.statfile.write('\nFailed to evaluate Jc2')
+                return Mencgood,psigood,0,0,0,0
+                
+            elif Jc2good != 0:
+
+                lgprereqs = [model,'Model',psigood,"psi"]
+
+                model.statfile.write('\ng:\t')
+                ggood = compute(lgprereqs,["g",g],funclg,rtest,[3,-3,0.1],Egrid,[model.b-0.5,model.g-0.5],[False,False],[seton[g],verbosity[g]])
+                
+                if ggood == 0:
+                    model.statfile.write('\nFailed to evaluate g')
+                    return Mencgood,psigood,Jc2good,0,0,0
+                
+                elif ggood != 0:
+                    bGprereqs = [model,'Model',psigood, "psi",ggood,"g"]
+
+                    Gtest = arange(-5,5,0.01)
+                    Gtest = append(Gtest,40)
+                    Gtest = insert(Gtest,0,-40)
+                    Gtest = 10**Gtest
+
+                    model.statfile.write('\nG:\t')
+                    Ggood = compute(bGprereqs,["G",G],funcbG,Gtest,[3,-3,0.1],Egrid,[model.b-4,model.g-4],[False,False],[seton[G],verbosity[G]])
+    
+                    if model.memo == True:
+                        model.p1bG = {}
+                        model.p2bG = {}
+                        model.p3bG = {}
+                    
+                    if Ggood == 0:
+                        model.statfile.write('\nFailed to evaluate G')
+                        return Mencgood,psigood,Jc2good,ggood,0,0
+
+                    elif Ggood != 0:
+
+                        fprereqs = [model,'Model',Mencgood,"Menc",psigood,"psi"]
+                        
+                        ftest = arange(-3,5,0.01)
+                        ftest = append(ftest,40)
+                        ftest = insert(ftest,0,-40)
+                        ftest = 10**ftest
+
+                        model.statfile.write('\nf:\t')
+                        fgood = compute(fprereqs,["f",f],funcf,ftest,[5,-3,0.03],Egrid,[model.b-1.5,model.g-1.5],[False,False],[seton[f],verbosity[f]])
+                        if fgood == 0:
+                            model.statfile.write('\nFailed to evaluate f')
+                            model.statfile.close()
+                            print('\a')
+                            return Mencgood,psigood,Jc2good,ggood,Ggood,0
+                        
+                        elif fgood != 0:
+                            model.statfile.close()
+                            print('\a')
+                            return Mencgood,psigood,Jc2good,ggood,Ggood,fgood
+
+def getrateplot(model):
+    
+    Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
+    seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"ON"}
     verbosity = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 
-    if model.generate == True:
-        call(["mkdir","{0}".format(model.directory)])
-        seton = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
-    
+    model.statfile.write('Plotting on\n')
+
+    model.statfile.write('Menc:\t')
     rarray,rchange,rstart = rgrid([model],4,-6,0.03)
     Mencgood = compute([model],["Menc",Menc],funcMenc,rtest,[4,-6,0.03],rgrid,[3-model.g,0],[['r','M'],False],[seton[Menc],verbosity[Menc]])
 
-    psigood = compute([model,'Model'],["psi",psi],funcpsi,rtest,[4.3,-6,0.03],rgrid,[-1,-1],[['r','$\psi$'],False],[seton[psi],verbosity[psi]])
+    if Mencgood == 0:
+        model.statfile.write('\nFailed to evaluate Menc')
+        return 0,0,0,0,0,0
+
+    elif Mencgood != 0:
+        model.statfile.write('\npsi:\t')
+        psigood = compute([model,'Model'],["psi",psi],funcpsi,rtest,[4.3,-6,0.03],rgrid,[-1,-1],[['r','$\psi$'],False],[seton[psi],verbosity[psi]])
     
-    Jprereqs = [model,'Model',Mencgood,"Menc",psigood,"psi"]
+        if psigood == 0:
+            model.statfile.write('\nFailed to evaluate psi')
+            return Mencgood,0,0,0,0,0
+
+        elif psigood != 0:
+
+            Jprereqs = [model,'Model',Mencgood,"Menc",psigood,"psi"]
     
-    Jc2good = compute(Jprereqs,["Jc2",Jc2],funcJc2,rtest,[3,-4,0.01],Egrid,[-1,-1],[['E','Jc2'],False],[seton[Jc2],verbosity[Jc2]])
+            model.statfile.write('\nJc2:\t')
+            Jc2good = compute(Jprereqs,["Jc2",Jc2],funcJc2,rtest,[3,-4,0.01],Egrid,[-1,-1],[['E','Jc2'],False],[seton[Jc2],verbosity[Jc2]])
 
-    lgprereqs = [model,'Model',psigood,"psi"]
+            if Jc2good == 0:
+                model.statfile.write('\nFailed to evaluate Jc2')
+                return Mencgood,psigood,0,0,0,0
+                
+            elif Jc2good != 0:
+                lgprereqs = [model,'Model',psigood,"psi"]
 
-    ggood = compute(lgprereqs,["g",g],funclg,rtest,[3,-3,0.1],Egrid,[model.b-0.5,model.g-0.5],[['E','g'],False],[seton[g],verbosity[g]])
+                model.statfile.write('\ng:\t')
+                ggood = compute(lgprereqs,["g",g],funclg,rtest,[3,-3,0.1],Egrid,[model.b-0.5,model.g-0.5],[['E','g'],False],[seton[g],verbosity[g]])
 
-    bGprereqs = [model,'Model',psigood, "psi",ggood,"g"]
+                if ggood == 0:
+                    model.statfile.write('\nFailed to evaluate g')
+                    return Mencgood,psigood,Jc2good,0,0,0
+                
+                elif ggood != 0:
+                    bGprereqs = [model,'Model',psigood, "psi",ggood,"g"]
 
-    Gtest = arange(-5,5,0.01)
-    Gtest = append(Gtest,40)
-    Gtest = insert(Gtest,0,-40)
-    Gtest = 10**Gtest
+                    Gtest = arange(-5,5,0.01)
+                    Gtest = append(Gtest,40)
+                    Gtest = insert(Gtest,0,-40)
+                    Gtest = 10**Gtest
+                    
+                    model.statfile.write('\nG:\t')
+                    Ggood = compute(bGprereqs,["G",G],funcbG,Gtest,[3,-3,0.1],Egrid,[model.b-4,model.g-4],[['E','G'],False],[seton[G],verbosity[G]])
 
-    Ggood = compute(bGprereqs,["G",G],funcbG,Gtest,[3,-3,0.1],Egrid,[model.b-4,model.g-4],[['E','G'],False],[seton[G],verbosity[G]])
+                    if model.memo == True:
+                        model.p1bG = {}
+                        model.p2bG = {}
+                        model.p3bG = {}
+                        
+                    if Ggood == 0:
+                        model.statfile.write('\nFailed to evaluate G')
+                        return Mencgood,psigood,Jc2good,ggood,0,0
+
+                    elif Ggood != 0:
     
-    psibG_memo = {}
-    part2bG_memo = {}
-    part3bG_memo = {}
+                        fprereqs = [model,'Model',Mencgood,"Menc",psigood,"psi"]
+                        
+                        ftest = arange(-3,5,0.01)
+                        ftest = append(ftest,40)
+                        ftest = insert(ftest,0,-40)
+                        ftest = 10**ftest
 
-    fprereqs = [model,'Model',Mencgood,"Menc",psigood,"psi"]
-    
-    ftest = arange(-3,5,0.01)
-    ftest = append(ftest,40)
-    ftest = insert(ftest,0,-40)
-    ftest = 10**ftest
+                        model.statfile.write('\nf:\t')
+                        fgood = compute(fprereqs,["f",f],funcf,ftest,[5,-3,0.03],Egrid,[model.b-1.5,model.g-1.5],[['E','f'],False],[seton[f],verbosity[f]])
 
-    fgood = compute(fprereqs,["f",f],funcf,ftest,[5,-3,0.03],Egrid,[model.b-1.5,model.g-1.5],[['E','f'],False],[seton[f],verbosity[f]])
-
-    print('\a')
-    
-    if DISPLAY == True:
-        plt.show()
-
-    return Mencgood,psigood,Jc2good,ggood,Ggood,fgood
+                        if fgood == 0:
+                            model.statfile.write('\nFailed to evaluate f')
+                            model.pdfdump.close()
+                            model.statfile.close()
+                            print('\a')
+                            return Mencgood,psigood,Jc2good,ggood,Ggood,0
+                        
+                        elif fgood != 0:
+                            model.pdfdump.close()
+                            model.statfile.close()
+                            print('\a')
+                            return Mencgood,psigood,Jc2good,ggood,Ggood,fgood
 
 alpha = 1.0
 beta = 4.0
@@ -78,12 +203,10 @@ rho0 = 1e5
 MBH_Msun = 1e3
 name = 'testform'
 
-from models import NukerModelRho
-model = NukerModelRho(name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,GENERATE)
-Mencgood,psigood,Jc2good,ggood,Ggood,fgood = getrate(model)
-from models import NukerModelGenRho
-model1 = NukerModelGenRho(name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,GENERATE)
-Mencgood1,psigood1,Jc2good1,ggood1,Ggood1,fgood1 = getrate(model1)
+from rhomodels import NukerModelRho
+model = NukerModelRho(name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,GENERATE,memo = True)
+Mencgood,psigood,Jc2good,ggood,Ggood,fgood = getrateplot(model)
+
 
 
 

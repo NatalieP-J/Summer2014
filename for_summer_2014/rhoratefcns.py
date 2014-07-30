@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from besselgen import BesselGen
 from construction import *
 from subprocess import call
+from suppressor import RedirectStdStreams
 
 try:
     call(['rm -f', 'construction.pyc'])
@@ -43,7 +44,7 @@ def funcMenc(r,verbose,prereqs):
         uls = r
         plist = tuple((prereqs,))
         pre = 4*pi
-    return integrator(r,[Minterior,'Menc'],dls,uls,args = plist,verbose = verbose,prefactor = pre)
+    return integrator(r,[Minterior,'Menc'],dls,uls,args = plist,fileobj = model.statfile,prefactor = pre)
 
 ########******************* RADIUS OF INFLUENCE *******************######## 
 
@@ -58,13 +59,14 @@ def rH(prereqs,verbose=True):
     """
     finds root of rHimplicit
     """
+    model, = prereqs
     rresult=root(rHimplicit,1e-4,args = prereqs)
     if rresult.success == True:
         return abs(rresult.x)
     elif rresult.success == False:
         if verbose == True:
-            print 'Failed to evaluate rH'
-            print rresult.message
+            model.statfile.write('\nFailed to evaluate rH\n')
+            model.statfile.write('{0}\n'.format(rresult.message))
         return abs(rresult.x)
 
 ########******************* GRID CREATION  *******************######## 
@@ -130,7 +132,7 @@ def psi2(r,verbose,prereqs):
         uls = inf
         plist = tuple((prereqs,))
         pre = 4*pi
-    return integrator(r,[psi2interior,'psi2'],dls,uls,args = plist,verbose = verbose,prefactor = pre) 
+    return integrator(r,[psi2interior,'psi2'],dls,uls,args = plist,fileobj = model.statfile,prefactor = pre) 
 
 def funcpsi(r,verbose,prereqs):
     """
@@ -248,28 +250,31 @@ def funclg(E,verbose,prereqs):
         uls = 1./rapo(E,[psigood])
         plist = tuple((E,prereqs))
         pre = -pi
-    return integrator(E,[lginterior,'g'],dls,uls,args = plist,verbose = verbose,prefactor = pre) 
+    return integrator(E,[lginterior,'g'],dls,uls,args = plist,fileobj = model.statfile,prefactor = pre) 
 
 ########******************* mathcalG *******************########
 
-def bGinterior(theta,r,E,prereqs,psibG_memo,part2bG_memo,part3bG_memo):
+def bGinterior(theta,r,E,prereqs):
     """
     interior of G integral
     """
     model,psigood,ggood = prereqs
-    #if not r in psibG_memo:
-    #    psibG_memo[r] = 10**psigood(log10(r))
-    #psir = psibG_memo[r]
-    psir = 10**psigood(log10(r))
-    part1 = (r**2)/sqrt(psir-E)
-    #if not log10(psir*(1-theta) + E*theta) in part2bG_memo:
-    #    part2bG_memo[log10(psir*(1-theta) + E*theta)] = 10**ggood(log10(psir*(1-theta) + E*theta))
-    #part2 = part2bG_memo[log10(psir*(1-theta) + E*theta)]
-    part2 = 10**ggood(log10(psir*(1-theta) + E*theta))
-    #if not theta in part3bG_memo:
-    #    part3bG_memo[theta]= (1./sqrt(theta))-sqrt(theta)
-    #part3 = part3bG_memo[theta]
-    part3 =(1./sqrt(theta))-sqrt(theta) 
+    if model.memo == True:
+        psir = 10**psigood(log10(r))
+        if not r in model.p1bG:
+            model.p1bG[r] = (r**2)/sqrt(psir-E)
+        part1 = model.p1bG[r]
+        if not log10(psir*(1-theta) + E*theta) in model.p2bG:
+            model.p2bG[log10(psir*(1-theta) + E*theta)] = 10**ggood(log10(psir*(1-theta) + E*theta))
+        part2 = model.p2bG[log10(psir*(1-theta) + E*theta)]
+        if not theta in model.p3bG:
+            model.p3bG[theta]= (1./sqrt(theta))-sqrt(theta)
+        part3 = model.p3bG[theta]
+    if model.memo == False:
+        psir = 10**psigood(log10(r))
+        part1 = (r**2)/sqrt(psir-E)
+        part2 = 10**ggood(log10(psir*(1-theta) + E*theta))
+        part3 =(1./sqrt(theta))-sqrt(theta) 
     return part1*part2*part3
 
 def funcbG(E,verbose,prereqs):
@@ -282,7 +287,26 @@ def funcbG(E,verbose,prereqs):
     part2bG_memo = {}
     part3bG_memo = {}
     model,psigood,ggood = prereqs
-    tolerance = 1.49e-8
+    if isinstance(E,(list,ndarray))==True:
+        dls = []
+        dls.append(zeros(len(E)))
+        dls.append(array([lambda r:1e-4]*len(E)))
+        uls = []
+        uls1 = array([])
+        uls2 = array([lambda r:1]*len(E))
+        plist = []
+        for i in range(len(E)):
+            rapoval = rapo(E[i],[psigood])
+            uls1 = append(uls1,rapoval)
+            plist.append(tuple((E[i],prereqs))) #need to get dictionaries out of this loop right now they are erased every time so memoization is no faster
+        uls.append(uls1)
+        uls.append(uls2)
+    elif isinstance(E,(int,float))==True:
+        dls = [0,lambda r:1e-4]
+        uls = [rapo(E[i],[psigood]),lambda r:1]
+        plist = tuple((E,prereqs))
+    return dblintegrator(E,[bGinterior,'G'],dls,uls,args = plist,fileobj = model.statfile)
+'''
     try:
         t = E.shape
         Gans = []
@@ -314,18 +338,29 @@ def funcbG(E,verbose,prereqs):
         part2bG_memo = {}
         part3bG_memo = {}
         return temp[0],problem
-
+'''
 ########******************* DISTRIBUTION FUNCTION *******************######## 
 
 def finterior(r,E,rapoval,prereqs):
     model,Mencgood,psigood = prereqs
-    var = rapoval/r
-    psi = (10**psigood(log10(var)))[0]
-    Mencvar = (10**Mencgood(log10(var)))[0]
-    Mencrap = (10**Mencgood(log10(rapoval)))[0]
-    result1 = (var**3)*(1./sqrt(abs(E-psi)))*model.d2rhodr2(var) 
-    result2 = (var**2)*(1./sqrt(abs(E-psi)))*model.drhodr(var) 
-    result3 = -(var**2)*(1./sqrt(abs(E-psi)))*(1./(2*rapoval))*model.drhodr(var)*((model.Mnorm*(r-1) + r*Mencvar - Mencrap)/abs(E-psi))  
+    var = float(rapoval/r)
+    psi = (10**psigood(log10(var)))
+    Mencvar = (10**Mencgood(log10(var)))
+    Mencrap = (10**Mencgood(log10(rapoval)))
+    if model.memo == True:
+        if not var in model.p1f:
+            model.p1f[var] = (var**3)*(1./sqrt(abs(E-psi)))*model.d2rhodr2(var) 
+        result1 = model.p1f[var]
+        if not var in model.p2f:
+            model.p2f[var] = (var**2)*(1./sqrt(abs(E-psi)))*model.drhodr(var) 
+        result2 = model.p2f[var]
+        if not var in model.p3f:
+            model.p3f[var] = -(var**2)*(1./sqrt(abs(E-psi)))*(1./(2*rapoval))*model.drhodr(var)*((model.Mnorm*(r-1) + r*Mencvar - Mencrap)/abs(E-psi)) 
+        result3 = model.p3f[var]
+    if model.memo == False:
+        result1 = (var**3)*(1./sqrt(abs(E-psi)))*model.d2rhodr2(var) 
+        result2 = (var**2)*(1./sqrt(abs(E-psi)))*model.drhodr(var) 
+        result3 = -(var**2)*(1./sqrt(abs(E-psi)))*(1./(2*rapoval))*model.drhodr(var)*((model.Mnorm*(r-1) + r*Mencvar - Mencrap)/abs(E-psi))  
     return result1+result2+result3
 
 def funcf(E,verbose,prereqs):
@@ -350,7 +385,7 @@ def funcf(E,verbose,prereqs):
         rapoval = rapo(E,[psigood])
         plist = tuple((E,rapoval,prereqs))
         pre = (1./(sqrt(8)*pi**2*(model.Mnorm + 10**Mencgood(log10(rapoval)))))
-    return integrator(E,[finterior,'f'],dls,uls,args = plist,verbose = verbose,prefactor = pre) 
+    return integrator(E,[finterior,'f'],dls,uls,args = plist,fileobj = model.statfile,prefactor = pre) 
 
 ########******************* ADDITIONAL FUNCTIONS *******************######## 
 

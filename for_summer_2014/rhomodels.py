@@ -3,6 +3,12 @@ import math
 from subprocess import call
 import pickle
 from scipy.interpolate import interp1d
+from suppressor import RedirectStdStreams
+import os
+from matplotlib.backends.backend_pdf import PdfPages
+
+
+devnull = open(os.devnull,'w')
 
 Gconst = 6.67259e-8
 realMsun = 1.989e33
@@ -11,6 +17,8 @@ pc = 3.1e18
 km = 10**5
 yr = 365*24*3600
 MsunV = 4.83
+call(['mkdir','NukerRhoGals'],stdout = devnull,stderr = devnull)
+call(['mkdir','SersicRhoGals'],stdout = devnull,stderr = devnull)
 
 from construction import integrator
 
@@ -19,7 +27,7 @@ class NukerModeldIdR:
     Call <modelname>.getrho() after model has been initialized as <modelname>
     """
     #initialize variables that constitute our model
-    def __init__(self,model_name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate=False):
+    def __init__(self,model_name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate=False,memo = False):
         #name of model
         self.name = model_name
         #Nuker fit parameters
@@ -48,6 +56,14 @@ class NukerModeldIdR:
         self.generate = generate
         #directory name
         self.directory = 'NukerRhoGals/{0}_dIdR_a{1}_b{2}_g{3}_MBH{4}'.format(self.name,self.a,self.b,self.g,self.MBH)
+        call(['mkdir','{0}'.format(self.directory)],stdout = devnull,stderr = devnull)
+        self.statfile = open('{0}/stats.dat'.format(self.directory),'wb')
+        self.pdfdump = PdfPages('{0}/{1}_master.pdf'.format(self.directory,self.name))
+        self.memo = memo
+        if self.memo == True:
+            self.p1bG = {}
+            self.p2bG = {}
+            self.p3bG = {}
     
     #compute luminosity density
     def I(self,r):
@@ -78,7 +94,7 @@ class NukerModeldIdR:
             rargs = tuple((r,))
             lows = 0
             highs = pi/2.
-        return -(1./pi)*integrator(r,[self.rhointerior,'rho'],lows,highs,args = rargs,verbose = verbose)[0]
+        return -(1./pi)*integrator(r,[self.rhointerior,'rho'],lows,highs,args = rargs,fileobj=self.statfile)[0]
     
     #and its first
     def drhodrinterior(self,theta,r):
@@ -94,7 +110,7 @@ class NukerModeldIdR:
             rargs = tuple((r,))
             lows = 0
             highs = pi/2.
-        return (1./pi)*integrator(r,[self.drhodrinterior,'drhodr'],lows,highs,args = rargs,verbose = verbose)[0]
+        return (1./pi)*integrator(r,[self.drhodrinterior,'drhodr'],lows,highs,args = rargs,fileobj=self.statfile)[0]
     
     #and second derivative
     def d2rhodr2interior(self,theta,r):
@@ -110,7 +126,7 @@ class NukerModeldIdR:
             rargs = tuple((r,))
             lows = 0
             highs = pi/2.
-        return (1./pi)*integrator(r,[self.d2rhodr2interior,'d2rhodr2'],lows,highs,args = rargs,verbose = verbose)[0]
+        return (1./pi)*integrator(r,[self.d2rhodr2interior,'d2rhodr2'],lows,highs,args = rargs,fileobj = self.statfile)[0]
 
 
 class NukerModelGenRho:
@@ -118,7 +134,7 @@ class NukerModelGenRho:
     Call <modelname>.getrho() after model has been initialized as <modelname>
     """
     #initialize variables that constitute our model
-    def __init__(self,model_name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate=False):
+    def __init__(self,model_name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate=False,memo = False):
         #name of model
         self.name = model_name
         #Nuker fit parameters
@@ -147,7 +163,15 @@ class NukerModelGenRho:
         self.generate = generate
         #directory name
         self.directory = 'NukerRhoGals/{0}_GenRho_a{1}_b{2}_g{3}_MBH{4}'.format(self.name,self.a,self.b,self.g,self.MBH)
-    
+        call(['mkdir','{0}'.format(self.directory)],stdout = devnull,stderr = devnull)
+        self.statfile = open('{0}/stats.dat'.format(self.directory),'wb')
+        self.pdfdump = PdfPages('{0}/{1}_master.pdf'.format(self.directory,self.name))
+        self.memo = memo
+        if self.memo == True:
+            self.p1bG = {}
+            self.p2bG = {}
+            self.p3bG = {}
+                               
     #compute luminosity density
     def I(self,r):
         return self.factor*(r**-self.g)*(1+(r**self.a))**(-(self.b-self.g)/self.a)
@@ -177,7 +201,7 @@ class NukerModelGenRho:
             rargs = tuple((r,))
             lows = 0
             highs = pi/2.
-        return -(1./pi)*integrator(r,[self.rhointerior,'rho'],lows,highs,args = rargs,verbose = verbose)[0]
+        return -(1./pi)*integrator(r,[self.rhointerior,'rho'],lows,highs,args = rargs,fileobj = self.statfile)[0]
     
     #and its first
     def drhodrinterior(self,theta,r):
@@ -193,7 +217,7 @@ class NukerModelGenRho:
             rargs = tuple((r,))
             lows = 0
             highs = pi/2.
-        return (1./pi)*integrator(r,[self.drhodrinterior,'drhodr'],lows,highs,args = rargs,verbose = verbose)[0]
+        return (1./pi)*integrator(r,[self.drhodrinterior,'drhodr'],lows,highs,args = rargs,fileobj = self.statfile)[0]
     
     #and second derivative
     def d2rhodr2interior(self,theta,r):
@@ -209,7 +233,7 @@ class NukerModelGenRho:
             rargs = tuple((r,))
             lows = 0
             highs = pi/2.
-        return (1./pi)*integrator(r,[self.d2rhodr2interior,'d2rhodr2'],lows,highs,args = rargs,verbose = verbose)[0]
+        return (1./pi)*integrator(r,[self.d2rhodr2interior,'d2rhodr2'],lows,highs,args = rargs,fileobj = self.statfile)[0]
     
     def getrho(self):
         rtest = arange(-7,7,0.01)
@@ -268,7 +292,7 @@ class NukerModelGenRho:
 
 class NukerModelRho:
     #initialize variables that constitute our model
-    def __init__(self,model_name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate=False):
+    def __init__(self,model_name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,generate=False,memo = False):
         #name of model
         self.name = model_name
         #Nuker fit parameters
@@ -295,6 +319,16 @@ class NukerModelRho:
         self.generate = generate
         #directory name
         self.directory = 'NukerRhoGals/{0}_Rho_a{1}_b{2}_g{3}_MBH{4}'.format(self.name,self.a,self.b,self.g,self.MBH)
+        call(['mkdir','{0}'.format(self.directory)],stdout = devnull,stderr = devnull)
+        self.statfile = open('{0}/stats.dat'.format(self.directory),'wb')
+        self.pdfdump = PdfPages('{0}/{1}_master.pdf'.format(self.directory,self.name))
+        self.memo = memo
+        self.p1f = {}
+        self.p2f = {}
+        self.p3f = {}
+        self.p1bG = {}
+        self.p2bG = {}
+        self.p3bG = {}
 
     #compute density
     def rho(self,r):
@@ -314,7 +348,7 @@ class NukerModelRho:
 
 class SersicModeldIdR:
     #initialize variables that constitute the model
-    def __init__(self,model_name,n,rho0,Re,M2L,I0,MBH_Msun,r0,generate):
+    def __init__(self,model_name,n,rho0,Re,M2L,I0,MBH_Msun,r0,generate,memo = False):
         #model name
         self.name = model_name
         #Sersic index
@@ -349,6 +383,14 @@ class SersicModeldIdR:
         self.generate = generate
         #directory name
         self.directory = 'SersicRhoGals/{0}_dIdR_n{1}_MBH{2}'.format(self.name,self.n.self.MBH)
+        call(['mkdir','{0}'.format(self.directory)],stdout = devnull,stderr = devnull)
+        self.statfile = open('{0}/stats.dat'.format(self.directory),'wb')
+        self.pdfdump = PdfPages('{0}/{1}_master.pdf'.format(self.directory,self.name))
+        self.memo = memo
+        if self.memo == True:
+            self.p1bG = {}
+            self.p2bG = {}
+            self.p3bG = {}
 
     def I(self,r):
         return exp(-self.b*(r**(1./self.n)))
@@ -376,7 +418,7 @@ class SersicModeldIdR:
             rargs = tuple((r,))
             lows = 0
             highs = pi/2.
-        return -(1./pi)*integrator(r,[self.rhointerior,'rho'],lows,highs,args = rargs,verbose = verbose)[0]
+        return -(1./pi)*integrator(r,[self.rhointerior,'rho'],lows,highs,args = rargs,fileobj = self.statfile)[0]
     
     #and its first
     def drhodrinterior(self,theta,r):
@@ -392,7 +434,7 @@ class SersicModeldIdR:
             rargs = tuple((r,))
             lows = 0
             highs = pi/2.
-        return (1./pi)*integrator(r,[self.drhodrinterior,'drhodr'],lows,highs,args = rargs,verbose = verbose)[0]
+        return (1./pi)*integrator(r,[self.drhodrinterior,'drhodr'],lows,highs,args = rargs,fileobj = self.statfile)[0]
     
     #and second derivative
     def d2rhodr2interior(self,theta,r):
@@ -408,11 +450,11 @@ class SersicModeldIdR:
             rargs = tuple((r,))
             lows = 0
             highs = pi/2.
-        return (1./pi)*integrator(r,[self.d2rhodr2interior,'d2rhodr2'],lows,highs,args = rargs,verbose = verbose)[0]
+        return (1./pi)*integrator(r,[self.d2rhodr2interior,'d2rhodr2'],lows,highs,args = rargs,fileobj = self.statfile)[0]
 
 class SersicModelGenRho:
     #initialize variables that constitute the model
-    def __init__(self,model_name,n,rho0,Re,M2L,I0,MBH_Msun,r0,generate):
+    def __init__(self,model_name,n,rho0,Re,M2L,I0,MBH_Msun,r0,generate,memo = False):
         #model name
         self.name = model_name
         #Sersic index
@@ -447,6 +489,14 @@ class SersicModelGenRho:
         self.generate = generate
         #directory name
         self.directory = 'SersicRhoGals/{0}_GenRho_n{1}_MBH{2}'.format(self.name,self.n.self.MBH)
+        call(['mkdir','{0}'.format(self.directory)],stdout = devnull,stderr = devnull)
+        self.statfile = open('{0}/stats.dat'.format(self.directory),'wb')
+        self.pdfdump = PdfPages('{0}/{1}_master.pdf'.format(self.directory,self.name))
+        self.memo = memo
+        if self.memo == True:
+            self.p1bG = {}
+            self.p2bG = {}
+            self.p3bG = {}
 
     def I(self,r):
         return exp(-self.b*(r**(1./self.n)))
@@ -474,7 +524,7 @@ class SersicModelGenRho:
             rargs = tuple((r,))
             lows = 0
             highs = pi/2.
-        return -(1./pi)*integrator(r,[self.rhointerior,'rho'],lows,highs,args = rargs,verbose = verbose)[0]
+        return -(1./pi)*integrator(r,[self.rhointerior,'rho'],lows,highs,args = rargs,fileobj = self.statfile)[0]
     
     #and its first
     def drhodrinterior(self,theta,r):
@@ -490,7 +540,7 @@ class SersicModelGenRho:
             rargs = tuple((r,))
             lows = 0
             highs = pi/2.
-        return (1./pi)*integrator(r,[self.drhodrinterior,'drhodr'],lows,highs,args = rargs,verbose = verbose)[0]
+        return (1./pi)*integrator(r,[self.drhodrinterior,'drhodr'],lows,highs,args = rargs,fileobj = self.statfile)[0]
     
     #and second derivative
     def d2rhodr2interior(self,theta,r):
@@ -506,7 +556,7 @@ class SersicModelGenRho:
             rargs = tuple((r,))
             lows = 0
             highs = pi/2.
-        return (1./pi)*integrator(r,[self.d2rhodr2interior,'d2rhodr2'],lows,highs,args = rargs,verbose = verbose)[0]
+        return (1./pi)*integrator(r,[self.d2rhodr2interior,'d2rhodr2'],lows,highs,args = rargs,fileobj = self.statfile)[0]
     
     def getrho(self):
         rtest = arange(-7,7,0.01)
@@ -564,7 +614,7 @@ class SersicModelGenRho:
 
 class SersicModelRho:
     #initialize variables that constitute the model
-    def __init__(self,model_name,n,rho0,Re,M2L,I0,MBH_Msun,r0,generate):
+    def __init__(self,model_name,n,rho0,Re,M2L,I0,MBH_Msun,r0,generate,memo = False):
         #model name
         self.name = model_name
         #Sersic index
@@ -599,6 +649,14 @@ class SersicModelRho:
         self.generate = generate
         #directory name
         self.directory = 'SersicRhoGals/{0}_Rho_n{1}_MBH{2}'.format(self.name,self.n.self.MBH)
+        call(['mkdir','{0}'.format(self.directory)],stdout = devnull,stderr = devnull)
+        self.statfile = open('{0}/stats.dat'.format(self.directory),'wb')
+        self.pdfdump = PdfPages('{0}/{1}_master.pdf'.format(self.directory,self.name))
+        self.memo = memo
+        if self.memo == True:
+            self.p1bG = {}
+            self.p2bG = {}
+            self.p3bG = {}
     
     #Compute density
     def rho(self,r):
