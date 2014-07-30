@@ -1,6 +1,10 @@
 from numpy import *
 import math
 from subprocess import call
+import pickle
+import scipy.integrate as intg
+from scipy.interpolate import interp1d
+
 Gconst = 6.67259e-8
 realMsun = 1.989e33
 Rsun = 6.9599e10
@@ -209,7 +213,7 @@ class NukerModelGenRho:
     
     #and its first
     def drhodrinterior(self,theta,r):
-        return self.d2IdR2_2(r/cos(theta))/cos(theta)**2
+        return self.d2IdR2(r/cos(theta))/cos(theta)**2
 
     def funcdrhodr(self,r,verbose = False):
         try:
@@ -225,7 +229,7 @@ class NukerModelGenRho:
     
     #and second derivative
     def d2rhodr2interior(self,theta,r):
-        return self.d3IdR3_2(r/cos(theta))/cos(theta)**3
+        return self.d3IdR3(r/cos(theta))/cos(theta)**3
 
     def funcd2rhodr2(self,r,verbose = False):
         try:

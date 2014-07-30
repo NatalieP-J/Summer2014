@@ -96,7 +96,7 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,verbose,plotting,probl
         pklffile = open('{0}/{1}.pkl'.format(model.directory,str(func)[10:15]),"wb")
         pickle.dump(m,pklffile)
         pklffile.close()
-        plotter(model,str(func)[10:15],r,rarray,tab,inter,rstart,rchange,start,end,smallrexp,largerexp,plotting)
+        #plotter(model,str(func)[10:15],r,rarray,tab,inter,rstart,rchange,start,end,smallrexp,largerexp,plotting)
         return inter2
     elif frac == 1.0:
         return 0
@@ -194,7 +194,7 @@ def integrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],verbose = True,prefa
             temp = intg.quad(fcn[0],downlim,uplim,epsabs = tol,full_output = 1)
         try:
             if temp[3] != '':
-                problems.append(i)
+                problems.append(vals)
                 if verbose == True:
                     print '{0},\t i = {1},\t message = {2}'.format(fcn[1],i,temp[3])
         except IndexError:
