@@ -22,8 +22,6 @@ def getrate(model):
     
     Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
     seton = {Menc:"ON",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
-    
-    model.statfile.write('Plotting off\n')
 
     model.statfile.write('Menc:\t')
     rarray,rchange,rstart = rgrid([model],4,-6,0.03)
@@ -108,46 +106,46 @@ def getrate(model):
 def getrateplot(model):
     
     Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-    seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"ON"}
+    seton = {Menc:"ON",psi:"ON",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
     verbosity = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 
-    model.statfile.write('Plotting on\n')
+    model.statfile.write('GALAXY: {0}\n'.format(model.name))
 
-    model.statfile.write('Menc:\t')
+    model.statfile.write('Menc:\n')
     rarray,rchange,rstart = rgrid([model],4,-6,0.03)
     Mencgood = compute([model],["Menc",Menc],funcMenc,rtest,[4,-6,0.03],rgrid,[3-model.g,0],[['r','M'],False],[seton[Menc],verbosity[Menc]])
 
     if Mencgood == 0:
-        model.statfile.write('\nFailed to evaluate Menc')
+        model.statfile.write('Failed to evaluate Menc')
         return 0,0,0,0,0,0
 
     elif Mencgood != 0:
-        model.statfile.write('\npsi:\t')
+        model.statfile.write('\npsi:\n')
         psigood = compute([model,'Model'],["psi",psi],funcpsi,rtest,[4.3,-6,0.03],rgrid,[-1,-1],[['r','$\psi$'],False],[seton[psi],verbosity[psi]])
     
         if psigood == 0:
-            model.statfile.write('\nFailed to evaluate psi')
+            model.statfile.write('Failed to evaluate psi')
             return Mencgood,0,0,0,0,0
 
         elif psigood != 0:
 
             Jprereqs = [model,'Model',Mencgood,"Menc",psigood,"psi"]
     
-            model.statfile.write('\nJc2:\t')
+            model.statfile.write('\nJc2:\n')
             Jc2good = compute(Jprereqs,["Jc2",Jc2],funcJc2,rtest,[3,-4,0.01],Egrid,[-1,-1],[['E','Jc2'],False],[seton[Jc2],verbosity[Jc2]])
 
             if Jc2good == 0:
-                model.statfile.write('\nFailed to evaluate Jc2')
+                model.statfile.write('Failed to evaluate Jc2')
                 return Mencgood,psigood,0,0,0,0
                 
             elif Jc2good != 0:
                 lgprereqs = [model,'Model',psigood,"psi"]
 
-                model.statfile.write('\ng:\t')
+                model.statfile.write('\ng:\n')
                 ggood = compute(lgprereqs,["g",g],funclg,rtest,[3,-3,0.1],Egrid,[model.b-0.5,model.g-0.5],[['E','g'],False],[seton[g],verbosity[g]])
 
                 if ggood == 0:
-                    model.statfile.write('\nFailed to evaluate g')
+                    model.statfile.write('Failed to evaluate g')
                     return Mencgood,psigood,Jc2good,0,0,0
                 
                 elif ggood != 0:
@@ -158,7 +156,7 @@ def getrateplot(model):
                     Gtest = insert(Gtest,0,-40)
                     Gtest = 10**Gtest
                     
-                    model.statfile.write('\nG:\t')
+                    model.statfile.write('\nG:\n')
                     Ggood = compute(bGprereqs,["G",G],funcbG,Gtest,[3,-3,0.1],Egrid,[model.b-4,model.g-4],[['E','G'],False],[seton[G],verbosity[G]])
 
                     if model.memo == True:
@@ -204,7 +202,7 @@ MBH_Msun = 1e3
 name = 'testform'
 
 from rhomodels import NukerModelRho
-model = NukerModelRho(name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,GENERATE,memo = True)
+model = NukerModelRho(name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,GENERATE,memo = False)
 Mencgood,psigood,Jc2good,ggood,Ggood,fgood = getrateplot(model)
 
 

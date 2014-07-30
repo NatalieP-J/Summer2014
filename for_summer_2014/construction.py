@@ -6,6 +6,7 @@ import scipy.integrate as intg
 import time
 import datetime
 import os
+from matplotlib.backends.backend_pdf import PdfPages
 
 devnull = open(os.devnull,'w')
 
@@ -82,7 +83,7 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,verbose,plotting,probl
     tab,problems = func(rarray,verbose,prereqs)
     frac = float(len(problems))/float(len(tab))
     print 'fraction reporting a message: {0}'.format(frac)
-    model.statfile.write('mesg frac = {0}\t'.format(frac))
+    model.statfile.write('mesg frac = {0}\n'.format(frac))
     if frac != 1.0:
         if problem == True:
             tab = [i for j, i in enumerate(tab) if j not in problems]
@@ -168,7 +169,7 @@ def compute(dependencies,name,function,rtest,size,grid,exps,kwargs,create):
         except TypeError as e:
             print 'e = ',e
             print 'To compute {0}, please turn {1} ON'.format(strname,dependencies[i+1])
-            model.statfile.write('\nTo compute {0}, please turn {1} ON\n'.format(strname,dependencies[i+1]))
+            model.statfile.write('To compute {0}, please turn {1} ON\n'.format(strname,dependencies[i+1]))
     elif gen != "ON":
         try:
             pklrfile = open('{0}/r{1}.pkl'.format(model.directory,str(function)[10:15]),"rb")
@@ -181,7 +182,7 @@ def compute(dependencies,name,function,rtest,size,grid,exps,kwargs,create):
             print '{0}good loaded in'.format(strname)
             return good
         except IOError:
-            model.statfile.write('\n{0} not yet generated, please turn it ON\n'.format(strname))
+            model.statfile.write('{0} not yet generated, please turn it ON\n'.format(strname))
             return 1
 
 
@@ -197,7 +198,7 @@ def integrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],fileobj=devnull,pref
             try:
                 if temp[3] != '':
                     problems.append(i)
-                    fileobj.write('\n{0},\t i = {1},\t message = {2}\n'.format(fcn[1],i,temp[3]))
+                    fileobj.write('{0},\t i = {1},\t message = {2}\n'.format(fcn[1],i,temp[3]))
             except IndexError:
                 pass
             if prefactor != 1:
@@ -214,7 +215,7 @@ def integrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],fileobj=devnull,pref
         try:
             if temp[3] != '':
                 problems.append(vals)
-                fileobj.write('\n{0},\t i = {1},\t message = {2}\n'.format(fcn[1],i,temp[3]))
+                fileobj.write('\n{0},\t i = {1},\t message = {2}'.format(fcn[1],i,temp[3]))
         except IndexError:
             pass
         return prefactor*temp[0],problems
@@ -243,3 +244,93 @@ def dblintegrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],fileobj=devnull,p
             elif args == []:
                 temp = intg.dblquad(fcn[0],downlim[0],uplim[0],downlim[1],uplim[1],epsabs = tol)
         return prefactor*temp,problems
+
+def fromfileplot(name,directory):
+    r = arange(-4,4,0.01)
+    r = 10**r
+    pp = PdfPages('{0}/{1}_master.pdf'.format(directory,name))
+    pklrfile = open('{0}/r{1}.pkl'.format(directory,'funcM'),"rb")
+    rarray = pickle.load(pklrfile)
+    pklrfile.close()
+    pklffile = open('{0}/{1}.pkl'.format(directory,'funcM'),"rb")
+    tab = pickle.load(pklffile)
+    pklffile.close()
+    Mgood =  interp1d(log10(rarray),log10(tab))
+    plt.figure()
+    plt.loglog(r,10**Mgood(log10(r)))
+    plt.xlabel(r'$r$')
+    plt.ylabel(r'$M_{enc}$')
+    plt.title(name)
+    pp.savefig()
+    plt.close()
+    pklrfile = open('{0}/r{1}.pkl'.format(directory,'funcp'),"rb")
+    rarray = pickle.load(pklrfile)
+    pklrfile.close()
+    pklffile = open('{0}/{1}.pkl'.format(directory,'funcp'),"rb")
+    tab = pickle.load(pklffile)
+    pklffile.close()
+    Mgood =  interp1d(log10(rarray),log10(tab))
+    plt.figure()
+    plt.loglog(r,10**Mgood(log10(r)))
+    plt.xlabel(r'$r$')
+    plt.ylabel(r'$\psi$')
+    plt.title(name)
+    pp.savefig()
+    plt.close()
+    pklrfile = open('{0}/r{1}.pkl'.format(directory,'funcJ'),"rb")
+    rarray = pickle.load(pklrfile)
+    pklrfile.close()
+    pklffile = open('{0}/{1}.pkl'.format(directory,'funcJ'),"rb")
+    tab = pickle.load(pklffile)
+    pklffile.close()
+    Mgood =  interp1d(log10(rarray),log10(tab))
+    plt.figure()
+    plt.loglog(r,10**Mgood(log10(r)))
+    plt.xlabel(r'$E$')
+    plt.ylabel(r'$J_c^2$')
+    plt.title(name)
+    pp.savefig()
+    plt.close()
+    pklrfile = open('{0}/r{1}.pkl'.format(directory,'funcl'),"rb")
+    rarray = pickle.load(pklrfile)
+    pklrfile.close()
+    pklffile = open('{0}/{1}.pkl'.format(directory,'funcl'),"rb")
+    tab = pickle.load(pklffile)
+    pklffile.close()
+    Mgood =  interp1d(log10(rarray),log10(tab))
+    plt.figure()
+    plt.loglog(r,10**Mgood(log10(r)))
+    plt.xlabel(r'$E$')
+    plt.ylabel(r'$g$')
+    plt.title(name)
+    pp.savefig()
+    plt.close()
+    pklrfile = open('{0}/r{1}.pkl'.format(directory,'funcb'),"rb")
+    rarray = pickle.load(pklrfile)
+    pklrfile.close()
+    pklffile = open('{0}/{1}.pkl'.format(directory,'funcb'),"rb")
+    tab = pickle.load(pklffile)
+    pklffile.close()
+    Mgood =  interp1d(log10(rarray),log10(tab))
+    plt.figure()
+    plt.loglog(r,10**Mgood(log10(r)))
+    plt.xlabel(r'$E$')
+    plt.ylabel(r'$G$')
+    plt.title(name)
+    pp.savefig()
+    plt.close()
+    pklrfile = open('{0}/r{1}.pkl'.format(directory,'funcf'),"rb")
+    rarray = pickle.load(pklrfile)
+    pklrfile.close()
+    pklffile = open('{0}/{1}.pkl'.format(directory,'funcf'),"rb")
+    tab = pickle.load(pklffile)
+    pklffile.close()
+    Mgood =  interp1d(log10(rarray),log10(tab))
+    plt.figure()
+    plt.loglog(r,10**Mgood(log10(r)))
+    plt.xlabel(r'$E$')
+    plt.ylabel(r'$f$')
+    plt.title(name)
+    pp.savefig()
+    plt.close()
+    pp.close()
