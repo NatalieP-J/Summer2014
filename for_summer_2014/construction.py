@@ -10,6 +10,17 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 devnull = open(os.devnull,'w')
 
+def pklread(fname):
+    pklffile = open(fname,"rb")
+    dat = pickle.load(pklffile)
+    pklffile.close()
+    return dat
+
+def pklwrite(fname,dat):
+    pklffile = open(fname,"wb")
+    pickle.dump(dat,pklffile)
+    pklffile.close()
+
 def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp):
     """
     r - independent variable
@@ -31,33 +42,6 @@ def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp):
     piece2 = 10**(inter(log10(set2)))
     piece3 = end*(set3/lim2)**largerexp
     return concatenate((piece1,piece2,piece3))
-
-def plotter(model,name,r,ract,tab,inter,rstart,rchange,start,end,smallrexp,largerexp,labels):
-    """
-    name - name under which figure will be saved
-    r - independent variable array
-    inter - interpolated object
-    rstart - first element of r
-    rchange - last element of r
-    start - first computed value of function
-    end - last computed value of function
-    smallrexp - log slope at small r or large E
-    largerexp - log slope at large r or small E
-    labels - plot axis labels, x and then y
-
-    saves a plot of the piecewise function
-    """
-    m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp)
-    plt.figure()
-    plt.loglog(r[1:-1],m[1:-1],'c',linewidth = 5)
-    plt.loglog(ract,tab,'.',color = 'DarkOrange')
-    plt.ylabel(r'{0}'.format(labels[1]))
-    plt.xlabel('{0}'.format(labels[0]))
-    plt.xlim(min(r[1:-1]),max(r[1:-1]))
-    plt.ylim(min(m[1:-1]),max(m[1:-1]))
-    plt.title(model.name)
-    plt.savefig('{0}/{1}.pdf'.format(model.directory,name))
-    plt.close()
 
 def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,verbose,plotting,problem = True):
     """
