@@ -7,8 +7,26 @@ import time
 import datetime
 import os
 from matplotlib.backends.backend_pdf import PdfPages
+from suppressor import RedirectStdStreams
+
+funcnames = dict.fromkeys(['Menc','Mencgood','menc','funcM','mencgood','M','m','Mgood','mgood','mass','Mass'],'funcM')
+funcnames.update(dict.fromkeys(['psi','Psi','psigood','Psigood','potential','Potential','funcp','P','p','U','u','potential energy','Potential Energy','potential Energy'],'funcp'))
+funcnames.update(dict.fromkeys(['Jc2','Jc2good','Jc','jc2','jc2good','jc','Jcgood','jcgood','J','j','jgood','Jgood','Angular momentum','Angular Momentum','angular momentum'],'funcJ'))
+funcnames.update(dict.fromkeys(['g','ggood'],'funcl'))
+funcnames.update(dict.fromkeys(['G','Ggood','mathcalG','mathcalGgood'],'funcb'))
+funcnames.update(dict.fromkeys(['f','DF','df','fgood','distribution','distribution function','F'],'funcf'))
+indeps = {'funcM':'r','funcp':'r','funcJ':'E','funcl':'E','funcb':'E','funcf':'E'}
+                
 
 devnull = open(os.devnull,'w')
+
+def LoadData(fname):
+    f=open(fname,'r')
+    data=[]
+    for line in f.readlines():
+        data.append(line.replace('\n',''))
+    f.close()
+    return data
 
 def pklread(fname):
     pklffile = open(fname,"rb")
@@ -43,7 +61,7 @@ def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp):
     piece3 = end*(set3/lim2)**largerexp
     return concatenate((piece1,piece2,piece3))
 
-def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,verbose,plotting,problem = True):
+def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting,problem = True):
     """
 
     func - function to be evaluated
@@ -64,7 +82,7 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,verbose,plotting,probl
     """
     model = prereqs[0]
     rarray,rchange,rstart = grid([model],size[0],size[1],size[2])
-    tab,problems = func(rarray,verbose,prereqs)
+    tab,problems = func(rarray,prereqs)
     frac = float(len(problems))/float(len(tab))
     print 'fraction reporting a message: {0}'.format(frac)
     model.statfile.write('mesg frac = {0}\n'.format(frac))
@@ -137,16 +155,10 @@ def compute(dependencies,name,function,rtest,size,grid,exps,kwargs,create):
                     i+=2
             smallrexp,largerexp = exps
             plotdat,prob = kwargs
-            if verbosity == "ON":
-                tic = time.clock()
-                good = makegood(prereqs,function,rtest,size,grid,smallrexp,largerexp,verbose = True,plotting = plotdat,problem = prob)
-                toc = time.clock()
-                delt = toc-tic
-            elif verbosity == "OFF":
-                tic = time.clock()
-                good = makegood(prereqs,function,rtest,size,grid,smallrexp,largerexp,verbose = False,plotting = plotdat,problem = prob)
-                toc = time.clock()
-                delt = toc-tic
+            tic = time.clock()
+            good = makegood(prereqs,function,rtest,size,grid,smallrexp,largerexp,plotting = plotdat,problem = prob)
+            toc = time.clock()
+            delt = toc-tic
             print '{0}good ran in \t {1}'.format(strname,str(datetime.timedelta(seconds=delt)))
             model.statfile.write('{0}good ran in \t {1}\n'.format(strname,str(datetime.timedelta(seconds=delt))))
             return good
@@ -199,7 +211,7 @@ def integrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],fileobj=devnull,pref
         try:
             if temp[3] != '':
                 problems.append(vals)
-                fileobj.write('\n{0},\t i = {1},\t message = {2}'.format(fcn[1],i,temp[3]))
+                fileobj.write('\n{0},\t val = {1},\t message = {2}'.format(fcn[1],vals,temp[3]))
         except IndexError:
             pass
         return prefactor*temp[0],problems
@@ -229,7 +241,43 @@ def dblintegrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],fileobj=devnull,p
                 temp = intg.dblquad(fcn[0],downlim[0],uplim[0],downlim[1],uplim[1],epsabs = tol)
         return prefactor*temp,problems
 
-def fromfileplot(name,directory):
+def fromfileplot(galname,funcname):
+    r = arange(-4,4,0.01)
+    r = 10**r
+    success = os.system('ls -d */{0}* > templist.dat'.format(galname))
+    if success == 0:
+        avails = LoadData('templist.dat')
+        os.system('rm -f templist.dat')
+        if len(avails) > 1:
+            print 'Multiple directories with that name, please choose from the following list'
+            i = 0
+            a = 'n'
+            while a == 'n' or a == '':
+                i = i%len(avails)
+                a = raw_input('Is this your galaxy [y/n]?\n{0} '.format(avails[i]))
+                i+=1
+            direc = avails[i]
+        elif len(avails) == 1:
+            direc = avails[0]
+        fname = funcnames[funcname]
+        path = '{0}/{1}.pkl'.format(direc,fname)
+        rpath  = '{0}/r{1}.pkl'.format(direc,fname)
+        rarray = pklread(rpath)
+        tab = pklread(path)
+        good = interp1d(log10(rarray),log10(tab))
+        plt.figure()
+        plt.loglog(r,10**good(log10(r)))
+        plt.ylabel(funcname)
+        plt.xlabel(indeps[fname])
+        plt.title(galname)
+        plt.show()
+    elif success != 0:
+        print 'There do not appear to be any directories with that galaxy name, terminating plot'
+        
+    
+    
+
+def fromfileplotall(name,directory):
     r = arange(-4,4,0.01)
     r = 10**r
     pp = PdfPages('{0}/{1}_master.pdf'.format(directory,name))

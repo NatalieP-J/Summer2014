@@ -21,7 +21,7 @@ rtest = 10**rtest
 def getrate(model):
     
     Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
-    seton = {Menc:"ON",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+    seton = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
     verbosity = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
 
     model.statfile.write('GALAXY: {0}\n'.format(model.name))

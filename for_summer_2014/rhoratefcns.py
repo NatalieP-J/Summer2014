@@ -27,7 +27,7 @@ def Minterior(r,prereqs):
     model, = prereqs
     return model.rho(r)*r**2
 
-def funcMenc(r,verbose,prereqs):
+def funcMenc(r,prereqs):
     """
     functional form of Menc
     relies on Minterior
@@ -53,9 +53,9 @@ def rHimplicit(r,prereqs):
     equation that has its minimum when r = rH
     """
     model, = prereqs
-    return abs(model.Mnorm-funcMenc(abs(r),False,prereqs)[0])
+    return abs(model.Mnorm-funcMenc(abs(r),prereqs)[0])
 
-def rH(prereqs,verbose=True):
+def rH(prereqs):
     """
     finds root of rHimplicit
     """
@@ -64,9 +64,8 @@ def rH(prereqs,verbose=True):
     if rresult.success == True:
         return abs(rresult.x)
     elif rresult.success == False:
-        if verbose == True:
-            model.statfile.write('\nFailed to evaluate rH\n')
-            model.statfile.write('{0}\n'.format(rresult.message))
+        model.statfile.write('\nFailed to evaluate rH\n')
+        model.statfile.write('{0}\n'.format(rresult.message))
         return abs(rresult.x)
 
 ########******************* GRID CREATION  *******************######## 
@@ -96,7 +95,7 @@ def Egrid(prereqs,upstep=5,downstep=-3,step=0.1):
     model, = prereqs
     rmin = min([rH([model]),[1.]])[0]
     rmax = max([rH([model]),[1.]])[0]
-    eimin = log10(funcMenc(rmax,False,prereqs)[0]/rmax) + downstep
+    eimin = log10(funcMenc(rmax,prereqs)[0]/rmax) + downstep
     eimax = log10(model.Mnorm/rmin) + upstep
     dei = step
     Earray = arange(eimin,eimax,dei)
@@ -115,7 +114,7 @@ def psi2interior(r,prereqs):
     return model.rho(r)*r
 
 tol = 1e-3
-def psi2(r,verbose,prereqs):
+def psi2(r,prereqs):
     """
     functional form of psi part 2
     relies on psi2interior
@@ -134,19 +133,19 @@ def psi2(r,verbose,prereqs):
         pre = 4*pi
     return integrator(r,[psi2interior,'psi2'],dls,uls,args = plist,fileobj = model.statfile,prefactor = pre) 
 
-def funcpsi(r,verbose,prereqs):
+def funcpsi(r,prereqs):
     """
     returns potential as a function of r
     """
     model, = prereqs
     part1 = (model.Mnorm/r)
-    part2 = funcMenc(r,verbose,prereqs)
-    part3 =  psi2(r,verbose,prereqs)
+    part2 = funcMenc(r,prereqs)
+    part3 =  psi2(r,prereqs)
     problems = array([])
     if part2[1] != []:
         problems = concatenate((problems,array(part2[1])))
     if part3[1] != []:
-        problems = concatenate((problems,array(part3[1])))
+        problems = concatenate((problems,array([val for val in part3[1] if val not in part2[1]])))
     return part1 + (part2[0]/r) + part3[0],problems
 
 ########******************* APOCENTER RADIUS *******************######## 
@@ -176,13 +175,13 @@ def rapo(E,prereqs):
 
 ########******************* CIRCULAR ANGULAR MOMENTUM *******************######## 
 
-def Jc2implicit(r,E,verbose,prereqs):
+def Jc2implicit(r,E,prereqs):
     """
     """
     model,Mencgood,psigood = prereqs
     return abs(10**psigood(log10(abs(r)))-E-((10**Mencgood(log10(abs(r)))+model.Mnorm)/(2*r)))
 
-def funcJc2(E,verbose,prereqs):
+def funcJc2(E,prereqs):
     """
     see Jc2implicit
     """
@@ -196,27 +195,25 @@ def funcJc2(E,verbose,prereqs):
                 rguess = 10*E[i]**-1
             elif E[i]**-1 < 0.4:
                 rguess = 0.01*E[i]**-1
-            rresult = root(Jc2implicit,rguess,args=(E[i],verbose,prereqs))
+            rresult = root(Jc2implicit,rguess,args=(E[i],prereqs))
             rresult.x = abs(rresult.x)
             if rresult.success == True:
                 Jcs.append(((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0])
             elif rresult.success == False:
-                if verbose==True:
-                    print 'Failed to evaluate Jc2'
-                    print rresult.message
+                model.statfile.write('\nFailed to evaluate Jc2')
+                model.statfile.write('\n{0}'.format(rresult.message))
                 Jcs.append(((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0])
                 problems.append(i)
         return array(Jcs),problems
     except AttributeError:
-        rresult = root(Jc2implicit,0.01*E**-1,args=(E,verbose,prereqs))
+        rresult = root(Jc2implicit,0.01*E**-1,args=(E,prereqs))
         problem = []
         rresult.x = abs(rresult.x)
         if rresult.success == True:
             Jc = ((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0]
         elif rresult.success == False:
-            if verbose==True:
-                print 'Failed to evaluate Jc2'
-                print rresult.message
+            model.statfile.write('\nFailed to evaluate Jc2')
+            model.statfile.write('\n{0}'.format(rresult.message))
             Jc = ((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0]
             problem = [E]
         return Jc, problem
@@ -230,7 +227,7 @@ def lginterior(r,E,prereqs):
     model,psigood = prereqs
     return (model.drhodr(1./r))*(r**-2)*((sqrt(abs(E-10**psigood(log10(1./r)))))**-1)
     
-def funclg(E,verbose,prereqs):
+def funclg(E,prereqs):
     """
     functional form of g
     relies on ginterior
@@ -277,12 +274,46 @@ def bGinterior(theta,r,E,prereqs):
         part3 =(1./sqrt(theta))-sqrt(theta) 
     return part1*part2*part3
 
-def funcbG(E,verbose,prereqs):
+def funcbG(E,prereqs):
     """
     functional form of mathcalG
     relies on Ginterior
     returns mathcalG(E)
     """
+    model,psigood,ggood = prereqs
+    try:
+        t = E.shape
+        Gans = []
+        problems = []
+        for i in range(len(E)):
+            print i+1, 'of', len(E)
+            rapoval = rapo(E[i],[psigood])
+            try:
+                temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 1e-4, lambda r: 1,args = (E[i],prereqs))
+            except UserWarning as e:
+                if verbose == True:
+                    print 'G, E = ', E[i], 'message = ', e
+                problems.append(i)
+            Gans.append(temp[0])
+        psibG_memo = {}
+        part2bG_memo = {}
+        part3bG_memo = {}
+        return array(Gans),problems
+    except AttributeError:
+        rapoval = rapo(E,psigood)
+        problem = []
+        try:
+            temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E,prereqs))
+        except UserWarning as e:
+            if verbose == True:
+                print 'G, E = ', E, 'message = ', temp[3]
+            problem = [E]
+        psibG_memo = {}
+        part2bG_memo = {}
+        part3bG_memo = {}
+        return temp[0],problem
+
+'''
     psibG_memo = {}
     part2bG_memo = {}
     part3bG_memo = {}
@@ -307,38 +338,7 @@ def funcbG(E,verbose,prereqs):
         plist = tuple((E,prereqs))
     return dblintegrator(E,[bGinterior,'G'],dls,uls,args = plist,fileobj = model.statfile)
 '''
-    try:
-        t = E.shape
-        Gans = []
-        problems = []
-        for i in range(len(E)):
-            print i+1, 'of', len(E)
-            rapoval = rapo(E[i],[psigood])
-            try:
-                temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 1e-4, lambda r: 1,args = (E[i],prereqs,psibG_memo,part2bG_memo,part3bG_memo),epsabs = tolerance,epsrel = tolerance)
-            except UserWarning as e:
-                if verbose == True:
-                    print 'G, E = ', E[i], 'message = ', e
-                problems.append(i)
-            Gans.append(temp[0])
-        psibG_memo = {}
-        part2bG_memo = {}
-        part3bG_memo = {}
-        return array(Gans),problems
-    except AttributeError:
-        rapoval = rapo(E,psigood)
-        problem = []
-        try:
-            temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E,prereqs,psibG_memo,part2bG_memo,part3bG_memo))
-        except UserWarning as e:
-            if verbose == True:
-                print 'G, E = ', E, 'message = ', temp[3]
-            problem = [E]
-        psibG_memo = {}
-        part2bG_memo = {}
-        part3bG_memo = {}
-        return temp[0],problem
-'''
+
 ########******************* DISTRIBUTION FUNCTION *******************######## 
 
 def finterior(r,E,rapoval,prereqs):
@@ -363,7 +363,7 @@ def finterior(r,E,rapoval,prereqs):
         result3 = -(var**2)*(1./sqrt(abs(E-psi)))*(1./(2*rapoval))*model.drhodr(var)*((model.Mnorm*(r-1) + r*Mencvar - Mencrap)/abs(E-psi))  
     return result1+result2+result3
 
-def funcf(E,verbose,prereqs):
+def funcf(E,prereqs):
     """
     functional form of f
     relies on finterior1,finterior2,finterior3
@@ -420,7 +420,7 @@ def dgdlnrpinterior(E,u,qmin):
     part2 = 1-2*nsum(part2list,axis = 0)
     return part1*part2
 
-def dgdlnrp(u,Emin = 0.01,Emax=100,verbose = False):
+def dgdlnrp(u,model,Emin = 0.01,Emax=100,verbose = False):
     """
     rp - pericentre radius
     Emin, Emax - bounds of the integral
@@ -436,7 +436,7 @@ def dgdlnrp(u,Emin = 0.01,Emax=100,verbose = False):
     	result_list = []
     	for i in range(len(u)):
     		print i+1, ' of ', len(u)
-    		result = intg.romberg(dgdlnrpinterior,Emin,Emax,args = (u[i],qmin),divmax = 20)#,full_output = 1)
+    		result = intg.quad(dgdlnrpinterior,Emin,Emax,args = (u[i],qmin))#,full_output = 1) #changed from romberg
     		t = result[0]
     		result_list.append(prefactor*(u[i]**2)*t)
     		try:
@@ -447,7 +447,7 @@ def dgdlnrp(u,Emin = 0.01,Emax=100,verbose = False):
         		pass
         return array(result_list)
     except (AttributeError,TypeError) as e:
-    	result = intg.romberg(dgdlnrpinterior,Emin,Emax,args = (u,qmin),divmax = 20)#,full_output = 1)
+    	result = intg.quad(dgdlnrpinterior,Emin,Emax,args = (u,qmin))#,divmax = 20)#,full_output = 1)
     	t = result[0]
     	try:
     		if result[3] != '':

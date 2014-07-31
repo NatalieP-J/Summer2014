@@ -27,7 +27,7 @@ MBH1s = 10**array([float(i) for i in WM[:,10]])
 MBH2s = 10**array([float(i) for i in WM[:,12]])
 
 from rhomodels import NukerModelGenRho
-for galaxy in range(len(WM)):
+for galaxy in range(15,16):
     print 'galaxy ',galaxy+1, ' of ',len(WM)
     name = names[galaxy]
     alpha = alphas[galaxy]
@@ -38,13 +38,14 @@ for galaxy in range(len(WM)):
     rb = rbs[galaxy]
     mub = mubs[galaxy]
     rho0 = findrho0(rb,M2L,mub)
-    model1 = NukerModelGenRho('{0}_1'.format(name),alpha,beta,gamma,rb,rho0,MBH_Msun,GENERATE,memo = True)
+    model1 = NukerModelGenRho('{0}'.format(name),alpha,beta,gamma,rb,rho0,MBH_Msun,GENERATE,memo = False)
     model1.getrho()
     Mencgood,psigood,Jc2good,ggood,Ggood,fgood = getrate(model1)
-    MBH_Msun = MBH2s[galaxy]
-    model2 = NukerModelGenRho('{0}_2'.format(name),alpha,beta,gamma,rb,rho0,MBH_Msun,GENERATE,memo = True)
-    model2.getrho()
-    Mencgood,psigood,Jc2good,ggood,Ggood,fgood = getrate(model2)
+    utest = arange(-7,1,0.05)
+    utest = 10**utest
+    d = dgdlnrp(utest,model1)
+    pklwrite('{0}/rrate.pkl'.format(model1.directory),utest)
+    pklwrite('{0}/rate.pkl'.format(model1.directory),d)
     #fromfileplot(model1.name,model1.directory)
     #fromfileplot(model2.name,model2.directory)
 
