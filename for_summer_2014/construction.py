@@ -9,16 +9,16 @@ import os
 from matplotlib.backends.backend_pdf import PdfPages
 from suppressor import RedirectStdStreams
 
-funcnames = dict.fromkeys(['Menc','Mencgood','menc','funcM','mencgood','M','m','Mgood','mgood','mass','Mass'],'funcM')
-funcnames.update(dict.fromkeys(['psi','Psi','psigood','Psigood','potential','Potential','funcp','P','p','U','u','potential energy','Potential Energy','potential Energy'],'funcp'))
-funcnames.update(dict.fromkeys(['Jc2','Jc2good','Jc','jc2','jc2good','jc','Jcgood','jcgood','J','j','jgood','Jgood','Angular momentum','Angular Momentum','angular momentum'],'funcJ'))
-funcnames.update(dict.fromkeys(['g','ggood'],'funcl'))
-funcnames.update(dict.fromkeys(['G','Ggood','mathcalG','mathcalGgood'],'funcb'))
-funcnames.update(dict.fromkeys(['f','DF','df','fgood','distribution','distribution function','F'],'funcf'))
+funcnames = dict.fromkeys(['Menc','Mencgood','menc','funcM','mencgood','M','m','Mgood','mgood','mass','Mass'],'Menc')
+funcnames.update(dict.fromkeys(['psi','Psi','psigood','Psigood','potential','Potential','funcp','P','p','U','u','potential energy','Potential Energy','potential Energy'],'psi'))
+funcnames.update(dict.fromkeys(['Jc2','Jc2good','Jc','jc2','jc2good','jc','Jcgood','jcgood','J','j','jgood','Jgood','Angular momentum','Angular Momentum','angular momentum'],'Jc2'))
+funcnames.update(dict.fromkeys(['g','ggood'],'lg'))
+funcnames.update(dict.fromkeys(['G','Ggood','mathcalG','mathcalGgood'],'bG'))
+funcnames.update(dict.fromkeys(['f','DF','df','fgood','distribution','distribution function','F'],'f'))
 funcnames.update(dict.fromkeys(['rho','density'],'rho'))
 funcnames.update(dict.fromkeys(['drhodr'],'drhodr'))
 funcnames.update(dict.fromkeys(['d2rhodr2'],'d2rhodr2'))
-indeps = {'funcM':'r','funcp':'r','funcJ':'E','funcl':'E','funcb':'E','funcf':'E','rho':'r','drhodr':'r','d2rhodr2':'r'}
+indeps = {'Menc':'r','psi':'r','Jc2':'E','lg':'E','bG':'E','f':'E','rho':'r','drhodr':'r','d2rhodr2':'r'}
                 
 
 devnull = open(os.devnull,'w')
@@ -90,9 +90,6 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting):
     print 'fraction reporting a message: {0}'.format(frac)
     model.statfile.write('mesg frac = {0}\n'.format(frac))
     if frac != 1.0:
-        #if problem == True:
-        #    tab = [i for j, i in enumerate(tab) if j not in problems]
-        #    rarray = [i for j, i in enumerate(rarray) if j not in problems]
         lrarray = log10(rarray)
         ltab = log10(tab)
         inter = interp1d(lrarray,ltab)
@@ -101,14 +98,8 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting):
         m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp)
         inter2 = interp1d(log10(r),log10(m))
         saver = column_stack((r,m))
-        pklwrite('{0}/{1}.pkl'.format(model.directory,str(func)[10:15]),saver)
-        #pklrfile = open('{0}/r{1}.pkl'.format(model.directory,str(func)[10:15]),"wb")
-        #pickle.dump(r,pklrfile)
-        #pklrfile.close()
-        #pklffile = open('{0}/{1}.pkl'.format(model.directory,str(func)[10:15]),"wb")
-        #pickle.dump(m,pklffile)
-        #pklffile.close()
-        
+        funcname = str(func).split(' ')[1][4:]
+        pklwrite('{0}/{1}.pkl'.format(model.directory,funcname),saver)
         if plotting != False:
             xaxis,yaxis = plotting
             plt.figure()
@@ -126,7 +117,7 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting):
     elif frac == 1.0:
         return 0
 
-def compute(dependencies,name,function,rtest,size,grid,exps,plotdat,create):
+def compute(dependencies,function,rtest,size,grid,exps,plotdat,create):
     """
     dependencies - other functions needed to compute this one, 
                    format [func1, "func1",func2,"func2",...]
@@ -149,7 +140,7 @@ def compute(dependencies,name,function,rtest,size,grid,exps,plotdat,create):
     """
     model = dependencies[0]
     prereqs = dependencies[0::2]
-    strname,name = name
+    strname = str(function).split(' ')[1][4:]
     if create == "ON":
         try: 
             if len(dependencies) > 2:
@@ -171,11 +162,11 @@ def compute(dependencies,name,function,rtest,size,grid,exps,plotdat,create):
             model.statfile.write('To compute {0}, please turn {1} ON\n'.format(strname,dependencies[i+1]))
     elif create != "ON":
         try:
-            dat = pklread('{0}/{1}.pkl'.format(model.directory,str(function)[10:15]))
+            dat = pklread('{0}/{1}.pkl'.format(model.directory,strname)
             rarray = dat[:,0]
             tab = dat[:,1]
             if plotting != False:
-            xaxis,yaxis = plotdat
+                xaxis,yaxis = plotdat
                 plt.loglog(rarray,tab,'c',linewidth = 5)
                 plt.ylabel(r'{0}'.format(yaxis))
                 plt.xlabel('{0}'.format(xaxis))
@@ -302,7 +293,7 @@ def fromfileplotall(galname):
             direc = avails[i]
         elif len(avails) == 1:
             direc = avails[0]
-    dat = pklread('{0}/{1}.pkl'.format(direc,'funcM'),"rb")
+    dat = pklread('{0}/{1}.pkl'.format(direc,'Menc'),"rb")
     rarray = dat[:,0]
     tab = dat[:,1]
     Mgood =  interp1d(log10(rarray),log10(tab))
@@ -311,7 +302,7 @@ def fromfileplotall(galname):
     plt.xlabel(r'$r$')
     plt.ylabel(r'$M_{enc}$')
     plt.title(name)
-    dat = pklread('{0}/{1}.pkl'.format(direc,'funcp'),"rb")
+    dat = pklread('{0}/{1}.pkl'.format(direc,'psi'),"rb")
     rarray = dat[:,0]
     tab = dat[:,1]
     Mgood =  interp1d(log10(rarray),log10(tab))
@@ -320,7 +311,7 @@ def fromfileplotall(galname):
     plt.xlabel(r'$r$')
     plt.ylabel(r'$\psi$')
     plt.title(name)
-    dat = pklread('{0}/{1}.pkl'.format(direc,'funcJ'),"rb")
+    dat = pklread('{0}/{1}.pkl'.format(direc,'Jc2'),"rb")
     rarray = dat[:,0]
     tab = dat[:,1]
     Mgood =  interp1d(log10(rarray),log10(tab))
@@ -329,7 +320,7 @@ def fromfileplotall(galname):
     plt.xlabel(r'$E$')
     plt.ylabel(r'$J_c^2$')
     plt.title(name)
-    dat = pklread('{0}/{1}.pkl'.format(direc,'funcl'),"rb")
+    dat = pklread('{0}/{1}.pkl'.format(direc,'lg'),"rb")
     rarray = dat[:,0]
     tab = dat[:,1]
     Mgood =  interp1d(log10(rarray),log10(tab))
@@ -338,7 +329,7 @@ def fromfileplotall(galname):
     plt.xlabel(r'$E$')
     plt.ylabel(r'$g$')
     plt.title(name)
-    dat = pklread('{0}/{1}.pkl'.format(direc,'funcb'),"rb")
+    dat = pklread('{0}/{1}.pkl'.format(direc,'bG'),"rb")
     rarray = dat[:,0]
     tab = dat[:,1]
     Mgood =  interp1d(log10(rarray),log10(tab))
@@ -347,7 +338,7 @@ def fromfileplotall(galname):
     plt.xlabel(r'$E$')
     plt.ylabel(r'$G$')
     plt.title(name)
-    dat = pklread('{0}/{1}.pkl'.format(direc,'funcM'),"rb")
+    dat = pklread('{0}/{1}.pkl'.format(direc,'f'),"rb")
     rarray = dat[:,0]
     tab = dat[:,1]
     Mgood =  interp1d(log10(rarray),log10(tab))
