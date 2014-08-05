@@ -110,7 +110,7 @@ def psi2interior(r,prereqs):
     """
     interior of psi part 2 integral
     """
-    model, = prereqs
+    model,Mencgood = prereqs
     return model.rho(r)*r
 
 tol = 1e-3
@@ -120,7 +120,7 @@ def psi2(r,prereqs):
     relies on psi2interior
     returns psi2(r)
     """
-    model, = prereqs
+    model,Mencgood= prereqs
     if isinstance(r,(list,ndarray))==True:
         dls = r
         uls = zeros(len(r)) + inf
@@ -137,16 +137,17 @@ def funcpsi(r,prereqs):
     """
     returns potential as a function of r
     """
-    model, = prereqs
+    model,Mencgood = prereqs
     part1 = (model.Mnorm/r)
-    part2 = funcMenc(r,prereqs)
+    part2 = 10**Mencgood(log10(r))
     part3 =  psi2(r,prereqs)
-    problems = array([])
-    if part2[1] != []:
-        problems = concatenate((problems,array(part2[1])))
-    if part3[1] != []:
-        problems = concatenate((problems,array([val for val in part3[1] if val not in part2[1]])))
-    return part1 + (part2[0]/r) + part3[0],problems
+    problems = array(part3[1])
+    #problems = array([])
+    #if part2[1] != []:
+     #   problems = concatenate((problems,array(part2[1])))
+    #if part3[1] != []:
+    #    problems = concatenate((problems,array([val for val in part3[1] if val not in part2[1]])))
+    return part1 + (part2/r) + part3[0],problems
 
 ########******************* APOCENTER RADIUS *******************######## 
 

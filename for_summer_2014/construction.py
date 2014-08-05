@@ -15,7 +15,10 @@ funcnames.update(dict.fromkeys(['Jc2','Jc2good','Jc','jc2','jc2good','jc','Jcgoo
 funcnames.update(dict.fromkeys(['g','ggood'],'funcl'))
 funcnames.update(dict.fromkeys(['G','Ggood','mathcalG','mathcalGgood'],'funcb'))
 funcnames.update(dict.fromkeys(['f','DF','df','fgood','distribution','distribution function','F'],'funcf'))
-indeps = {'funcM':'r','funcp':'r','funcJ':'E','funcl':'E','funcb':'E','funcf':'E'}
+funcnames.update(dict.fromkeys(['rho','density'],'rho'))
+funcnames.update(dict.fromkeys(['drhodr'],'drhodr'))
+funcnames.update(dict.fromkeys(['d2rhodr2'],'d2rhodr2'))
+indeps = {'funcM':'r','funcp':'r','funcJ':'E','funcl':'E','funcb':'E','funcf':'E','rho':'r','drhodr':'r','d2rhodr2':'r'}
                 
 
 devnull = open(os.devnull,'w')
@@ -61,7 +64,7 @@ def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp):
     piece3 = end*(set3/lim2)**largerexp
     return concatenate((piece1,piece2,piece3))
 
-def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting,problem = True):
+def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting):
     """
 
     func - function to be evaluated
@@ -87,9 +90,9 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting,problem = Tru
     print 'fraction reporting a message: {0}'.format(frac)
     model.statfile.write('mesg frac = {0}\n'.format(frac))
     if frac != 1.0:
-        if problem == True:
-            tab = [i for j, i in enumerate(tab) if j not in problems]
-            rarray = [i for j, i in enumerate(rarray) if j not in problems]
+        #if problem == True:
+        #    tab = [i for j, i in enumerate(tab) if j not in problems]
+        #    rarray = [i for j, i in enumerate(rarray) if j not in problems]
         lrarray = log10(rarray)
         ltab = log10(tab)
         inter = interp1d(lrarray,ltab)
@@ -97,20 +100,22 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting,problem = Tru
         end = tab[len(rarray)-1]
         m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp)
         inter2 = interp1d(log10(r),log10(m))
-        pklrfile = open('{0}/r{1}.pkl'.format(model.directory,str(func)[10:15]),"wb")
-        pickle.dump(r,pklrfile)
-        pklrfile.close()
-        pklffile = open('{0}/{1}.pkl'.format(model.directory,str(func)[10:15]),"wb")
-        pickle.dump(m,pklffile)
-        pklffile.close()
+        saver = column_stack((r,m))
+        pklwrite('{0}/{1}.pkl'.format(model.directory,str(func)[10:15]),saver)
+        #pklrfile = open('{0}/r{1}.pkl'.format(model.directory,str(func)[10:15]),"wb")
+        #pickle.dump(r,pklrfile)
+        #pklrfile.close()
+        #pklffile = open('{0}/{1}.pkl'.format(model.directory,str(func)[10:15]),"wb")
+        #pickle.dump(m,pklffile)
+        #pklffile.close()
         
         if plotting != False:
             xaxis,yaxis = plotting
             plt.figure()
             plt.loglog(r[1:-1],m[1:-1],'c',linewidth = 5)
             plt.loglog(rarray,tab,'.',color = 'DarkOrange')
-            plt.ylabel(r'{0}'.format(xaxis))
-            plt.xlabel('{0}'.format(yaxis))
+            plt.ylabel(r'{0}'.format(yaxis))
+            plt.xlabel('{0}'.format(xaxis))
             plt.xlim(min(r[1:-1]),max(r[1:-1]))
             plt.ylim(min(m[1:-1]),max(m[1:-1]))
             plt.title(model.name)
@@ -121,7 +126,7 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting,problem = Tru
     elif frac == 1.0:
         return 0
 
-def compute(dependencies,name,function,rtest,size,grid,exps,kwargs,create):
+def compute(dependencies,name,function,rtest,size,grid,exps,plotdat,create):
     """
     dependencies - other functions needed to compute this one, 
                    format [func1, "func1",func2,"func2",...]
@@ -145,8 +150,7 @@ def compute(dependencies,name,function,rtest,size,grid,exps,kwargs,create):
     model = dependencies[0]
     prereqs = dependencies[0::2]
     strname,name = name
-    gen,verbosity = create
-    if gen == "ON":
+    if create == "ON":
         try: 
             if len(dependencies) > 2:
                 i = 2
@@ -154,9 +158,8 @@ def compute(dependencies,name,function,rtest,size,grid,exps,kwargs,create):
                     dependencies[i](1)
                     i+=2
             smallrexp,largerexp = exps
-            plotdat,prob = kwargs
             tic = time.clock()
-            good = makegood(prereqs,function,rtest,size,grid,smallrexp,largerexp,plotting = plotdat,problem = prob)
+            good = makegood(prereqs,function,rtest,size,grid,smallrexp,largerexp,plotting = plotdat)
             toc = time.clock()
             delt = toc-tic
             print '{0}good ran in \t {1}'.format(strname,str(datetime.timedelta(seconds=delt)))
@@ -166,14 +169,20 @@ def compute(dependencies,name,function,rtest,size,grid,exps,kwargs,create):
             print 'e = ',e
             print 'To compute {0}, please turn {1} ON'.format(strname,dependencies[i+1])
             model.statfile.write('To compute {0}, please turn {1} ON\n'.format(strname,dependencies[i+1]))
-    elif gen != "ON":
+    elif create != "ON":
         try:
-            pklrfile = open('{0}/r{1}.pkl'.format(model.directory,str(function)[10:15]),"rb")
-            rarray = pickle.load(pklrfile)
-            pklrfile.close()
-            pklffile = open('{0}/{1}.pkl'.format(model.directory,str(function)[10:15]),"rb")
-            tab = pickle.load(pklffile)
-            pklffile.close()
+            dat = pklread('{0}/{1}.pkl'.format(model.directory,str(function)[10:15]))
+            rarray = dat[:,0]
+            tab = dat[:,1]
+            if plotting != False:
+            xaxis,yaxis = plotdat
+                plt.loglog(rarray,tab,'c',linewidth = 5)
+                plt.ylabel(r'{0}'.format(yaxis))
+                plt.xlabel('{0}'.format(xaxis))
+                plt.xlim(min(rarray),max(rarray))
+                plt.ylim(min(tab),max(tab))
+                plt.title(model.name)
+                model.pdfdump.savefig()
             good =  interp1d(log10(rarray),log10(tab))
             print '{0}good loaded in'.format(strname)
             return good
@@ -253,17 +262,17 @@ def fromfileplot(galname,funcname):
             i = 0
             a = 'n'
             while a == 'n' or a == '':
+                i+=1
                 i = i%len(avails)
                 a = raw_input('Is this your galaxy [y/n]?\n{0} '.format(avails[i]))
-                i+=1
             direc = avails[i]
         elif len(avails) == 1:
             direc = avails[0]
         fname = funcnames[funcname]
         path = '{0}/{1}.pkl'.format(direc,fname)
-        rpath  = '{0}/r{1}.pkl'.format(direc,fname)
-        rarray = pklread(rpath)
-        tab = pklread(path)
+        dat = pklread(path)
+        rarray = dat[:,0]
+        tab = dat[:,1]
         good = interp1d(log10(rarray),log10(tab))
         plt.figure()
         plt.loglog(r,10**good(log10(r)))
@@ -274,95 +283,77 @@ def fromfileplot(galname,funcname):
     elif success != 0:
         print 'There do not appear to be any directories with that galaxy name, terminating plot'
         
-    
-    
 
-def fromfileplotall(name,directory):
+def fromfileplotall(galname):
     r = arange(-4,4,0.01)
     r = 10**r
-    pp = PdfPages('{0}/{1}_master.pdf'.format(directory,name))
-    pklrfile = open('{0}/r{1}.pkl'.format(directory,'funcM'),"rb")
-    rarray = pickle.load(pklrfile)
-    pklrfile.close()
-    pklffile = open('{0}/{1}.pkl'.format(directory,'funcM'),"rb")
-    tab = pickle.load(pklffile)
-    pklffile.close()
+    success = os.system('ls -d */{0}* > templist.dat'.format(galname))
+    if success == 0:
+        avails = LoadData('templist.dat')
+        os.system('rm -f templist.dat')
+        if len(avails) > 1:
+            print 'Multiple directories with that name, please choose from the following list'
+            i = 0
+            a = 'n'
+            while a == 'n' or a == '':
+                i+=1
+                i = i%len(avails)
+                a = raw_input('Is this your galaxy [y/n]?\n{0} '.format(avails[i]))
+            direc = avails[i]
+        elif len(avails) == 1:
+            direc = avails[0]
+    dat = pklread('{0}/{1}.pkl'.format(direc,'funcM'),"rb")
+    rarray = dat[:,0]
+    tab = dat[:,1]
     Mgood =  interp1d(log10(rarray),log10(tab))
     plt.figure()
     plt.loglog(r,10**Mgood(log10(r)))
     plt.xlabel(r'$r$')
     plt.ylabel(r'$M_{enc}$')
     plt.title(name)
-    pp.savefig()
-    plt.close()
-    pklrfile = open('{0}/r{1}.pkl'.format(directory,'funcp'),"rb")
-    rarray = pickle.load(pklrfile)
-    pklrfile.close()
-    pklffile = open('{0}/{1}.pkl'.format(directory,'funcp'),"rb")
-    tab = pickle.load(pklffile)
-    pklffile.close()
+    dat = pklread('{0}/{1}.pkl'.format(direc,'funcp'),"rb")
+    rarray = dat[:,0]
+    tab = dat[:,1]
     Mgood =  interp1d(log10(rarray),log10(tab))
     plt.figure()
     plt.loglog(r,10**Mgood(log10(r)))
     plt.xlabel(r'$r$')
     plt.ylabel(r'$\psi$')
     plt.title(name)
-    pp.savefig()
-    plt.close()
-    pklrfile = open('{0}/r{1}.pkl'.format(directory,'funcJ'),"rb")
-    rarray = pickle.load(pklrfile)
-    pklrfile.close()
-    pklffile = open('{0}/{1}.pkl'.format(directory,'funcJ'),"rb")
-    tab = pickle.load(pklffile)
-    pklffile.close()
+    dat = pklread('{0}/{1}.pkl'.format(direc,'funcJ'),"rb")
+    rarray = dat[:,0]
+    tab = dat[:,1]
     Mgood =  interp1d(log10(rarray),log10(tab))
     plt.figure()
     plt.loglog(r,10**Mgood(log10(r)))
     plt.xlabel(r'$E$')
     plt.ylabel(r'$J_c^2$')
     plt.title(name)
-    pp.savefig()
-    plt.close()
-    pklrfile = open('{0}/r{1}.pkl'.format(directory,'funcl'),"rb")
-    rarray = pickle.load(pklrfile)
-    pklrfile.close()
-    pklffile = open('{0}/{1}.pkl'.format(directory,'funcl'),"rb")
-    tab = pickle.load(pklffile)
-    pklffile.close()
+    dat = pklread('{0}/{1}.pkl'.format(direc,'funcl'),"rb")
+    rarray = dat[:,0]
+    tab = dat[:,1]
     Mgood =  interp1d(log10(rarray),log10(tab))
     plt.figure()
     plt.loglog(r,10**Mgood(log10(r)))
     plt.xlabel(r'$E$')
     plt.ylabel(r'$g$')
     plt.title(name)
-    pp.savefig()
-    plt.close()
-    pklrfile = open('{0}/r{1}.pkl'.format(directory,'funcb'),"rb")
-    rarray = pickle.load(pklrfile)
-    pklrfile.close()
-    pklffile = open('{0}/{1}.pkl'.format(directory,'funcb'),"rb")
-    tab = pickle.load(pklffile)
-    pklffile.close()
+    dat = pklread('{0}/{1}.pkl'.format(direc,'funcb'),"rb")
+    rarray = dat[:,0]
+    tab = dat[:,1]
     Mgood =  interp1d(log10(rarray),log10(tab))
     plt.figure()
     plt.loglog(r,10**Mgood(log10(r)))
     plt.xlabel(r'$E$')
     plt.ylabel(r'$G$')
     plt.title(name)
-    pp.savefig()
-    plt.close()
-    pklrfile = open('{0}/r{1}.pkl'.format(directory,'funcf'),"rb")
-    rarray = pickle.load(pklrfile)
-    pklrfile.close()
-    pklffile = open('{0}/{1}.pkl'.format(directory,'funcf'),"rb")
-    tab = pickle.load(pklffile)
-    pklffile.close()
+    dat = pklread('{0}/{1}.pkl'.format(direc,'funcM'),"rb")
+    rarray = dat[:,0]
+    tab = dat[:,1]
     Mgood =  interp1d(log10(rarray),log10(tab))
     plt.figure()
     plt.loglog(r,10**Mgood(log10(r)))
     plt.xlabel(r'$E$')
     plt.ylabel(r'$f$')
     plt.title(name)
-    pp.savefig()
-    plt.close()
-    pp.close()
+    plt.show()

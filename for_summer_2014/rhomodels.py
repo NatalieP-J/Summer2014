@@ -1,3 +1,4 @@
+
 from numpy import *
 import math
 from subprocess import call
@@ -20,7 +21,7 @@ MsunV = 4.83
 call(['mkdir','NukerRhoGals'],stdout = devnull,stderr = devnull)
 call(['mkdir','SersicRhoGals'],stdout = devnull,stderr = devnull)
 
-from construction import integrator
+from construction import *
 
 class NukerModeldIdR:
     """
@@ -34,6 +35,8 @@ class NukerModeldIdR:
         self.a = alpha
         self.b = beta
         self.g = gamma
+        self.G = self.g-1
+        self.B = self.b-1
         #starting radius
         self.r0 = r0pc
         #starting density
@@ -60,25 +63,27 @@ class NukerModeldIdR:
         self.statfile = open('{0}/stats.dat'.format(self.directory),'wb')
         self.pdfdump = PdfPages('{0}/{1}_master.pdf'.format(self.directory,self.name))
         self.memo = memo
-        if self.memo == True:
-            self.p1bG = {}
-            self.p2bG = {}
-            self.p3bG = {}
+        self.p1f = {}
+        self.p2f = {}
+        self.p3f = {}
+        self.p1bG = {}
+        self.p2bG = {}
+        self.p3bG = {}
     
     #compute luminosity density
     def I(self,r):
-        return self.factor*(r**-self.g)*(1+(r**self.a))**(-(self.b-self.g)/self.a)
+        return self.factor*(r**-self.G)*(1+(r**self.a))**(-(self.B-self.G)/self.a)
     #and its first
     def dIdR(self,r):
-        return -(self.I(r)/(r*(1+r**self.a)))*(self.g + self.b*r**self.a)
+        return -(self.I(r)/(r*(1+r**self.a)))*(self.G + self.B*r**self.a)
 
     #second
     def d2IdR2(self,r):
-        return (self.I(r)/(r*(1+r**self.a))**2)*((r**(2*self.a))*self.b*(1+self.b) + self.g + (self.g**2) + (r**self.a)*(self.b-self.a*self.b + self.g + 2*self.b*self.g))
+        return (self.I(r)/(r*(1+r**self.a))**2)*((r**(2*self.a))*self.B*(1+self.B) + self.G + (self.G**2) + (r**self.a)*(self.B-self.a*self.B + self.G + 2*self.B*self.G))
     
     #and third derivatives
     def d3IdR3(self,r):
-        return (self.I(r)/(r*(1+r**self.a))**3)*((-r**(3*self.a))*self.b*(1+self.b)*(2+self.b) - self.g*(1 + self.g)*(2+self.g) + (r**(2*self.a))*((-1+self.a)*self.b*(4+self.a+3*self.b) - (2+(self.a**2) + 3*self.a*(1+self.b) + 3*self.b*(2+self.b))*self.g) + (r**self.a)*((1+self.a)*(-4+self.a-3*self.g)*self.g - self.b*(2+(self.a**2) - 3*self.a*(1+self.g) + 3*self.g*(2+self.g))))
+        return (self.I(r)/(r*(1+r**self.a))**3)*((-r**(3*self.a))*self.B*(1+self.B)*(2+self.B) - self.G*(1 + self.G)*(2+self.G) + (r**(2*self.a))*((-1+self.a)*self.B*(4+self.a+3*self.B) - (2+(self.a**2) + 3*self.a*(1+self.B) + 3*self.B*(2+self.B))*self.G) + (r**self.a)*((1+self.a)*(-4+self.a-3*self.G)*self.G - self.B*(2+(self.a**2) - 3*self.a*(1+self.G) + 3*self.G*(2+self.G))))
     
     #use luminosity density to compute rho
     def rhointerior(self,theta,r):
@@ -141,6 +146,8 @@ class NukerModelGenRho:
         self.a = alpha
         self.b = beta
         self.g = gamma
+        self.B = self.b-1
+        self.G = self.g-1
         #starting radius
         self.r0 = r0pc
         #starting density
@@ -167,25 +174,28 @@ class NukerModelGenRho:
         self.statfile = open('{0}/stats.dat'.format(self.directory),'wb')
         self.pdfdump = PdfPages('{0}/{1}_master.pdf'.format(self.directory,self.name))
         self.memo = memo
-        if self.memo == True:
-            self.p1bG = {}
-            self.p2bG = {}
-            self.p3bG = {}
+        self.p1f = {}
+        self.p2f = {}
+        self.p3f = {}
+        self.p1bG = {}
+        self.p2bG = {}
+        self.p3bG = {}
                                
-    #compute luminosity density
+    
+        #compute luminosity density
     def I(self,r):
-        return self.factor*(r**-self.g)*(1+(r**self.a))**(-(self.b-self.g)/self.a)
+        return self.factor*(r**-self.G)*(1+(r**self.a))**(-(self.B-self.G)/self.a)
     #and its first
     def dIdR(self,r):
-        return -(self.I(r)/(r*(1+r**self.a)))*(self.g + self.b*r**self.a)
+        return -(self.I(r)/(r*(1+r**self.a)))*(self.G + self.B*r**self.a)
 
     #second
     def d2IdR2(self,r):
-        return (self.I(r)/(r*(1+r**self.a))**2)*((r**(2*self.a))*self.b*(1+self.b) + self.g + (self.g**2) + (r**self.a)*(self.b-self.a*self.b + self.g + 2*self.b*self.g))
+        return (self.I(r)/(r*(1+r**self.a))**2)*((r**(2*self.a))*self.B*(1+self.B) + self.G + (self.G**2) + (r**self.a)*(self.B-self.a*self.B + self.G + 2*self.B*self.G))
     
     #and third derivatives
     def d3IdR3(self,r):
-        return (self.I(r)/(r*(1+r**self.a))**3)*((-r**(3*self.a))*self.b*(1+self.b)*(2+self.b) - self.g*(1 + self.g)*(2+self.g) + (r**(2*self.a))*((-1+self.a)*self.b*(4+self.a+3*self.b) - (2+(self.a**2) + 3*self.a*(1+self.b) + 3*self.b*(2+self.b))*self.g) + (r**self.a)*((1+self.a)*(-4+self.a-3*self.g)*self.g - self.b*(2+(self.a**2) - 3*self.a*(1+self.g) + 3*self.g*(2+self.g))))
+        return (self.I(r)/(r*(1+r**self.a))**3)*((-r**(3*self.a))*self.B*(1+self.B)*(2+self.B) - self.G*(1 + self.G)*(2+self.G) + (r**(2*self.a))*((-1+self.a)*self.B*(4+self.a+3*self.B) - (2+(self.a**2) + 3*self.a*(1+self.B) + 3*self.B*(2+self.B))*self.G) + (r**self.a)*((1+self.a)*(-4+self.a-3*self.G)*self.G - self.B*(2+(self.a**2) - 3*self.a*(1+self.G) + 3*self.G*(2+self.G))))
     
     #use luminosity density to compute rho
     def rhointerior(self,theta,r):
@@ -235,49 +245,41 @@ class NukerModelGenRho:
             highs = pi/2.
         return (1./pi)*integrator(r,[self.d2rhodr2interior,'d2rhodr2'],lows,highs,args = rargs,fileobj = self.statfile)[0]
     
-    def getrho(self):
-        rtest = arange(-7,7,0.01)
-        rtest = append(rtest,40)
-        rtest = insert(rtest,0,-40)
-        rtest = 10**rtest
+    def getrho(self,rtest = 0):
+        if isinstance(rtest,(ndarray,)) == False:
+            rtest = arange (-7,7,0.01)
+            rtest = 10**rtest
+            rtest1 = append(rtest,1e40)
+            rtest1 = insert(rtest1,0,1e-40)
         if self.generate == True:
-            call(['mkdir','{0}'.format(self.directory)])
-            pklrfile = open('{0}/{1}.pkl'.format(self.directory,'rrho'),"wb")
-            pickle.dump(rtest,pklrfile)
-            pklrfile.close()
             tab1 = self.funcrho(rtest)
-            pklrfile = open('{0}/{1}.pkl'.format(self.directory,'rho'),"wb")
-            pickle.dump(tab1,pklrfile)
-            pklrfile.close()
             tab2 = abs(self.funcdrhodr(rtest))
-            pklrfile = open('{0}/{1}.pkl'.format(self.directory,'drhodr'),"wb")
-            pickle.dump(tab2,pklrfile)
-            pklrfile.close()
             tab3 = abs(self.funcd2rhodr2(rtest))
-            pklrfile = open('{0}/{1}.pkl'.format(self.directory,'d2rhodr2'),"wb")
-            pickle.dump(tab3,pklrfile)
-            pklrfile.close()
-            self.inter0 = interp1d(log10(rtest),log10(tab1))
-            self.inter1 = interp1d(log10(rtest),log10(tab2))
-            self.inter2 = interp1d(log10(rtest),log10(tab3))
+            inter0 = interp1d(log10(rtest),log10(tab1))
+            inter1 = interp1d(log10(rtest),log10(tab2))
+            inter2 = interp1d(log10(rtest),log10(tab3))
+            piecerho = piecewise2(rtest1,inter0,tab1[0],tab1[len(tab1)-1],rtest[0],rtest[len(rtest)-1],-self.g,-self.b)
+            self.inter0 = interp1d(log10(rtest1),log10(piecerho))
+            piecedrhodr = piecewise2(rtest1,inter1,tab2[0],tab2[len(tab2)-1],rtest[0],rtest[len(rtest)-1],-self.g-1,-self.b-1)
+            self.inter1 = interp1d(log10(rtest1),log10(piecedrhodr))
+            pieced2rhodr2 = piecewise2(rtest1,inter2,tab3[0],tab3[len(tab3)-1],rtest[0],rtest[len(rtest)-1],-self.g-2,-self.b-2)
+            self.inter2 = interp1d(log10(rtest1),log10(pieced2rhodr2))
+            pklwrite('{0}/{1}.pkl'.format(self.directory,'rho'),column_stack((rtest1,piecerho)))
+            pklwrite('{0}/{1}.pkl'.format(self.directory,'drhodr'),column_stack((rtest1,piecedrhodr)))
+            pklwrite('{0}/{1}.pkl'.format(self.directory,'d2rhodr2'),column_stack((rtest1,pieced2rhodr2)))
             print 'Saved densities and interpolated'
             
         elif self.generate != True:
-            pklrfile = open('{0}/{1}.pkl'.format(self.directory,'rrho'),"rb")
-            rtest = pickle.load(pklrfile)
-            pklrfile.close()
-            pklrfile = open('{0}/{1}.pkl'.format(self.directory,'rho'),"rb")
-            tab1 = pickle.load(pklrfile)
-            pklrfile.close()
-            pklrfile = open('{0}/{1}.pkl'.format(self.directory,'drhodr'),"rb")
-            tab2 = pickle.load(pklrfile)
-            pklrfile.close()
-            pklrfile = open('{0}/{1}.pkl'.format(self.directory,'d2rhodr2'),"rb")
-            tab3 = pickle.load(pklrfile)
-            pklrfile.close()
-            self.inter0 = interp1d(log10(rtest),log10(tab1))
-            self.inter1 = interp1d(log10(rtest),log10(tab2))
-            self.inter2 = interp1d(log10(rtest),log10(tab3))
+            rhovals = pklread('{0}/{1}.pkl'.format(self.directory,'rho'))
+            rtest1 = rhovals[:,0]
+            piecerho = rhovals[:,1]
+            drhovals = pklread('{0}/{1}.pkl'.format(self.directory,'drhodr'))
+            piecedrhodr = drhovals[:,1]
+            d2rhovals = pklread('{0}/{1}.pkl'.format(self.directory,'d2rhodr2'))
+            pieced2rhodr2 = d2rhovals[:,1]
+            self.inter0 = interp1d(log10(rtest1),log10(piecerho))
+            self.inter1 = interp1d(log10(rtest1),log10(piecedrhodr))
+            self.inter2 = interp1d(log10(rtest1),log10(pieced2rhodr2))
             print 'Loaded densities and interpolated'
         
     def rho(self,r):
@@ -335,16 +337,20 @@ class NukerModelRho:
         return (r**-self.g)*(1+r**self.a)**((self.g-self.b)/self.a)
     #and its first
     def drhodr(self,r):
-        return (-r**(-1-self.g))*((1+r**self.a)**((self.g-self.a-self.b)/self.a))*(self.g+self.b*r**self.a)
+        #return (-r**(-1-self.g))*((1+r**self.a)**((self.g-self.a-self.b)/self.a))*(self.g+self.b*r**self.a)
+        return -self.rho(r)*((self.b*(r**self.a)+self.g)/(r+r**(1+self.a)))
     #and second derivatives
     def d2rhodr2(self,r):
-        part1 = r**(-2-self.g)
-        part2 = (1+r**self.a)**((self.g-self.b-2*self.a)/self.a)
-        part3a = self.b*(1+self.b)*r**(2*self.a)
-        part3b = self.g + self.g**2
-        part3c = (self.b - (self.a*self.b) + self.g + (self.a*self.g) + (2*self.b*self.g))*r**self.a
-        part3 = part3a + part3b + part3c
-        return part1*part2*part3
+        #part1 = r**(-2-self.g)
+        #part2 = (1+r**self.a)**((self.g-self.b-2*self.a)/self.a)
+        #part3a = self.b*(1+self.b)*r**(2*self.a)
+        #part3b = self.g + self.g**2
+        #part3c = (self.b - (self.a*self.b) + self.g + (self.a*self.g) + (2*self.b*self.g))*r**self.a
+        #part3 = part3a + part3b + part3c
+        #return part1*part2*part3
+        nume = (1+self.b)*self.b*(r**(2*self.a)) + self.g + self.g**2 + (self.b-self.a*self.b + self.g + self.a*self.g + 2*self.b*self.g)*r**self.a
+        deno = (r**2)*(1+r**self.a)**2
+        return self.rho(r)*(nume/deno)
 
 class SersicModeldIdR:
     #initialize variables that constitute the model
