@@ -67,24 +67,22 @@ rtest = 10**rtest
 alpha = 1.0
 beta = 4.0
 gamma = 1.5
-r0pc = 1.0
-rho0 = 1e5
-MBH_Msun = 1e3
-name = 'finaltestform'
-
+r0pc = 10**2.38#1.0
+M2L = 6.27
+mub = 19.98
+rho0 = findrho0(r0pc,M2L,mub)#1e5
+MBH_Msun = 10**6.04#1e3
+name = 'NGC4467_test'
+Menc,psi,Jc2,g,G,f,rate = 0,1,2,3,4,5,6
 from rhomodels import NukerModelRho
-model = NukerModelRho('{0}1'.format(name),alpha,beta,gamma,r0pc,rho0,MBH_Msun,GENERATE,memo = True)
+model = NukerModelRho('{0}1'.format(name),alpha,beta,gamma,r0pc,rho0,MBH_Msun,GENERATE,memo = False)
 name1 = str(model).split(' ')[0][11:]
-Mencgood,psigood,Jc2good,ggood,Ggood,fgood = getrate(model)
+Mencgood,psigood,Jc2good,ggood,Ggood,fgood,rategood = getrate(model)#,partial = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF",rate:"ON"})
 from rhomodels import NukerModelGenRho
-model1 = NukerModelGenRho('{0}2'.format(name),alpha,beta,gamma,r0pc,rho0,MBH_Msun,GENERATE,memo = True)
+model1 = NukerModelGenRho('{0}2'.format(name),alpha,beta,gamma,r0pc,rho0,MBH_Msun,GENERATE,memo = False)
 name2 = str(model1).split(' ')[0][11:]
 model1.getrho()
-Mencgood1,psigood1,Jc2good1,ggood1,Ggood1,fgood1 = getrate(model1)
-
-
-d = ([model,Jc2good,Ggood,fgood],u)
-d1 = ([model1,Jc2good1,Ggood1,fgood1],u)
+Mencgood1,psigood1,Jc2good1,ggood1,Ggood1,fgood1,rategood1 = getrate(model1)#,partial = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF",rate:"ON"})
 
 rtest2 = arange(-20,20,0.01)
 rtest2 = 10**rtest2
@@ -161,9 +159,11 @@ plt.xlabel(r'$E$')
 plt.title('{0} vs {1}'.format(name1,name2))
 plt.savefig('NukerRhoGals/compimages/newpsi_{0}_{1}_f.png'.format(name1,name2))
 
+u = arange(-4,0,0.04)
+u = 10**u
 plt.figure()
-plt.loglog(u**2,d)
-plt.loglog(u**2,d1)
+plt.loglog(u**2,10**rategood(log10(u)))
+plt.loglog(u**2,10**rategood1(log10(u)))
 plt.ylabel(r'$\frac{d\gamma}{dlnr_p}$')
 plt.xlabel(r'$u^2$')
 plt.title('{0} vs {1}'.format(name1,name2))

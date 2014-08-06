@@ -18,7 +18,8 @@ funcnames.update(dict.fromkeys(['f','DF','df','fgood','distribution','distributi
 funcnames.update(dict.fromkeys(['rho','density'],'rho'))
 funcnames.update(dict.fromkeys(['drhodr'],'drhodr'))
 funcnames.update(dict.fromkeys(['d2rhodr2'],'d2rhodr2'))
-indeps = {'Menc':'r','psi':'r','Jc2':'E','lg':'E','bG':'E','f':'E','rho':'r','drhodr':'r','d2rhodr2':'r'}
+funcnames.update(dict.fromkeys(['dgdlnrp','rate'],'dgdlnrp'))
+indeps = {'Menc':'r','psi':'r','Jc2':'E','lg':'E','bG':'E','f':'E','rho':'r','drhodr':'r','d2rhodr2':'r','dgdlnrp':'u**2'}
                 
 
 devnull = open(os.devnull,'w')
@@ -115,6 +116,16 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting):
 
         return inter2
     elif frac == 1.0:
+        lrarray = log10(rarray)
+        ltab = log10(tab)
+        inter = interp1d(lrarray,ltab)
+        start = tab[0]
+        end = tab[len(rarray)-1]
+        m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp)
+        inter2 = interp1d(log10(r),log10(m))
+        saver = column_stack((r,m))
+        funcname = str(func).split(' ')[1][4:]
+        pklwrite('{0}/{1}.pkl'.format(model.directory,funcname),saver)
         return 0
 
 def compute(dependencies,function,rtest,size,grid,exps,plotdat,create):
@@ -165,15 +176,16 @@ def compute(dependencies,function,rtest,size,grid,exps,plotdat,create):
             dat = pklread('{0}/{1}.pkl'.format(model.directory,strname))
             rarray = dat[:,0]
             tab = dat[:,1]
-            if plotting != False:
+            if plotdat != False:
                 xaxis,yaxis = plotdat
-                plt.loglog(rarray,tab,'c',linewidth = 5)
+                plt.loglog(rarray[1:-1],tab[1:-1],'c',linewidth = 5)
                 plt.ylabel(r'{0}'.format(yaxis))
                 plt.xlabel('{0}'.format(xaxis))
-                plt.xlim(min(rarray),max(rarray))
-                plt.ylim(min(tab),max(tab))
+                plt.xlim(min(rarray[1:-1]),max(rarray[1:-1]))
+                plt.ylim(min(tab[1:-1]),max(tab[1:-1]))
                 plt.title(model.name)
                 model.pdfdump.savefig()
+                plt.close()
             good =  interp1d(log10(rarray),log10(tab))
             print '{0}good loaded in'.format(strname)
             return good
@@ -217,6 +229,31 @@ def integrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],fileobj=devnull,pref
         return prefactor*temp[0],problems
 
 
+def rintegrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],fileobj=devnull,prefactor = 1,div=50):
+    if isinstance(vals,(list,ndarray))==True:
+        problems = []
+        results = []
+        for i in range(len(vals)):
+            with RedirectStdStreams(stdout = fileobj,stderr = fileobj):
+                if args != []:
+                    temp = intg.romberg(fcn[0],downlim[i],uplim[i],args = args[i],tol = tol,divmax = div)
+                elif args == []:
+                    temp = intg.romberg(fcn[0],downlim[i],uplim[i],tol = tol,divmax = div)
+            if prefactor != 1:
+                results.append(prefactor[i]*temp[0])
+            elif prefactor == 1:
+                results.append(temp[0])
+        return array(results),problems
+    elif isinstance(vals,(int,float))==True:
+        problems = []
+        with RedirectStdStreams(stdout = fileobj,stderr = fileobj):
+            if args != []:
+                temp = intg.romberg(fcn[0],downlim,uplim,args = args,tol = tol,divmax = div)
+            elif args == []:
+                temp = intg.romberg(fcn[0],downlim,uplim,tol = tol,divmax = div)
+        return prefactor*temp[0],problems
+
+
 def dblintegrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],fileobj=devnull,prefactor = 1):
     if isinstance(vals,(list,ndarray))==True:
         problems = []
@@ -241,8 +278,8 @@ def dblintegrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],fileobj=devnull,p
                 temp = intg.dblquad(fcn[0],downlim[0],uplim[0],downlim[1],uplim[1],epsabs = tol)
         return prefactor*temp,problems
 
-def fromfileplot(galname,funcname):
-    r = arange(-4,4,0.01)
+def fromfileplot(galname,funcname,up,down):
+    r = arange(down,up,0.01)
     r = 10**r
     success = os.system('ls -d */{0}* > templist.dat'.format(galname))
     if success == 0:

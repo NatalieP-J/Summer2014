@@ -9,11 +9,6 @@ from construction import *
 from subprocess import call
 from suppressor import RedirectStdStreams
 
-try:
-    call(['rm -f', 'construction.pyc'])
-except OSError:
-    pass
-
 def findrho0(rb,M2L,mub):
     MsunV = 4.83
     return (1./rb)*(1./(10)**2)*(206265**2)*M2L*10**((MsunV-mub)/2.5) 
@@ -69,6 +64,18 @@ def rH(prereqs):
         return abs(rresult.x)
 
 ########******************* GRID CREATION  *******************######## 
+
+def stdgrid(prereqs,upstep=5,downstep=-5,step=0.03):
+    """
+    constructs a grid in radius and adds one point at each extreme (up and down)
+    returns 10**grid
+    """
+    model, = prereqs
+    rarray = arange(downstep,upstep,step)
+    rarray = 10**rarray
+    rchange = rarray[len(rarray)-1]
+    rstart = rarray[0]
+    return rarray,rchange,rstart
 
 def rgrid(prereqs,upstep=5,downstep=-5,step=0.03):
     """
@@ -432,7 +439,7 @@ def dgdlnrpinterior(E,prereqs,u,qmin):
     part2 = 1-2*nsum(part2list,axis = 0)
     return part1*part2
 
-def funcdgdlnrp(prereqs,u,Emin = 0.01,Emax=100,verbose = False):
+def funcdgdlnrp(u,prereqs,Emin = 0.01,Emax=100,verbose = False):
     """
     rp - pericentre radius
     Emin, Emax - bounds of the integral
@@ -443,32 +450,22 @@ def funcdgdlnrp(prereqs,u,Emin = 0.01,Emax=100,verbose = False):
     #u = sqrt(rp/model.rT)
     prefactor = (8*pi**2)*model.MBH*(model.r0_rT**-1)*((model.tdyn0/(3600*24*365))**-1)
     #print 'prefactor = ',prefactor
-    qmin = funcq(Emax)
-    qmax = funcq(Emin)
-    try:
-    	result_list = []
-    	for i in range(len(u)):
-    		print i+1, ' of ', len(u)
-    		result = intg.quad(dgdlnrpinterior,Emin,Emax,args = (prereqs,u[i],qmin))#,full_output = 1) #changed from romberg
-    		t = result[0]
-    		result_list.append(prefactor*(u[i]**2)*t)
-    		try:
-        		if result[3] != '':
-        			if verbose == True:
-        				print 'dgdlnrp, rp = ',rp[i], 'message = ',result[3]
-        	except (IndexError,TypeError):
-        		pass
-        return array(result_list)
-    except (AttributeError,TypeError) as e:
-    	result = intg.quad(dgdlnrpinterior,Emin,Emax,args = (u,qmin))#,divmax = 20)#,full_output = 1)
-    	t = result[0]
-    	try:
-    		if result[3] != '':
-    			if verbose == True:
-    				print 'dgdlnrp, rp = ',rp, 'message = ',result[3]
-    	except (IndexError,TypeError):
-    		pass
-    	return prefactor*(u**2)*t #units yr^-1
+    qmin = funcq(Emax,[model,Ggood])
+    qmax = funcq(Emin,[model,Ggood])
+    if isinstance(u,(list,ndarray)) == True:
+        dls = array([Emin]*len(u))
+        uls = array([Emax]*len(u))
+        plist = []
+        pre = []
+        for i in range(len(u)):
+            plist.append(tuple((prereqs,u[i],qmin)))
+            pre.append((8*pi**2)*model.MBH*(model.r0_rT**-1)*((model.tdyn0/(3600*24*365))**-1)*u[i]**2)
+    elif isinstance(u,(int,float)) == True:
+        dls = Emin
+        uls = Emax
+        plist = tuple((prereqs,u,qmin))
+        pre = (8*pi**2)*model.MBH*(model.r0_rT**-1)*((model.tdyn0/(3600*24*365))**-1)*u**2
+    return integrator(u,[dgdlnrpinterior,'rprate'],dls,uls,tol = 1e-3,args = plist,fileobj = model.statfile,prefactor = pre)#,div = 20)
 
 def Ndotinterior(r):
     u = sqrt(r/model.rT)

@@ -7,7 +7,20 @@ from scipy.interpolate import interp1d
 from suppressor import RedirectStdStreams
 import os
 from matplotlib.backends.backend_pdf import PdfPages
+import time
 
+mos = {1:'Jan',2:'Feb',3:'Mar',4:'Apr',5:'May',6:'Jun',7:'Jul',8:'Aug',9:'Sep',10:'Oct',11:'Nov',12:'Dec'}
+
+def gettime():
+    t = str(time.gmtime(time.time())).split(' ')
+    cyr = t[0][25:-1]
+    cmo = mos[int(t[1][7:-1])]
+    cda = t[2][8:-1]
+    hr = t[3][8:-1]
+    mi = t[4][7:-1]
+    se = t[5][7:-1]
+    dtimestr = '{0}-{1}-{2}.{3}.{4}.{5}'.format(cyr,cmo,cda,hr,mi,se)
+    return dtimestr
 
 devnull = open(os.devnull,'w')
 
@@ -60,7 +73,8 @@ class NukerModeldIdR:
         #directory name
         self.directory = 'NukerRhoGals/{0}_dIdR_a{1}_b{2}_g{3}_MBH{4}'.format(self.name,self.a,self.b,self.g,self.MBH)
         call(['mkdir','{0}'.format(self.directory)],stdout = devnull,stderr = devnull)
-        self.statfile = open('{0}/stats.dat'.format(self.directory),'wb')
+        timestr = gettime()
+        self.statfile = open('{0}/stats_{1}.dat'.format(self.directory,timestr),'wb')
         self.pdfdump = PdfPages('{0}/{1}_master.pdf'.format(self.directory,self.name))
         self.memo = memo
         self.p1f = {}
@@ -171,7 +185,8 @@ class NukerModelGenRho:
         #directory name
         self.directory = 'NukerRhoGals/{0}_GenRho_a{1}_b{2}_g{3}_MBH{4}'.format(self.name,self.a,self.b,self.g,self.MBH)
         call(['mkdir','{0}'.format(self.directory)],stdout = devnull,stderr = devnull)
-        self.statfile = open('{0}/stats.dat'.format(self.directory),'wb')
+        timestr = gettime()
+        self.statfile = open('{0}/stats_{1}.dat'.format(self.directory,timestr),'wb')
         self.pdfdump = PdfPages('{0}/{1}_master.pdf'.format(self.directory,self.name))
         self.memo = memo
         self.p1f = {}
@@ -322,7 +337,8 @@ class NukerModelRho:
         #directory name
         self.directory = 'NukerRhoGals/{0}_Rho_a{1}_b{2}_g{3}_MBH{4}'.format(self.name,self.a,self.b,self.g,self.MBH)
         call(['mkdir','{0}'.format(self.directory)],stdout = devnull,stderr = devnull)
-        self.statfile = open('{0}/stats.dat'.format(self.directory),'wb')
+        timestr = gettime()
+        self.statfile = open('{0}/stats_{1}.dat'.format(self.directory,timestr),'wb')
         self.pdfdump = PdfPages('{0}/{1}_master.pdf'.format(self.directory,self.name))
         self.memo = memo
         self.p1f = {}
@@ -390,7 +406,8 @@ class SersicModeldIdR:
         #directory name
         self.directory = 'SersicRhoGals/{0}_dIdR_n{1}_MBH{2}'.format(self.name,self.n.self.MBH)
         call(['mkdir','{0}'.format(self.directory)],stdout = devnull,stderr = devnull)
-        self.statfile = open('{0}/stats.dat'.format(self.directory),'wb')
+        timestr = gettime()
+        self.statfile = open('{0}/stats_{1}.dat'.format(self.directory,timestr),'wb')
         self.pdfdump = PdfPages('{0}/{1}_master.pdf'.format(self.directory,self.name))
         self.memo = memo
         if self.memo == True:
@@ -496,7 +513,8 @@ class SersicModelGenRho:
         #directory name
         self.directory = 'SersicRhoGals/{0}_GenRho_n{1}_MBH{2}'.format(self.name,self.n.self.MBH)
         call(['mkdir','{0}'.format(self.directory)],stdout = devnull,stderr = devnull)
-        self.statfile = open('{0}/stats.dat'.format(self.directory),'wb')
+        timestr = gettime()
+        self.statfile = open('{0}/stats_{1}.dat'.format(self.directory,timestr),'wb')
         self.pdfdump = PdfPages('{0}/{1}_master.pdf'.format(self.directory,self.name))
         self.memo = memo
         if self.memo == True:
@@ -656,7 +674,8 @@ class SersicModelRho:
         #directory name
         self.directory = 'SersicRhoGals/{0}_Rho_n{1}_MBH{2}'.format(self.name,self.n.self.MBH)
         call(['mkdir','{0}'.format(self.directory)],stdout = devnull,stderr = devnull)
-        self.statfile = open('{0}/stats.dat'.format(self.directory),'wb')
+        timestr = gettime()
+        self.statfile = open('{0}/stats_{1}.dat'.format(self.directory,timestr),'wb')
         self.pdfdump = PdfPages('{0}/{1}_master.pdf'.format(self.directory,self.name))
         self.memo = memo
         if self.memo == True:
