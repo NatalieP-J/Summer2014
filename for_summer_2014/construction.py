@@ -162,7 +162,7 @@ def compute(dependencies,function,rtest,size,grid,exps,plotdat,create):
             model.statfile.write('To compute {0}, please turn {1} ON\n'.format(strname,dependencies[i+1]))
     elif create != "ON":
         try:
-            dat = pklread('{0}/{1}.pkl'.format(model.directory,strname)
+            dat = pklread('{0}/{1}.pkl'.format(model.directory,strname))
             rarray = dat[:,0]
             tab = dat[:,1]
             if plotting != False:

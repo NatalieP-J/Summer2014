@@ -296,9 +296,6 @@ def funcbG(E,prereqs):
                     print 'G, E = ', E[i], 'message = ', e
                 problems.append(i)
             Gans.append(temp[0])
-        psibG_memo = {}
-        part2bG_memo = {}
-        part3bG_memo = {}
         return array(Gans),problems
     except AttributeError:
         rapoval = rapo(E,psigood)
@@ -309,15 +306,9 @@ def funcbG(E,prereqs):
             if verbose == True:
                 print 'G, E = ', E, 'message = ', temp[3]
             problem = [E]
-        psibG_memo = {}
-        part2bG_memo = {}
-        part3bG_memo = {}
         return temp[0],problem
 
-'''
-    psibG_memo = {}
-    part2bG_memo = {}
-    part3bG_memo = {}
+def funcbG2(E,prereqs):
     model,psigood,ggood = prereqs
     if isinstance(E,(list,ndarray))==True:
         dls = []
@@ -330,7 +321,7 @@ def funcbG(E,prereqs):
         for i in range(len(E)):
             rapoval = rapo(E[i],[psigood])
             uls1 = append(uls1,rapoval)
-            plist.append(tuple((E[i],prereqs))) #need to get dictionaries out of this loop right now they are erased every time so memoization is no faster
+            plist.append(tuple((E[i],prereqs)))
         uls.append(uls1)
         uls.append(uls2)
     elif isinstance(E,(int,float))==True:
@@ -339,7 +330,24 @@ def funcbG(E,prereqs):
         plist = tuple((E,prereqs))
     return dblintegrator(E,[bGinterior,'G'],dls,uls,args = plist,fileobj = model.statfile)
 '''
-
+def funcbG3(E,prereqs):
+    model,psigood,ggood = prereqs
+    if isinstance(E,(list,ndarray))==True:
+        dls1 = zeros(len(E))
+        dls2 = array([lambda r:1e-4]*len(E))
+        uls1 = array([])
+        uls2 = array([lambda r:1]*len(E))
+        plist = []
+        for i in range(len(E)):
+            rapoval = rapo(E[i],[psigood])
+            uls1 = append(uls1,rapoval)
+            plist.append(tuple((E[i],prereqs)))
+    elif isinstance(E,(int,float))==True:
+        dls = [0,lambda r:1e-4]
+        uls = [rapo(E[i],[psigood]),lambda r:1]
+        plist = tuple((E,prereqs))
+    return dblintegrator(E,[bGinterior,'G'],dls,uls,args = plist,fileobj = model.statfile)
+'''
 ########******************* DISTRIBUTION FUNCTION *******************######## 
 
 def finterior(r,E,rapoval,prereqs):
@@ -390,10 +398,12 @@ def funcf(E,prereqs):
 
 ########******************* ADDITIONAL FUNCTIONS *******************######## 
 
-def funcq(r,Ggood,model):
+def funcq(r,prereqs):
+    model,Ggood = prereqs
     return (4./pi)*log(model.Lam)*(model.r0_rT/model.MBH)*10**Ggood(log10(r))
 
-def Rlc(r,Jc2good,model):
+def Rlc(r,prereqs):
+    model,Jc2good = prereqs
     interior = 2*(model.Mnorm/model.r0_rT)*(1./10**Jc2good(log10(r)))
     return -log(interior)
 
@@ -403,31 +413,33 @@ bessel = BesselGen(['alpham_table.pkl','xi_table.txt','Bessel_table.txt','mpiece
 
 ########******************* RATE *******************########
 
-def dgdlnrpinterior(E,u,qmin):
+def dgdlnrpinterior(E,prereqs,u,qmin):
     """
     interior of the integral used to calculate rate as function of pericentre
     """
+    model,Jc2good,Ggood,fgood = prereqs
     sumlim = max([200,2*qmin**-0.5])
     ms = arange(1,sumlim,1.)
     alphas = bessel.alpham(ms)
-    qval = funcq(E)
+    qval = funcq(E,[model,Ggood])
     fval = 10**fgood(log10(E))
     xival = bessel.xi(qval)
     bfin = bessel.besselfin(ms,u)
     mpiece = bessel.mpiece(ms)
-    part1 = array(fval/(1+(qval**-1)*(xival)*Rlc(E)))
+    part1 = array(fval/(1+(qval**-1)*(xival)*Rlc(E,[model,Jc2good])))
     part2list = exp(-array(matrix(alphas**2).T*matrix(qval/4)))
     part2list = array([(bfin/mpiece)[i]*part2list[i] for i in range(len(alphas))])
     part2 = 1-2*nsum(part2list,axis = 0)
     return part1*part2
 
-def dgdlnrp(u,model,Emin = 0.01,Emax=100,verbose = False):
+def funcdgdlnrp(prereqs,u,Emin = 0.01,Emax=100,verbose = False):
     """
     rp - pericentre radius
     Emin, Emax - bounds of the integral
     verbose = True - print error messages from integration
     returns the rate for given rp
     """
+    model,Jc2good,Ggood,fgood = prereqs
     #u = sqrt(rp/model.rT)
     prefactor = (8*pi**2)*model.MBH*(model.r0_rT**-1)*((model.tdyn0/(3600*24*365))**-1)
     #print 'prefactor = ',prefactor
@@ -437,7 +449,7 @@ def dgdlnrp(u,model,Emin = 0.01,Emax=100,verbose = False):
     	result_list = []
     	for i in range(len(u)):
     		print i+1, ' of ', len(u)
-    		result = intg.quad(dgdlnrpinterior,Emin,Emax,args = (u[i],qmin))#,full_output = 1) #changed from romberg
+    		result = intg.quad(dgdlnrpinterior,Emin,Emax,args = (prereqs,u[i],qmin))#,full_output = 1) #changed from romberg
     		t = result[0]
     		result_list.append(prefactor*(u[i]**2)*t)
     		try:

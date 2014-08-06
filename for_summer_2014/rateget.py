@@ -20,32 +20,46 @@ rtest = append(rtest,40)
 rtest = insert(rtest,0,-40)
 rtest = 10**rtest
 
+def displaycheck():
+    os.system('echo $DISPLAY > tempdisplay')
+    displays = LoadData('tempdisplay')
+    os.system('rm -f tempdisplay')
+    display = displays[0]
+    if display == '':
+        return False
+    elif display != '':
+        return True    
+
 def getrate(model,partial = False):
+    dcheck = displaycheck()
     Menc,psi,Jc2,g,G,f = 0,1,2,3,4,5
     if partial == False:
         if model.generate == False:
             seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF"}
+            if dcheck == False:
+                plottinglist = {Menc:False,psi:False,Jc2:False,g:False,G:False,f:False}
+            if dcheck == True:
+                plottinglist = {Menc:['r','M'],psi:['r',r'$\psi$'],Jc2:['E',r'$J_c^2$'],g:['E','g'],G:['E','G'],f:['E','f']}
         if model.generate == True:
             seton = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON"}
-    if partial != False:
-        seton = partial    
-    try:        
-        os.system('echo $DISPLAY > tempdisplay')
-        displays = LoadData('tempdisplay')
-        os.system('rm -f tempdisplay')
-        display = displays[0]
-        if display == '':
-            plottinglist = {Menc:False,psi:False,Jc2:False,g:False,G:False,f:False}
-        if display != '':
-            plottinglist = {Menc:['r','M'],psi:['r',r'$\psi$'],Jc2:['E',r'$J_c^2$'],g:['E','g'],G:['E','G'],f:['E','f']}
-        
+            if dcheck == False:
+                plottinglist = {Menc:False,psi:False,Jc2:False,g:False,G:False,f:False}
+            if dcheck == True:
+                plottinglist = {Menc:['r','M'],psi:['r',r'$\psi$'],Jc2:['E',r'$J_c^2$'],g:['E','g'],G:['E','G'],f:['E','f']}
+    elif partial != False:
+        seton = partial 
+        plottinglist = {Menc:False,psi:False,Jc2:False,g:False,G:False,f:False}   
+    try:                
         exps = {Menc:[3-model.g,0],psi:[-1,-1],Jc2:[-1,-1],g:[model.b-0.5,model.g-0.5],G:[model.b-4,model.g-4],f:[model.b-1.5,model.g-1.5]}
+
+        sh = {Menc:[4,-6,0.03],psi:[4.3,-6,0.03],Jc2:[3,-4,0.01],g:[3,-3,0.1],G:[3,-3,0.1],f:[5,-3,0.03]}
 
         model.statfile.write('GALAXY: {0}\n'.format(model.name))
 
         model.statfile.write('Menc:\n')
-        rarray,rchange,rstart = rgrid([model],4,-6,0.03)
-        Mencgood = compute([model],funcMenc,rtest,[4,-6,0.03],rgrid,exp[Menc],plottinglist[Menc],seton[Menc])
+        up,down,step = sh[Menc]
+        rarray,rchange,rstart = rgrid([model],up,down,step)
+        Mencgood = compute([model],funcMenc,rtest,sh[Menc],rgrid,exps[Menc],plottinglist[Menc],seton[Menc])
 
         if Mencgood == 0:
             model.statfile.write('Failed to evaluate Menc')
@@ -57,7 +71,7 @@ def getrate(model,partial = False):
             
             model.statfile.write('\npsi:\n')
             pprereqs = [model,'Model',Mencgood,'Menc']
-            psigood = compute(pprereqs,funcpsi,rtest,[4.3,-6,0.03],rgrid,exp[psi],plottinglist[psi],seton[psi])
+            psigood = compute(pprereqs,funcpsi,rtest,sh[psi],rgrid,exps[psi],plottinglist[psi],seton[psi])
     
             if psigood == 0:
                 model.statfile.write('Failed to evaluate psi')
@@ -69,7 +83,7 @@ def getrate(model,partial = False):
                 Jprereqs = [model,'Model',Mencgood,"Menc",psigood,"psi"]
                 
                 model.statfile.write('\nJc2:\n')
-                Jc2good = compute(Jprereqs,funcJc2,rtest,[3,-4,0.01],Egrid,exps[Jc2],plottinglist[Jc2],seton[Jc2])
+                Jc2good = compute(Jprereqs,funcJc2,rtest,sh[Jc2],Egrid,exps[Jc2],plottinglist[Jc2],seton[Jc2])
 
                 if Jc2good == 0:
                     model.statfile.write('Failed to evaluate Jc2')
@@ -82,7 +96,7 @@ def getrate(model,partial = False):
                     lgprereqs = [model,'Model',psigood,"psi"]
                     
                     model.statfile.write('\ng:\n')
-                    ggood = compute(lgprereqs,funclg,rtest,[3,-3,0.1],Egrid,exps[g],plottinglist[g],seton[g])
+                    ggood = compute(lgprereqs,funclg,rtest,sh[g],Egrid,exps[g],plottinglist[g],seton[g])
                 
                     if ggood == 0:
                         model.statfile.write('Failed to evaluate g')
@@ -99,7 +113,7 @@ def getrate(model,partial = False):
                         Gtest = 10**Gtest
                         
                         model.statfile.write('\nG:\n')
-                        Ggood = compute(bGprereqs,funcbG,Gtest,[3,-3,0.1],Egrid,exps[G],plottinglist[G],seton[G])
+                        Ggood = compute(bGprereqs,funcbG,Gtest,sh[G],Egrid,exps[G],plottinglist[G],seton[G])
     
                         if model.memo == True:
                             model.p1bG = {}
@@ -122,7 +136,7 @@ def getrate(model,partial = False):
                             ftest = 10**ftest
                             
                             model.statfile.write('\nf:\n')
-                            fgood = compute(fprereqs,funcf,ftest,[5,-3,0.03],Egrid,exp[f],plottinglist[f],seton[f])
+                            fgood = compute(fprereqs,funcf,ftest,sh[f],Egrid,exp[f],plottinglist[f],seton[f])
                             if fgood == 0:
                                 model.statfile.write('Failed to evaluate f')
                                 model.statfile.close()
