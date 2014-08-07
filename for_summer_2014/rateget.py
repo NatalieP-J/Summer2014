@@ -54,7 +54,7 @@ def getrate(model,partial = False):
         seton = partial 
         plottinglist = {Menc:False,psi:False,Jc2:False,g:False,G:False,f:False,rate:False}   
     try:                
-        exps = {Menc:[3-model.g,0],psi:[-1,-1],Jc2:[-1,-1],g:[model.b-0.5,model.g-0.5],G:[model.b-4,model.g-4],f:[model.b-1.5,model.g-1.5],rate:[1,0]}
+        exps = {Menc:[3-model.g,0],psi:[-1,-1],Jc2:[-1,-1],g:[model.b-0.5,model.g-0.5],G:[model.b-4,model.g-4],f:[model.b-1.5,model.g-1.5],rate:[2,0]}
 
         sh = {Menc:[4,-6,0.03],psi:[4.3,-6,0.03],Jc2:[3,-4,0.01],g:[3,-3,0.1],G:[3,-3,0.1],f:[5,-3,0.03],rate:[0,-4,0.04]}
 
@@ -168,6 +168,12 @@ def getrate(model,partial = False):
                                         os.system('mv {0}/{1}_master.pdf {0}/{1}_complete.pdf'.format(model.directory,model.name))
                                     print('\a')
                                     return Mencgood,psigood,Jc2good,ggood,Ggood,fgood,rategood
+    except ValueError:
+        model.statfile.write('\n\n Failed evaluation')
+        model.statfile.close()
+        model.pdfdump.close()
+        return 0,0,0,0,0,0,0
+                
     except KeyboardInterrupt:
         model.statfile.write('\n\nFunction creation cancelled')
         model.statfile.close()

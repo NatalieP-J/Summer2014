@@ -89,43 +89,32 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting):
     tab,problems = func(rarray,prereqs)
     frac = float(len(problems))/float(len(tab))
     print 'fraction reporting a message: {0}'.format(frac)
-    model.statfile.write('mesg frac = {0}\n'.format(frac))
-    if frac != 1.0:
-        lrarray = log10(rarray)
-        ltab = log10(tab)
-        inter = interp1d(lrarray,ltab)
-        start = tab[0]
-        end = tab[len(rarray)-1]
-        m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp)
-        inter2 = interp1d(log10(r),log10(m))
-        saver = column_stack((r,m))
-        funcname = str(func).split(' ')[1][4:]
-        pklwrite('{0}/{1}.pkl'.format(model.directory,funcname),saver)
-        if plotting != False:
-            xaxis,yaxis = plotting
-            plt.figure()
-            plt.loglog(r[1:-1],m[1:-1],'c',linewidth = 5)
-            plt.loglog(rarray,tab,'.',color = 'DarkOrange')
-            plt.ylabel(r'{0}'.format(yaxis))
-            plt.xlabel('{0}'.format(xaxis))
-            plt.xlim(min(r[1:-1]),max(r[1:-1]))
-            plt.ylim(min(m[1:-1]),max(m[1:-1]))
-            plt.title(model.name)
-            model.pdfdump.savefig()
-            plt.close()
-
+    model.statfile.write('\nmesg frac = {0}\n'.format(frac))
+    neg_test = [k<0 for k in tab]
+    inter = interp1d(log10(rarray),log10(tab))
+    start = tab[0]
+    end = tab[len(rarray)-1]
+    m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp)
+    inter2 = interp1d(log10(r),log10(m))
+    saver = column_stack((r,m))
+    funcname = str(func).split(' ')[1][4:]
+    pklwrite('{0}/{1}.pkl'.format(model.directory,funcname),saver)
+    if frac != 1.0 and plotting != False and len(neg_test) != len(tab):
+        xaxis,yaxis = plotting
+        plt.figure()
+        plt.loglog(r[1:-1],m[1:-1],'c',linewidth = 5)
+        plt.loglog(rarray,tab,'.',color = 'DarkOrange')
+        plt.ylabel(r'{0}'.format(yaxis))
+        plt.xlabel('{0}'.format(xaxis))
+        plt.xlim(min(r[1:-1]),max(r[1:-1]))
+        plt.ylim(min(m[1:-1]),max(m[1:-1]))
+        plt.title(model.name)
+        model.pdfdump.savefig()
+        plt.close()
         return inter2
-    elif frac == 1.0:
-        lrarray = log10(rarray)
-        ltab = log10(tab)
-        inter = interp1d(lrarray,ltab)
-        start = tab[0]
-        end = tab[len(rarray)-1]
-        m = piecewise2(r,inter,start,end,rstart,rchange,smallrexp,largerexp)
-        inter2 = interp1d(log10(r),log10(m))
-        saver = column_stack((r,m))
-        funcname = str(func).split(' ')[1][4:]
-        pklwrite('{0}/{1}.pkl'.format(model.directory,funcname),saver)
+    elif frac != 1.0 and plotting == False and len(neg_test) != len(tab):
+        return inter2
+    elif frac == 1.0 or len(neg_test) == len(tab):
         return 0
 
 def compute(dependencies,function,rtest,size,grid,exps,plotdat,create):
@@ -176,7 +165,8 @@ def compute(dependencies,function,rtest,size,grid,exps,plotdat,create):
             dat = pklread('{0}/{1}.pkl'.format(model.directory,strname))
             rarray = dat[:,0]
             tab = dat[:,1]
-            if plotdat != False:
+            neg_test = [k<0 for k in tab]
+            if plotdat != False and len(tab) != len(neg_test):
                 xaxis,yaxis = plotdat
                 plt.loglog(rarray[1:-1],tab[1:-1],'c',linewidth = 5)
                 plt.ylabel(r'{0}'.format(yaxis))
