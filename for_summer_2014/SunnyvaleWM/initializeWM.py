@@ -8,7 +8,7 @@ def makeWMfiles(rangeval):
 		f = open('WMrateget{0}.py'.format(i+1),'wb')
 		f.write('i = {0}\n'.format(i))
 		f.close()
-		os.system('cat WMrateget.py >> WMrateget{0}.py'.format(i+1))
+		os.system('cat templateWMrateget.py >> WMrateget{0}.py'.format(i+1))
 
 rangeval = 2
 
