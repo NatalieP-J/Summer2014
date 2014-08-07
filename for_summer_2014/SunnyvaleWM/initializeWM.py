@@ -10,9 +10,9 @@ def makeWMfiles(rangeval):
 		f.close()
 		os.system('cat WMrateget.py >> WMrateget{0}.py'.format(i+1))
 
-rangeval = 7
+rangeval = 2
 
-makeWMfiles(7)
+makeWMfiles(rangeval)
 
 def worker(i):
 	subprocess.Popen(['python','WMrateget{0}.py'.format(i+1)])

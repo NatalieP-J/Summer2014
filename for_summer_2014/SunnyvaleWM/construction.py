@@ -90,7 +90,7 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting):
     frac = float(len(problems))/float(len(tab))
     print 'fraction reporting a message: {0}'.format(frac)
     model.statfile.write('\nmesg frac = {0}\n'.format(frac))
-    neg_test = [k<0 for k in tab]
+    neg_test = tab[where(tab<0)]
     inter = interp1d(log10(rarray),log10(tab))
     start = tab[0]
     end = tab[len(rarray)-1]
@@ -165,7 +165,7 @@ def compute(dependencies,function,rtest,size,grid,exps,plotdat,create):
             dat = pklread('{0}/{1}.pkl'.format(model.directory,strname))
             rarray = dat[:,0]
             tab = dat[:,1]
-            neg_test = [k<0 for k in tab]
+            neg_test = tab[where(tab<0)]
             if plotdat != False and len(tab) != len(neg_test):
                 xaxis,yaxis = plotdat
                 plt.loglog(rarray[1:-1],tab[1:-1],'c',linewidth = 5)
