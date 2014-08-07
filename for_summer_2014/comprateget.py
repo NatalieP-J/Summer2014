@@ -49,7 +49,7 @@ def rarray(bottom,top,step,edgy1,edgy2):
 	vals = insert(rtest,0,edgy2)
 	return 10**vals
 
-GENERATE = True
+GENERATE = False
 
 MsunV = 4.83
 Gconst = 6.67259e-8
