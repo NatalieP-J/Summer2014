@@ -168,6 +168,12 @@ def getrate(model,partial = False):
                                         os.system('mv {0}/{1}_master.pdf {0}/{1}_complete.pdf'.format(model.directory,model.name))
                                     print('\a')
                                     return Mencgood,psigood,Jc2good,ggood,Ggood,fgood,rategood
+    except ValueError:
+        model.statfile.write('\n\n Failed evaluation')
+        model.statfile.close()
+        model.pdfdump.close()
+        return 0,0,0,0,0,0,0
+                
     except KeyboardInterrupt:
         model.statfile.write('\n\nFunction creation cancelled')
         model.statfile.close()
