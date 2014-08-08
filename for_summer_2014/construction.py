@@ -166,7 +166,7 @@ def compute(dependencies,function,rtest,size,grid,exps,plotdat,create):
             rarray = dat[:,0]
             tab = dat[:,1]
             neg_test = tab[where(tab<0)]
-            if plotdat != False and len(tab) != len(neg_test):
+            if plotdat != False:# and len(tab) != len(neg_test):
                 xaxis,yaxis = plotdat
                 plt.loglog(rarray[1:-1],tab[1:-1],'c',linewidth = 5)
                 plt.ylabel(r'{0}'.format(yaxis))
@@ -271,7 +271,7 @@ def dblintegrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],fileobj=devnull,p
 def fromfileplot(galname,funcname,up,down):
     r = arange(down,up,0.01)
     r = 10**r
-    success = os.system('ls -d */{0}* > templist.dat'.format(galname))
+    success = os.system('ls -d */*{0}* > templist.dat'.format(galname))
     if success == 0:
         avails = LoadData('templist.dat')
         os.system('rm -f templist.dat')
@@ -303,9 +303,9 @@ def fromfileplot(galname,funcname,up,down):
         
 
 def fromfileplotall(galname):
-    r = arange(-4,4,0.01)
+    r = arange(-7,7,0.01)
     r = 10**r
-    success = os.system('ls -d */{0}* > templist.dat'.format(galname))
+    success = os.system('ls -d */*{0}* > templist.dat'.format(galname))
     if success == 0:
         avails = LoadData('templist.dat')
         os.system('rm -f templist.dat')
@@ -320,58 +320,74 @@ def fromfileplotall(galname):
             direc = avails[i]
         elif len(avails) == 1:
             direc = avails[0]
-    dat = pklread('{0}/{1}.pkl'.format(direc,'Menc'),"rb")
-    rarray = dat[:,0]
-    tab = dat[:,1]
-    Mgood =  interp1d(log10(rarray),log10(tab))
-    plt.figure()
-    plt.loglog(r,10**Mgood(log10(r)))
-    plt.xlabel(r'$r$')
-    plt.ylabel(r'$M_{enc}$')
-    plt.title(name)
-    dat = pklread('{0}/{1}.pkl'.format(direc,'psi'),"rb")
-    rarray = dat[:,0]
-    tab = dat[:,1]
-    Mgood =  interp1d(log10(rarray),log10(tab))
-    plt.figure()
-    plt.loglog(r,10**Mgood(log10(r)))
-    plt.xlabel(r'$r$')
-    plt.ylabel(r'$\psi$')
-    plt.title(name)
-    dat = pklread('{0}/{1}.pkl'.format(direc,'Jc2'),"rb")
-    rarray = dat[:,0]
-    tab = dat[:,1]
-    Mgood =  interp1d(log10(rarray),log10(tab))
-    plt.figure()
-    plt.loglog(r,10**Mgood(log10(r)))
-    plt.xlabel(r'$E$')
-    plt.ylabel(r'$J_c^2$')
-    plt.title(name)
-    dat = pklread('{0}/{1}.pkl'.format(direc,'lg'),"rb")
-    rarray = dat[:,0]
-    tab = dat[:,1]
-    Mgood =  interp1d(log10(rarray),log10(tab))
-    plt.figure()
-    plt.loglog(r,10**Mgood(log10(r)))
-    plt.xlabel(r'$E$')
-    plt.ylabel(r'$g$')
-    plt.title(name)
-    dat = pklread('{0}/{1}.pkl'.format(direc,'bG'),"rb")
-    rarray = dat[:,0]
-    tab = dat[:,1]
-    Mgood =  interp1d(log10(rarray),log10(tab))
-    plt.figure()
-    plt.loglog(r,10**Mgood(log10(r)))
-    plt.xlabel(r'$E$')
-    plt.ylabel(r'$G$')
-    plt.title(name)
-    dat = pklread('{0}/{1}.pkl'.format(direc,'f'),"rb")
-    rarray = dat[:,0]
-    tab = dat[:,1]
-    Mgood =  interp1d(log10(rarray),log10(tab))
-    plt.figure()
-    plt.loglog(r,10**Mgood(log10(r)))
-    plt.xlabel(r'$E$')
-    plt.ylabel(r'$f$')
-    plt.title(name)
-    plt.show()
+    pp = PdfPages('{0}/made.pdf'.format(direc))
+    try:
+        dat = pklread('{0}/{1}.pkl'.format(direc,'Menc'))
+        rarray = dat[:,0]
+        tab = dat[:,1]
+        Mgood =  interp1d(log10(rarray),log10(tab))
+        plt.figure()
+        plt.loglog(r,10**Mgood(log10(r)))
+        plt.xlabel(r'$r$')
+        plt.ylabel(r'$M_{enc}$')
+        plt.title(galname)
+        pp.savefig()
+        plt.close()
+        dat = pklread('{0}/{1}.pkl'.format(direc,'psi'))
+        rarray = dat[:,0]
+        tab = dat[:,1]
+        Mgood =  interp1d(log10(rarray),log10(tab))
+        plt.figure()
+        plt.loglog(r,10**Mgood(log10(r)))
+        plt.xlabel(r'$r$')
+        plt.ylabel(r'$\psi$')
+        plt.title(galname)
+        pp.savefig()
+        plt.close()
+        dat = pklread('{0}/{1}.pkl'.format(direc,'Jc2'))
+        rarray = dat[:,0]
+        tab = dat[:,1]
+        Mgood =  interp1d(log10(rarray),log10(tab))
+        plt.figure()
+        plt.loglog(r,10**Mgood(log10(r)))
+        plt.xlabel(r'$E$')
+        plt.ylabel(r'$J_c^2$')
+        plt.title(galname)
+        pp.savefig()
+        plt.close()
+        dat = pklread('{0}/{1}.pkl'.format(direc,'lg'))
+        rarray = dat[:,0]
+        tab = dat[:,1]
+        Mgood =  interp1d(log10(rarray),log10(tab))
+        plt.figure()
+        plt.loglog(r,10**Mgood(log10(r)))
+        plt.xlabel(r'$E$')
+        plt.ylabel(r'$g$')
+        plt.title(galname)
+        pp.savefig()
+        plt.close()
+        dat = pklread('{0}/{1}.pkl'.format(direc,'bG'))
+        rarray = dat[:,0]
+        tab = dat[:,1]
+        Mgood =  interp1d(log10(rarray),log10(tab))
+        plt.figure()
+        plt.loglog(r,10**Mgood(log10(r)))
+        plt.xlabel(r'$E$')
+        plt.ylabel(r'$G$')
+        plt.title(galname)
+        pp.savefig()
+        plt.close()
+        dat = pklread('{0}/{1}.pkl'.format(direc,'f'))
+        rarray = dat[:,0]
+        tab = dat[:,1]
+        Mgood =  interp1d(log10(rarray),log10(tab))
+        plt.figure()
+        plt.loglog(r,10**Mgood(log10(r)))
+        plt.xlabel(r'$E$')
+        plt.ylabel(r'$f$')
+        plt.title(galname)
+        pp.savefig()
+        plt.close()
+        pp.close()
+    except IOError:
+        pp.close()
