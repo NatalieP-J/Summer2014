@@ -511,7 +511,7 @@ class SersicModelGenRho:
         #start a new directory?
         self.generate = generate
         #directory name
-        self.directory = 'SersicRhoGals/{0}_GenRho_n{1}_MBH{2}'.format(self.name,self.n.self.MBH)
+        self.directory = 'SersicRhoGals/{0}_GenRho_n{1}_MBH{2}'.format(self.name,self.n,self.MBH)
         call(['mkdir','{0}'.format(self.directory)],stdout = devnull,stderr = devnull)
         timestr = gettime()
         self.statfile = open('{0}/stats_{1}.dat'.format(self.directory,timestr),'wb')
@@ -526,13 +526,13 @@ class SersicModelGenRho:
         return exp(-self.b*(r**(1./self.n)))
 
     def dIdR(self,r):
-        return -self.I(r)*(self.b/self.n)*r**(-1.+(1./n))
+        return -self.I(r)*(self.b/self.n)*r**(-1.+(1./self.n))
 
-    def dI2dR2(self,r):
-        return self.I(r)*(self.b/self.n**2)*(-1+self.n+self.b*r**(1./n))*r**(-2.+(1./n))
+    def d2IdR2(self,r):
+        return self.I(r)*(self.b/self.n**2)*(-1+self.n+self.b*r**(1./self.n))*r**(-2.+(1./self.n))
     
-    def dI3dR3(self,r):
-        return self.I(r)*(self.b/self.n**3)*(-1+3*self.n-2*self.n**2-3*self.b*(-1+n)*r**(1./n)-k**2*r**(2./n))*r**(-3+(1./n))
+    def d3IdR3(self,r):
+        return self.I(r)*(self.b/self.n**3)*(-1+3*self.n-2*self.n**2-3*self.b*(-1+self.n)*r**(1./self.n)-self.b**2*r**(2./self.n))*r**(-3+(1./self.n))
 
     #use luminosity density to compute rho
     def rhointerior(self,theta,r):
@@ -552,7 +552,7 @@ class SersicModelGenRho:
     
     #and its first
     def drhodrinterior(self,theta,r):
-        return self.d2IdR2_2(r/cos(theta))/cos(theta)**2
+        return self.d2IdR2(r/cos(theta))/cos(theta)**2
 
     def funcdrhodr(self,r,verbose = False):
         try:
@@ -568,7 +568,7 @@ class SersicModelGenRho:
     
     #and second derivative
     def d2rhodr2interior(self,theta,r):
-        return self.d3IdR3_2(r/cos(theta))/cos(theta)**3
+        return self.d3IdR3(r/cos(theta))/cos(theta)**3
 
     def funcd2rhodr2(self,r,verbose = False):
         try:
