@@ -91,6 +91,7 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting):
     print 'fraction reporting a message: {0}'.format(frac)
     model.statfile.write('\nmesg frac = {0}\n'.format(frac))
     neg_test = tab[where(tab<0)]
+    nan_test = tab[where(isnan(tab)==True)]
     inter = interp1d(log10(rarray),log10(tab))
     start = tab[0]
     end = tab[len(rarray)-1]
@@ -99,7 +100,7 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting):
     saver = column_stack((r,m))
     funcname = str(func).split(' ')[1][4:]
     pklwrite('{0}/{1}.pkl'.format(model.directory,funcname),saver)
-    if frac != 1.0 and plotting != False and len(neg_test) != len(tab):
+    if plotting != False and len(neg_test) != len(tab) and len(nan_test) != len(tab) and (len(neg_test)+len(nan_test)) != len(tab):
         xaxis,yaxis = plotting
         plt.figure()
         plt.loglog(r[1:-1],m[1:-1],'c',linewidth = 5)
@@ -112,9 +113,9 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting):
         model.pdfdump.savefig()
         plt.close()
         return inter2
-    elif frac != 1.0 and plotting == False and len(neg_test) != len(tab):
+    elif plotting == False and len(neg_test) != len(tab) and len(nan_test) != len(tab) and (len(neg_test)+len(nan_test)) != len(tab):
         return inter2
-    elif frac == 1.0 or len(neg_test) == len(tab):
+    elif len(neg_test) == len(tab) or len(nan_test) == len(tab) or (len(neg_test)+len(nan_test)) == len(tab):
         return 0
 
 def compute(dependencies,function,rtest,size,grid,exps,plotdat,create):
@@ -271,7 +272,7 @@ def dblintegrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],fileobj=devnull,p
 def fromfileplot(galname,funcname,up,down):
     r = arange(down,up,0.01)
     r = 10**r
-    success = os.system('ls -d */{0}* > templist.dat'.format(galname))
+    success = os.system('ls -d */*{0}* > templist.dat'.format(galname))
     if success == 0:
         avails = LoadData('templist.dat')
         os.system('rm -f templist.dat')
@@ -305,7 +306,7 @@ def fromfileplot(galname,funcname,up,down):
 def fromfileplotall(galname):
     r = arange(-4,4,0.01)
     r = 10**r
-    success = os.system('ls -d */{0}* > templist.dat'.format(galname))
+    success = os.system('ls -d */*{0}* > templist.dat'.format(galname))
     if success == 0:
         avails = LoadData('templist.dat')
         os.system('rm -f templist.dat')
@@ -320,58 +321,60 @@ def fromfileplotall(galname):
             direc = avails[i]
         elif len(avails) == 1:
             direc = avails[0]
-    dat = pklread('{0}/{1}.pkl'.format(direc,'Menc'),"rb")
-    rarray = dat[:,0]
-    tab = dat[:,1]
-    Mgood =  interp1d(log10(rarray),log10(tab))
-    plt.figure()
-    plt.loglog(r,10**Mgood(log10(r)))
-    plt.xlabel(r'$r$')
-    plt.ylabel(r'$M_{enc}$')
-    plt.title(name)
-    dat = pklread('{0}/{1}.pkl'.format(direc,'psi'),"rb")
-    rarray = dat[:,0]
-    tab = dat[:,1]
-    Mgood =  interp1d(log10(rarray),log10(tab))
-    plt.figure()
-    plt.loglog(r,10**Mgood(log10(r)))
-    plt.xlabel(r'$r$')
-    plt.ylabel(r'$\psi$')
-    plt.title(name)
-    dat = pklread('{0}/{1}.pkl'.format(direc,'Jc2'),"rb")
-    rarray = dat[:,0]
-    tab = dat[:,1]
-    Mgood =  interp1d(log10(rarray),log10(tab))
-    plt.figure()
-    plt.loglog(r,10**Mgood(log10(r)))
-    plt.xlabel(r'$E$')
-    plt.ylabel(r'$J_c^2$')
-    plt.title(name)
-    dat = pklread('{0}/{1}.pkl'.format(direc,'lg'),"rb")
-    rarray = dat[:,0]
-    tab = dat[:,1]
-    Mgood =  interp1d(log10(rarray),log10(tab))
-    plt.figure()
-    plt.loglog(r,10**Mgood(log10(r)))
-    plt.xlabel(r'$E$')
-    plt.ylabel(r'$g$')
-    plt.title(name)
-    dat = pklread('{0}/{1}.pkl'.format(direc,'bG'),"rb")
-    rarray = dat[:,0]
-    tab = dat[:,1]
-    Mgood =  interp1d(log10(rarray),log10(tab))
-    plt.figure()
-    plt.loglog(r,10**Mgood(log10(r)))
-    plt.xlabel(r'$E$')
-    plt.ylabel(r'$G$')
-    plt.title(name)
-    dat = pklread('{0}/{1}.pkl'.format(direc,'f'),"rb")
-    rarray = dat[:,0]
-    tab = dat[:,1]
-    Mgood =  interp1d(log10(rarray),log10(tab))
-    plt.figure()
-    plt.loglog(r,10**Mgood(log10(r)))
-    plt.xlabel(r'$E$')
-    plt.ylabel(r'$f$')
-    plt.title(name)
-    plt.show()
+        dat = pklread('{0}/{1}.pkl'.format(direc,'Menc'))
+        rarray = dat[:,0]
+        tab = dat[:,1]
+        Mgood =  interp1d(log10(rarray),log10(tab))
+        plt.figure()
+        plt.loglog(r,10**Mgood(log10(r)))
+        plt.xlabel(r'$r$')
+        plt.ylabel(r'$M_{enc}$')
+        plt.title(name)
+        dat = pklread('{0}/{1}.pkl'.format(direc,'psi'))
+        rarray = dat[:,0]
+        tab = dat[:,1]
+        Mgood =  interp1d(log10(rarray),log10(tab))
+        plt.figure()
+        plt.loglog(r,10**Mgood(log10(r)))
+        plt.xlabel(r'$r$')
+        plt.ylabel(r'$\psi$')
+        plt.title(name)
+        dat = pklread('{0}/{1}.pkl'.format(direc,'Jc2'))
+        rarray = dat[:,0]
+        tab = dat[:,1]
+        Mgood =  interp1d(log10(rarray),log10(tab))
+        plt.figure()
+        plt.loglog(r,10**Mgood(log10(r)))
+        plt.xlabel(r'$E$')
+        plt.ylabel(r'$J_c^2$')
+        plt.title(name)
+        dat = pklread('{0}/{1}.pkl'.format(direc,'lg'))
+        rarray = dat[:,0]
+        tab = dat[:,1]
+        Mgood =  interp1d(log10(rarray),log10(tab))
+        plt.figure()
+        plt.loglog(r,10**Mgood(log10(r)))
+        plt.xlabel(r'$E$')
+        plt.ylabel(r'$g$')
+        plt.title(name)
+        dat = pklread('{0}/{1}.pkl'.format(direc,'bG'))
+        rarray = dat[:,0]
+        tab = dat[:,1]
+        Mgood =  interp1d(log10(rarray),log10(tab))
+        plt.figure()
+        plt.loglog(r,10**Mgood(log10(r)))
+        plt.xlabel(r'$E$')
+        plt.ylabel(r'$G$')
+        plt.title(name)
+        dat = pklread('{0}/{1}.pkl'.format(direc,'f'))
+        rarray = dat[:,0]
+        tab = dat[:,1]
+        Mgood =  interp1d(log10(rarray),log10(tab))
+        plt.figure()
+        plt.loglog(r,10**Mgood(log10(r)))
+        plt.xlabel(r'$E$')
+        plt.ylabel(r'$f$')
+        plt.title(name)
+        plt.show()
+    elif success != 0:
+        print 'There do not appear to be any directories with that galaxy name, terminating plot'

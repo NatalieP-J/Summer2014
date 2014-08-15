@@ -9,7 +9,7 @@ def makeWMfiles(rangeval):
 		f.write('i = {0}\n'.format(i))
 		f.close()
 		os.system('cat templateWMrateget.py >> WMrateget{0}.py'.format(i+1))
-
+'''
 rangeval = 2
 
 makeWMfiles(rangeval)
@@ -21,3 +21,4 @@ if __name__ == '__main__':
 	for i in range(rangeval):
 		p = multiprocessing.Process(target=worker(i))
 		p.start()
+'''
