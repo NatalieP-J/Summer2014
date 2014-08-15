@@ -7,21 +7,25 @@ from rhomodels import NukerModelGenRho
 import sys
 from loadWM import getWM
 
+i = sys.argv[1]
+
+WM,names,dists,rbs,mubs,alphas,betas,gammas,M2Ls,MBH1s,MBH2s = getWM()
+
 GENERATE = True
 
-name = sys.argv[1]
-alpha = sys.argv[2]
-beta = sys.argv[3]
-gamma = sys.argv[4]
-M2L = sys.argv[5]
-MBH_Msun = sys.argv[6]
-rb = sys.argv[8]
-mub = sys.argv[9]
+name = names[i]
+alpha = alphas[i]
+beta = betas[i]
+gamma = gammas[i]
+M2L = M2Ls[i]
+MBH_Msun = MBH1s[i]
+rb = rbs[i]
+mub = mubs[i]
 rho0 = findrho0(rb,M2L,mub)
 model1 = NukerModelGenRho('{0}_1'.format(name),alpha,beta,gamma,rb,rho0,MBH_Msun,GENERATE,memo = False)
 model1.getrho()
 Mencgood,psigood,Jc2good,ggood,Ggood,fgood,rategood = getrate(model1)
-MBH_Msun = sys.argv[7]
+MBH_Msun = MBH2s[i]
 model2 = NukerModelGenRho('{0}_2'.format(name),alpha,beta,gamma,rb,rho0,MBH_Msun,GENERATE,memo = False)
 model2.getrho()
 Mencgood,psigood,Jc2good,ggood,Ggood,fgood,rategood = getrate(model2)

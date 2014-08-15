@@ -20,7 +20,7 @@ rtest = append(rtest,40)
 rtest = insert(rtest,0,-40)
 rtest = 10**rtest
 
-utest = arange(-7,0,0.01)
+utest = arange(-7,0.01,0.01)
 utest = insert(utest,0,-40)
 utest = 10**utest
 
@@ -168,7 +168,8 @@ def getrate(model,partial = False):
                                         os.system('mv {0}/{1}_master.pdf {0}/{1}_complete.pdf'.format(model.directory,model.name))
                                     print('\a')
                                     return Mencgood,psigood,Jc2good,ggood,Ggood,fgood,rategood
-    except ValueError:
+    except ValueError as e:
+        print e
         model.statfile.write('\n\n Failed evaluation')
         model.statfile.close()
         model.pdfdump.close()
