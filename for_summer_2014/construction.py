@@ -268,7 +268,7 @@ def dblintegrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],fileobj=devnull,p
                 temp = intg.dblquad(fcn[0],downlim[0],uplim[0],downlim[1],uplim[1],epsabs = tol)
         return prefactor*temp,problems
 
-def fromfileplot(galname,funcname,up,down):
+def fromfileplot(galname,funcname,down,up):
     r = arange(down,up,0.01)
     r = 10**r
     success = os.system('ls -d */*{0}* > templist.dat'.format(galname))
@@ -385,6 +385,19 @@ def fromfileplotall(galname):
         plt.loglog(r,10**Mgood(log10(r)))
         plt.xlabel(r'$E$')
         plt.ylabel(r'$f$')
+        plt.title(galname)
+        pp.savefig()
+        plt.close()
+        dat = pklread('{0}/{1}.pkl'.format(direc,'dgdlnrp'))
+        rarray = dat[:,0]
+        tab = dat[:,1]
+        Mgood =  interp1d(log10(rarray),log10(tab))
+        u = arange(-2,0)
+        u = 10**u
+        plt.figure()
+        plt.loglog(u,10**Mgood(log10(u)))
+        plt.xlabel(r'$r_p/r_T$')
+        plt.ylabel(r'$d\gamma/dlnr_p$')
         plt.title(galname)
         pp.savefig()
         plt.close()
