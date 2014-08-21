@@ -4,6 +4,7 @@ from subprocess import call
 from matplotlib.backends.backend_pdf import PdfPages
 import os
 from construction import LoadData
+from construction import pklread
 
 GENERATE = False
 
@@ -32,38 +33,72 @@ def displaycheck():
     if display == '':
         return False
     elif display != '':
-        return True    
+        return True
 
+def existcheck(directory,dcheck):
+    seton = {}
+    plottinglist = {}
+    gvals = {}
+    prereqs = [[],['Menc'],['Menc','psi'],['psi'],['psi','g'],['Menc','psi'],['Jc2','G','f']]
+    strnames = ['Menc','psi','Jc2','g','G','f','dgdlnrp']
+    pvals = [['r','M'],['r',r'$\psi$'],['E',r'$J_c^2$'],['E','g'],['E','G'],['E','f'],[r'$u^2$',r'$\frac{dg}{dlnr_p}$']]
+    for i in range(len(strnames)):
+        prechecks = array([])
+        for j in range(len(prereqs[i])):
+            prechecks = append(prechecks,gvals[prereqs[i][j]])
+        prepass = len(prechecks) - len(prechecks[where(prechecks == True)])
+        try:
+            vals = pklread('{0}/{1}.pkl'.format(directory,strnames[i]))
+            gcheck = goodcheck(vals[:,1])
+            gvals[strnames[i]] = gcheck
+            if gcheck == True and prepass == 0:
+                seton[strnames[i]] = 'OFF'
+                if dcheck == True:
+                    plottinglist[strnames[i]] = pvals[i]
+                if dcheck == False:
+                    plottinglist[strnames[i]] = False
+            if gcheck != True or prepass != 0:
+                seton[strnames[i]] = 'FAIL'
+                plottinglist[strnames[i]] = False
+        except IOError:
+            gvals[strnames[i]] = False
+            if prepass == 0:
+                seton[strnames[i]] = 'ON'
+                if dcheck == True:
+                    plottinglist[strnames[i]] = pvals[i]
+                if dcheck == False:
+                    plottinglist[strnames[i]] = False
+            if prepass != 0:
+                seton[strnames[i]] = 'FAIL'
+                plottinglist[strnames[i]] = False
+    return seton,plottinglist
+            
 def getrate(model,partial = False):
     dcheck = displaycheck()
     Menc,psi,Jc2,g,G,f,rate = 0,1,2,3,4,5,6
     if partial == False:
         if model.generate == False:
-            seton = {Menc:"OFF",psi:"OFF",Jc2:"OFF",g:"OFF",G:"OFF",f:"OFF",rate:"OFF"}
-            if dcheck == False:
-                plottinglist = {Menc:False,psi:False,Jc2:False,g:False,G:False,f:False,rate:"OFF"}
-            if dcheck == True:
-                plottinglist = {Menc:['r','M'],psi:['r',r'$\psi$'],Jc2:['E',r'$J_c^2$'],g:['E','g'],G:['E','G'],f:['E','f'],rate:[r'$u^2$',r'$\frac{dg}{dlnr_p}$']}
+            seton,plottinglist = existcheck(model.directory,dcheck)
         if model.generate == True:
-            seton = {Menc:"ON",psi:"ON",Jc2:"ON",g:"ON",G:"ON",f:"ON",rate:"ON"}
+            seton = {'Menc':"ON",'psi':"ON",'Jc2':"ON",'g':"ON",'G':"ON",'f':"ON",'dgdlnrp':"ON"}
             if dcheck == False:
-                plottinglist = {Menc:False,psi:False,Jc2:False,g:False,G:False,f:False,rate:False}
+                plottinglist = {'Menc':False,'psi':False,'Jc2':False,'g':False,'G':False,'f':False,'dgdlnrp':False}
             if dcheck == True:
-                plottinglist = {Menc:['r','M'],psi:['r',r'$\psi$'],Jc2:['E',r'$J_c^2$'],g:['E','g'],G:['E','G'],f:['E','f'],rate:[r'$u^2$',r'$\frac{dg}{dlnr_p}$']}
+                plottinglist = {'Menc':['r','M'],'psi':['r',r'$\psi$'],'Jc2':['E',r'$J_c^2$'],'g':['E','g'],'G':['E','G'],'f':['E','f'],'dgdlnrp':[r'$u^2$',r'$\frac{dg}{dlnr_p}$']}
     elif partial != False:
         seton = partial 
-        plottinglist = {Menc:False,psi:False,Jc2:False,g:False,G:False,f:False,rate:False}   
+        plottinglist = {'Menc':False,'psi':False,'Jc2':False,'g':False,'G':False,'f':False,'dgdlnrp':False}   
     try:                
-        exps = {Menc:[3-model.g,0],psi:[-1,-1],Jc2:[-1,-1],g:[model.b-0.5,model.g-0.5],G:[model.b-4,model.g-4],f:[model.b-1.5,model.g-1.5],rate:[2,0]}
+        exps = {'Menc':[3-model.g,0],'psi':[-1,-1],'Jc2':[-1,-1],'g':[model.b-0.5,model.g-0.5],'G':[model.b-4,model.g-4],'f':[model.b-1.5,model.g-1.5],'dgdlnrp':[2,0]}
 
-        sh = {Menc:[4,-6,0.03],psi:[4.3,-6,0.03],Jc2:[3,-4,0.01],g:[3,-3,0.1],G:[3,-3,0.1],f:[5,-3,0.03],rate:[0,-4,0.04]}
+        sh = {'Menc':[4,-6,0.03],'psi':[4.3,-6,0.03],'Jc2':[3,-4,0.01],'g':[3,-3,0.1],'G':[3,-3,0.1],'f':[5,-3,0.03],'rate':[0,-4,0.04]}
 
         model.statfile.write('GALAXY: {0}\n'.format(model.name))
 
         model.statfile.write('Menc:\n')
         up,down,step = sh[Menc]
         rarray,rchange,rstart = rgrid([model],up,down,step)
-        Mencgood = compute([model],funcMenc,rtest,sh[Menc],rgrid,exps[Menc],plottinglist[Menc],seton[Menc])
+        Mencgood = compute([model],funcMenc,rtest,sh['Menc'],rgrid,exps['Menc'],plottinglist['Menc'],seton['Menc'])
 
         if Mencgood == 0:
             model.statfile.write('Failed to evaluate Menc')
@@ -75,7 +110,7 @@ def getrate(model,partial = False):
             
             model.statfile.write('\npsi:\n')
             pprereqs = [model,'Model',Mencgood,'Menc']
-            psigood = compute(pprereqs,funcpsi,rtest,sh[psi],rgrid,exps[psi],plottinglist[psi],seton[psi])
+            psigood = compute(pprereqs,funcpsi,rtest,sh['psi'],rgrid,exps['psi'],plottinglist['psi'],seton['psi'])
     
             if psigood == 0:
                 model.statfile.write('Failed to evaluate psi')
@@ -87,7 +122,7 @@ def getrate(model,partial = False):
                 Jprereqs = [model,'Model',Mencgood,"Menc",psigood,"psi"]
                 
                 model.statfile.write('\nJc2:\n')
-                Jc2good = compute(Jprereqs,funcJc2,rtest,sh[Jc2],Egrid,exps[Jc2],plottinglist[Jc2],seton[Jc2])
+                Jc2good = compute(Jprereqs,funcJc2,rtest,sh['Jc2'],Egrid,exps['Jc2'],plottinglist['Jc2'],seton['Jc2'])
 
                 if Jc2good == 0:
                     model.statfile.write('Failed to evaluate Jc2')
@@ -100,7 +135,7 @@ def getrate(model,partial = False):
                     lgprereqs = [model,'Model',psigood,"psi"]
                     
                     model.statfile.write('\ng:\n')
-                    ggood = compute(lgprereqs,funclg,rtest,sh[g],Egrid,exps[g],plottinglist[g],seton[g])
+                    ggood = compute(lgprereqs,funclg,rtest,sh['g'],Egrid,exps['g'],plottinglist['g'],seton['g'])
                 
                     if ggood == 0:
                         model.statfile.write('Failed to evaluate g')
@@ -117,7 +152,7 @@ def getrate(model,partial = False):
                         Gtest = 10**Gtest
                         
                         model.statfile.write('\nG:\n')
-                        Ggood = compute(bGprereqs,funcbG,Gtest,sh[G],Egrid,exps[G],plottinglist[G],seton[G])
+                        Ggood = compute(bGprereqs,funcbG,Gtest,sh['G'],Egrid,exps['G'],plottinglist['G'],seton['G'])
     
                         if model.memo == True:
                             model.p1bG = {}
@@ -140,7 +175,7 @@ def getrate(model,partial = False):
                             ftest = 10**ftest
                             
                             model.statfile.write('\nf:\n')
-                            fgood = compute(fprereqs,funcf,ftest,sh[f],Egrid,exps[f],plottinglist[f],seton[f])
+                            fgood = compute(fprereqs,funcf,ftest,sh['f'],Egrid,exps['f'],plottinglist['f'],seton['f'])
                             if fgood == 0:
 
                                 model.statfile.write('Failed to evaluate f')
@@ -153,7 +188,7 @@ def getrate(model,partial = False):
 
                                 rprereqs = [model,'Model',Jc2good,'Jc2',Ggood,'Ggood',fgood,'fgood']
                                 model.statfile.write('\nrate:\n')
-                                rategood = compute(rprereqs,funcdgdlnrp,utest,sh[rate],stdgrid,exps[rate],plottinglist[rate],seton[rate])
+                                rategood = compute(rprereqs,funcdgdlnrp,utest,sh['dgdlnrp'],stdgrid,exps['dgdlnrp'],plottinglist['dgdlnrp'],seton['dgdlnrp'])
                                 
                                 if rategood == 0:
                                     model.statfile.close()
@@ -168,11 +203,6 @@ def getrate(model,partial = False):
                                         os.system('mv {0}/{1}_master.pdf {0}/{1}_complete.pdf'.format(model.directory,model.name))
                                     print('\a')
                                     return Mencgood,psigood,Jc2good,ggood,Ggood,fgood,rategood
-    except ValueError:
-        model.statfile.write('\n\n Failed evaluation')
-        model.statfile.close()
-        model.pdfdump.close()
-        return 0,0,0,0,0,0,0
                 
     except KeyboardInterrupt:
         model.statfile.write('\n\nFunction creation cancelled')
@@ -193,6 +223,7 @@ if __name__ == '__main__':
     from rhomodels import NukerModelRho
     model = NukerModelRho(name,alpha,beta,gamma,r0pc,rho0,MBH_Msun,GENERATE,memo = False)
     Mencgood,psigood,Jc2good,ggood,Ggood,fgood = getrateplot(model)
+
 
 
 

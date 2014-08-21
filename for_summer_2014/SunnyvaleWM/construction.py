@@ -19,7 +19,7 @@ funcnames.update(dict.fromkeys(['rho','density'],'rho'))
 funcnames.update(dict.fromkeys(['drhodr'],'drhodr'))
 funcnames.update(dict.fromkeys(['d2rhodr2'],'d2rhodr2'))
 funcnames.update(dict.fromkeys(['dgdlnrp','rate'],'dgdlnrp'))
-indeps = {'Menc':'r','psi':'r','Jc2':'E','lg':'E','bG':'E','f':'E','rho':'r','drhodr':'r','d2rhodr2':'r','dgdlnrp':'u**2'}
+indeps = {'Menc':'r','psi':'r','Jc2':'E','lg':'E','bG':'E','f':'E','rho':'r','drhodr':'r','d2rhodr2':'r','dgdlnrp':'u^2'}
                 
 
 devnull = open(os.devnull,'w')
@@ -42,6 +42,14 @@ def pklwrite(fname,dat):
     pklffile = open(fname,"wb")
     pickle.dump(dat,pklffile)
     pklffile.close()
+
+def goodcheck(vals):
+    negs = vals[where(vals<0)]
+    nans = vals[where(isnan(vals)==True)]
+    if len(negs) == len(vals) or len(nans) == len(vals) or (len(nans) + len(negs)) == len(vals):
+        return False
+    else:
+        return True
 
 def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp):
     """
@@ -90,8 +98,7 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting):
     frac = float(len(problems))/float(len(tab))
     print 'fraction reporting a message: {0}'.format(frac)
     model.statfile.write('\nmesg frac = {0}\n'.format(frac))
-    neg_test = tab[where(tab<0)]
-    nan_test = tab[where(isnan(tab)==True)]
+    gcheck = goodcheck(tab)
     inter = interp1d(log10(rarray),log10(tab))
     start = tab[0]
     end = tab[len(rarray)-1]
@@ -100,7 +107,7 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting):
     saver = column_stack((r,m))
     funcname = str(func).split(' ')[1][4:]
     pklwrite('{0}/{1}.pkl'.format(model.directory,funcname),saver)
-    if plotting != False and len(neg_test) != len(tab) and len(nan_test) != len(tab) and (len(neg_test)+len(nan_test)) != len(tab):
+    if plotting != False and gcheck == True:
         xaxis,yaxis = plotting
         plt.figure()
         plt.loglog(r[1:-1],m[1:-1],'c',linewidth = 5)
@@ -113,9 +120,9 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting):
         model.pdfdump.savefig()
         plt.close()
         return inter2
-    elif plotting == False and len(neg_test) != len(tab) and len(nan_test) != len(tab) and (len(neg_test)+len(nan_test)) != len(tab):
+    elif plotting == False and gcheck == True:
         return inter2
-    elif len(neg_test) == len(tab) or len(nan_test) == len(tab) or (len(neg_test)+len(nan_test)) == len(tab):
+    elif gcheck == False:
         return 0
 
 def compute(dependencies,function,rtest,size,grid,exps,plotdat,create):
@@ -161,13 +168,13 @@ def compute(dependencies,function,rtest,size,grid,exps,plotdat,create):
             print 'e = ',e
             print 'To compute {0}, please turn {1} ON'.format(strname,dependencies[i+1])
             model.statfile.write('To compute {0}, please turn {1} ON\n'.format(strname,dependencies[i+1]))
-    elif create != "ON":
+    elif create == "OFF":
         try:
             dat = pklread('{0}/{1}.pkl'.format(model.directory,strname))
             rarray = dat[:,0]
             tab = dat[:,1]
-            neg_test = tab[where(tab<0)]
-            if plotdat != False and len(tab) != len(neg_test):
+            gcheck = goodcheck(tab)
+            if plotdat != False and gcheck == True:
                 xaxis,yaxis = plotdat
                 plt.loglog(rarray[1:-1],tab[1:-1],'c',linewidth = 5)
                 plt.ylabel(r'{0}'.format(yaxis))
@@ -183,6 +190,9 @@ def compute(dependencies,function,rtest,size,grid,exps,plotdat,create):
         except IOError:
             model.statfile.write('{0} not yet generated, please turn it ON\n'.format(strname))
             return 1
+    elif create == 'FAIL':
+        return 0
+        
 
 
 def integrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],fileobj=devnull,prefactor = 1):

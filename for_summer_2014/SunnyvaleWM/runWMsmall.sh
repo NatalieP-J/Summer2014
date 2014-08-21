@@ -5,4 +5,4 @@
 #PBS -N runWM
 cd $PBS_O_WORKDIR
 module load python/2.7.6
-python WMrateget.py 50
+python WMrateget.py 41
