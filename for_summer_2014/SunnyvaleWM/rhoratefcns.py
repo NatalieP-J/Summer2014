@@ -6,10 +6,15 @@ from scipy.optimize import root
 import matplotlib.pyplot as plt
 from besselgen import BesselGen
 from construction import *
-from subprocess import call
-from suppressor import RedirectStdStreams
 
 def findrho0(rb,M2L,mub):
+    """
+    rb - break radius in pc
+    M2L - mass to light ratio in Msun/Lsun
+    mub - surface brightness at rb
+    
+    Returns density at the break radius.
+    """
     MsunV = 4.83
     return (1./rb)*(1./(10)**2)*(206265**2)*M2L*10**((MsunV-mub)/2.5) 
 
@@ -17,42 +22,58 @@ def findrho0(rb,M2L,mub):
 
 def Minterior(r,prereqs):
     """
-    interior of the Menc integral
+    r - radius
+    prereqs - list containing model class instance
+    
+    Returns interior of Menc integral at r.
     """
     model, = prereqs
     return model.rho(r)*r**2
 
 def funcMenc(r,prereqs):
     """
-    functional form of Menc
-    relies on Minterior
-    returns Menc(r)
+    r - radius
+    prereqs - list containing model class instance
+    
+    Returns the enclosed stellar mass at r and a list of problem points.
     """
     model, = prereqs
+    #if r is an array, construct arrays of upper limits, lower limits, 
+    #arguments and prefactors
     if isinstance(r,(list,ndarray))==True:
         dls = zeros(len(r))
         uls = r
         plist = [tuple((prereqs,))]*len(r)
         pre = [4*pi]*len(r)
+    #if r isn't an array, set upper limit, lower limit, arguments and prefactor
     elif isinstance(r,(int,float))==True:
         dls = 0
         uls = r
         plist = tuple((prereqs,))
         pre = 4*pi
-    return integrator(r,[Minterior,'Menc'],dls,uls,args = plist,fileobj = model.statfile,prefactor = pre)
+    return integrator(r,[Minterior,'Menc'],dls,uls,args = plist,
+                      fileobj = model.statfile,prefactor = pre)
 
 ########******************* RADIUS OF INFLUENCE *******************######## 
 
 def rHimplicit(r,prereqs):
     """
-    equation that has its minimum when r = rH
+    An equation that has its minimum when r = rH.
+    
+    r - independent variable
+    prereqs - list that contains model class instance
+    
+    Returns the difference between the black hole mass and enclosed
+    stellar mass at r.
     """
     model, = prereqs
     return abs(model.Mnorm-funcMenc(abs(r),prereqs)[0])
 
 def rH(prereqs):
     """
-    finds root of rHimplicit
+    prereqs - list that contains model class instance
+
+    Returns the root of rHimplicit.
     """
     model, = prereqs
     rresult=root(rHimplicit,1e-4,args = prereqs)
@@ -67,8 +88,12 @@ def rH(prereqs):
 
 def stdgrid(prereqs,upstep=5,downstep=-5,step=0.03):
     """
-    constructs a grid in radius and adds one point at each extreme (up and down)
-    returns 10**grid
+    prereqs - list containing model class instance
+    upstep - log10(<upper limit>), defaults to 5
+    downstep - log10(<lower limit>), defaults to -5
+    step - log10 space step size, defaults to 0.03
+
+    Returns 10**grid, and its upper and lower limits
     """
     model, = prereqs
     rarray = arange(downstep,upstep,step)
@@ -79,8 +104,14 @@ def stdgrid(prereqs,upstep=5,downstep=-5,step=0.03):
 
 def rgrid(prereqs,upstep=5,downstep=-5,step=0.03):
     """
-    constructs a grid in radius and adds one point at each extreme (up and down)
-    returns 10**grid
+    Creates radius grids.
+
+    prereqs - list containing model class instance
+    upstep - log10(<upper limit>), defaults to 5 above min(log10(rH),0)
+    downstep - log10(<lower limit>), defaults to -5 below max(log10(rH),0)
+    step - log10 space step size, defaults to 0.03
+
+    Returns 10**grid, and its upper and lower limits
     """
     model, = prereqs
     rmin = min([rH([model]),[1.]])
@@ -96,8 +127,15 @@ def rgrid(prereqs,upstep=5,downstep=-5,step=0.03):
 
 def Egrid(prereqs,upstep=5,downstep=-3,step=0.1):
     """
-    constructs a grid in energy and adds one point at each extreme (up and down)
-    returns 10**grid
+    Creates energy grids.
+
+    prereqs - list containing model class instance
+    upstep - log10(<upper limit>), defaults to 5 above 
+             log10(Menc(max(rH,1)/rmax))
+    downstep - log10(<lower limit>), defaults to -3 below log10(MBH/min(rH,1))
+    step - log10 space step size, defaults to 0.1
+
+    Returns 10**grid, and its upper and lower limits
     """
     model, = prereqs
     rmin = min([rH([model]),[1.]])[0]
@@ -115,24 +153,30 @@ def Egrid(prereqs,upstep=5,downstep=-3,step=0.1):
         
 def psi2interior(r,prereqs):
     """
-    interior of psi part 2 integral
+    r - independent variable
+    prereqs - list containing model class instance and Menc functional form
+
+    Returns the interior of the integral for part 2 of psi at r.
     """
     model,Mencgood = prereqs
     return model.rho(r)*r
 
-tol = 1e-3
 def psi2(r,prereqs):
     """
-    functional form of psi part 2
-    relies on psi2interior
-    returns psi2(r)
+    r - radius
+    prereqs - list containing model class instance and Menc functional form
+    
+    Returns part 2 of psi at r and a list of problem points.
     """
     model,Mencgood= prereqs
+    #if r is an array, compose arrays of upper limits, lower limits, arguments
+    # and prefactors
     if isinstance(r,(list,ndarray))==True:
         dls = r
         uls = zeros(len(r)) + inf
         plist = [tuple((prereqs,))]*len(r)
         pre = [4*pi]*len(r)
+    #if r isn't an array, set upper limit, lower limit, arguments and prefactor
     elif isinstance(r,(int,float))==True:
         dls = r
         uls = inf
@@ -142,8 +186,12 @@ def psi2(r,prereqs):
 
 def funcpsi(r,prereqs):
     """
-    returns potential as a function of r
+    r - radius
+    prereqs - list containing model class instance and Menc functional form
+    
+    Returns potential as a function at r and a list of problem points.
     """
+    #combine all three parts of psi
     model,Mencgood = prereqs
     part1 = (model.Mnorm/r)
     part2 = 10**Mencgood(log10(r))
@@ -160,15 +208,25 @@ def funcpsi(r,prereqs):
 
 def rapoimplicit(r,E,prereqs):
     """
-    function with a minimum at r=rapo
+    An equation with a minimum at r=rapo.
+
+    r - radius
+    E - energy
+    prereqs - a list containing the functional form of psi
+
+    Returns the difference between potential and total energy.
     """
     psigood, = prereqs
     return abs(10**psigood(log10(abs(r)))-E)
 
 def rapo(E,prereqs):
     """
-    finds root of rapoimplicit
+    E - energy
+    prereqs - a list containing the functional form of psi
+
+    Returns the root of rapoimplicit.
     """
+    #trial and error provided this as a good way to find an initial guess
     if E**-1 > 0.2:
         rguess = 10*E**-1
     elif E**-1 < 0.2:
@@ -185,26 +243,38 @@ def rapo(E,prereqs):
 
 def Jc2implicit(r,E,prereqs):
     """
+    r - radius
+    E - energy
+    prereqs - a list containg the model class instance and functional forms 
+              of Menc and psi
+
+    Returns interior of integral for Jc2 at E with radius r.
     """
     model,Mencgood,psigood = prereqs
     return abs(10**psigood(log10(abs(r)))-E-((10**Mencgood(log10(abs(r)))+model.Mnorm)/(2*r)))
 
 def funcJc2(E,prereqs):
     """
-    see Jc2implicit
+    E - energy
+    prereqs - a list containg the model class instance and functional forms 
+              of Menc and psi
+
+    Returns circular angular momentum squared for orbit with energy E.
     """
     model,Mencgood,psigood = prereqs
-    try:
-        t = E.shape
+    #if E is in an array, cycle through elements and compute for each
+    if isinstance(E,(list,ndarray)) == True:
         Jcs = []
         problems = []
         for i in range(len(E)):
+            #trial and error produced this method of initial guess
             if E[i]**-1 > 0.4:
                 rguess = 10*E[i]**-1
             elif E[i]**-1 < 0.4:
                 rguess = 0.01*E[i]**-1
             rresult = root(Jc2implicit,rguess,args=(E[i],prereqs))
             rresult.x = abs(rresult.x)
+            #if rootfinder fails, write error message to file
             if rresult.success == True:
                 Jcs.append(((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0])
             elif rresult.success == False:
@@ -213,10 +283,16 @@ def funcJc2(E,prereqs):
                 Jcs.append(((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0])
                 problems.append(i)
         return array(Jcs),problems
-    except AttributeError:
-        rresult = root(Jc2implicit,0.01*E**-1,args=(E,prereqs))
+    elif isinstance(E,(float,int)) == True:
+        #trial and error produced this method of initial guess
+        if E**-1 > 0.4:
+            rguess = 10*E**-1
+        elif E**-1 < 0.4:
+            rguess = 0.01*E**-1
+        rresult = root(Jc2implicit,rguess,args=(E,prereqs))
         problem = []
         rresult.x = abs(rresult.x)
+        #if rootfinder fails, write error message to file
         if rresult.success == True:
             Jc = ((10**Mencgood(log10(rresult.x))+model.Mnorm)*rresult.x)[0]
         elif rresult.success == False:
@@ -230,18 +306,25 @@ def funcJc2(E,prereqs):
 
 def lginterior(r,E,prereqs):
     """
-    interior of g integral
+    r - radius
+    E - energy
+    prereqs - list containing model class instance and functional form of psi
+
+    Returns interior of g integral for E at radius=r.
     """
     model,psigood = prereqs
     return (model.drhodr(1./r))*(r**-2)*((sqrt(abs(E-10**psigood(log10(1./r)))))**-1)
     
 def funclg(E,prereqs):
     """
-    functional form of g
-    relies on ginterior
-    returns g(E)
+    E - energy
+    prereqs - list containing model class instance and functional form of psi
+    
+    Returns g at energy E.
     """
     model,psigood = prereqs
+    #if E is an array, compose arrays of upper limits, lower limits, arguments
+    # and prefactors
     if isinstance(E,(list,ndarray))==True:
         dls = zeros(len(E))
         uls = []
@@ -250,6 +333,7 @@ def funclg(E,prereqs):
             uls.append(1./rapo(E[index],[psigood]))
             plist.append(tuple((E[index],prereqs)))
         pre = [-pi]*len(E)
+    #if E isn't an array, set upper limit, lower limit, arguments and prefactor
     elif isinstance(E,(int,float))==True:
         dls = 0
         uls = 1./rapo(E,[psigood])
@@ -261,9 +345,18 @@ def funclg(E,prereqs):
 
 def bGinterior(theta,r,E,prereqs):
     """
-    interior of G integral
+    Will use memoization if model.memo is set to True.
+    
+    theta - angle
+    r - radius
+    E - energy
+    prereqs - list containing model class instance and functional forms for
+              psi and little g
+              
+    Returns the interior of the G integral at E for angle=theta and radius=r.
     """
     model,psigood,ggood = prereqs
+    #use memoization dictionaries stored in memory
     if model.memo == True:
         psir = 10**psigood(log10(r))
         if not r in model.p1bG:
@@ -275,6 +368,7 @@ def bGinterior(theta,r,E,prereqs):
         if not theta in model.p3bG:
             model.p3bG[theta]= (1./sqrt(theta))-sqrt(theta)
         part3 = model.p3bG[theta]
+    #use CPU-heavy computation
     if model.memo == False:
         psir = 10**psigood(log10(r))
         part1 = (r**2)/sqrt(psir-E)
@@ -284,39 +378,40 @@ def bGinterior(theta,r,E,prereqs):
 
 def funcbG(E,prereqs):
     """
-    functional form of mathcalG
-    relies on Ginterior
-    returns mathcalG(E)
+    E - energy
+    prereqs - a list containing the model class instance and functional forms
+              for psi and little g
+
+    Returns mathcalG at E.
     """
     model,psigood,ggood = prereqs
-    try:
-        t = E.shape
+    #if E is an array, cycle through and compute integral for each
+    if isinstance(E,(ndarray,list))==True:
         Gans = []
         problems = []
         for i in range(len(E)):
             print i+1, 'of', len(E)
             rapoval = rapo(E[i],[psigood])
-            try:
-                temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 1e-4, lambda r: 1,args = (E[i],prereqs))
-            except UserWarning as e:
-                if verbose == True:
-                    print 'G, E = ', E[i], 'message = ', e
-                problems.append(i)
+            temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 1e-4, lambda r: 1,args = (E[i],prereqs))
             Gans.append(temp[0])
         return array(Gans),problems
-    except AttributeError:
+    elif isinstance(E,(float,int))==True:
         rapoval = rapo(E,psigood)
         problem = []
-        try:
-            temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E,prereqs))
-        except UserWarning as e:
-            if verbose == True:
-                print 'G, E = ', E, 'message = ', temp[3]
-            problem = [E]
+        temp = intg.dblquad(bGinterior,0,rapoval,lambda r: 0, lambda r: 1,args = (E,prereqs))
         return temp[0],problem
 
 def funcbG2(E,prereqs):
+     """
+    E - energy
+    prereqs - a list containing the model class instance and functional forms
+              for psi and little g
+
+    Returns mathcalG at E.
+    """
     model,psigood,ggood = prereqs
+    #if E is an array, compose length two arrays of two sets of upper limits and
+    #two sets of lower limits, and array of argument tuples
     if isinstance(E,(list,ndarray))==True:
         dls = []
         dls.append(zeros(len(E)))
@@ -331,33 +426,27 @@ def funcbG2(E,prereqs):
             plist.append(tuple((E[i],prereqs)))
         uls.append(uls1)
         uls.append(uls2)
+    #if E isn't an array, set both lower limits and both upper limits as well
+    #as argument tuples
     elif isinstance(E,(int,float))==True:
         dls = [0,lambda r:1e-4]
         uls = [rapo(E[i],[psigood]),lambda r:1]
         plist = tuple((E,prereqs))
     return dblintegrator(E,[bGinterior,'G'],dls,uls,args = plist,fileobj = model.statfile)
-'''
-def funcbG3(E,prereqs):
-    model,psigood,ggood = prereqs
-    if isinstance(E,(list,ndarray))==True:
-        dls1 = zeros(len(E))
-        dls2 = array([lambda r:1e-4]*len(E))
-        uls1 = array([])
-        uls2 = array([lambda r:1]*len(E))
-        plist = []
-        for i in range(len(E)):
-            rapoval = rapo(E[i],[psigood])
-            uls1 = append(uls1,rapoval)
-            plist.append(tuple((E[i],prereqs)))
-    elif isinstance(E,(int,float))==True:
-        dls = [0,lambda r:1e-4]
-        uls = [rapo(E[i],[psigood]),lambda r:1]
-        plist = tuple((E,prereqs))
-    return dblintegrator(E,[bGinterior,'G'],dls,uls,args = plist,fileobj = model.statfile)
-'''
+
 ########******************* DISTRIBUTION FUNCTION *******************######## 
 
 def finterior(r,E,rapoval,prereqs):
+    """
+    r - radius
+    E - energy
+    rapoval - apocentre radius
+    prereqs - a list containing the model class instance and functional 
+              forms of Menc and psi
+
+    Return the interior of the distribution function integral at E for radius=r
+    and apocentre radius = rapoval.
+    """
     model,Mencgood,psigood = prereqs
     var = float(rapoval/r)
     psi = (10**psigood(log10(var)))
