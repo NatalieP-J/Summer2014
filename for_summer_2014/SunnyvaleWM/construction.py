@@ -9,6 +9,8 @@ import os
 from matplotlib.backends.backend_pdf import PdfPages
 from suppressor import RedirectStdStreams
 
+# dictionaries used in the fromfileplot and fromfileplotall functions
+# used to search for files based on a variety of keywords 
 funcnames = dict.fromkeys(['Menc','Mencgood','menc','funcM','mencgood','M','m','Mgood','mgood','mass','Mass'],'Menc')
 funcnames.update(dict.fromkeys(['psi','Psi','psigood','Psigood','potential','Potential','funcp','P','p','U','u','potential energy','Potential Energy','potential Energy'],'psi'))
 funcnames.update(dict.fromkeys(['Jc2','Jc2good','Jc','jc2','jc2good','jc','Jcgood','jcgood','J','j','jgood','Jgood','Angular momentum','Angular Momentum','angular momentum'],'Jc2'))
@@ -25,6 +27,10 @@ indeps = {'Menc':'r','psi':'r','Jc2':'E','lg':'E','bG':'E','f':'E','rho':'r','dr
 devnull = open(os.devnull,'w')
 
 def LoadData(fname):
+    """
+    Opens a file with name fname with any sort of content and splits on the newline.
+    Returns an array with file contents, with length the number of lines in the file,
+    """
     f=open(fname,'r')
     data=[]
     for line in f.readlines():
@@ -33,17 +39,28 @@ def LoadData(fname):
     return data
 
 def pklread(fname):
+    """
+    Opens a pickled file with name fname.
+    Returns data array stored in pickled file.
+    """
     pklffile = open(fname,"rb")
     dat = pickle.load(pklffile)
     pklffile.close()
     return dat
 
 def pklwrite(fname,dat):
+    """
+    Pickles dat and writes it to file with name fname.
+    """
     pklffile = open(fname,"wb")
     pickle.dump(dat,pklffile)
     pklffile.close()
 
 def goodcheck(vals):
+    """
+    Checks if vals is composed entirely of nans or negative numbers. 
+    If yes, return False, if no return True.
+    """
     negs = vals[where(vals<0)]
     nans = vals[where(isnan(vals)==True)]
     if len(negs) == len(vals) or len(nans) == len(vals) or (len(nans) + len(negs)) == len(vals):
@@ -61,7 +78,6 @@ def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp):
     lim2 - second piecewise break
     smallrexp - log slope at small r or large E
     largerexp - log slope at large r or small E
-    conds - any extra conditions
 
     returns a value for the function at r
     """
@@ -76,6 +92,7 @@ def piecewise2(r,inter,start,end,lim1,lim2,smallrexp,largerexp):
 def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting):
     """
 
+    prereqs - array containing model information
     func - function to be evaluated
     r - independent variable array
     size - size of generated independent variable array with format 
@@ -83,10 +100,7 @@ def makegood(prereqs,func,r,size,grid,smallrexp,largerexp,plotting):
     grid - choice of grid generator function
     smallrexp - log slope at small r or large E
     largerexp - log slope at large r or small E
-    verbose = False - suppresses warnings and error messages from 
-    	              integration and rootfinders
     plotting = False - 	do not save plots
-    problem = True - eliminate problem points
     
     returns an interpolated object version of the function based 
     computed values
@@ -129,8 +143,6 @@ def compute(dependencies,function,rtest,size,grid,exps,plotdat,create):
     """
     dependencies - other functions needed to compute this one, 
                    format [func1, "func1",func2,"func2",...]
-    name - name of function in the dictionaries, 
-           format ["name",name]
     function - name of the functional form
     rtest - independent variable array
     size - size of generated independent variable array 
@@ -138,9 +150,11 @@ def compute(dependencies,function,rtest,size,grid,exps,plotdat,create):
     grid - choice of grid generator function
     exps - extreme r or E behaviour, 
            format [smallrexp,largerexp]
-    kwargs - additional information used to specify 
-            conditions and plotting information, 
-            format [conds,plotting,problem]
+    plotdat - if false, do not plot. 
+              if not false, must be array with ['<xlabel>','<ylabel>']
+    create - if 'ON' generate interpolated functional form with makegood. 
+             if 'OFF' load functional form from file.
+             if 'FAIL' return zero
     
     finds interpolated form based on conditions in the 
     dictionaries and pickles it or unpickles intepolated form
@@ -196,6 +210,18 @@ def compute(dependencies,function,rtest,size,grid,exps,plotdat,create):
 
 
 def integrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],fileobj=devnull,prefactor = 1):
+    """
+    vals - list of values for which to compute the integral
+    fcn - interior function for the integrator
+    downlim - lower limit (or array thereof) for integrator
+    uplim - upper limit (or array thereof) for integrator
+    tol - tolerance
+    args - additional arguments fed to integrator as a tuple or array of tuples
+    fileobj - location to write full_output
+    prefactor - constant by which to multiply the integral as a float or an array
+
+    return array of computed integrals and an array of problem points
+    """
     if isinstance(vals,(list,ndarray))==True:
         problems = []
         results = []
@@ -231,6 +257,19 @@ def integrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],fileobj=devnull,pref
 
 
 def rintegrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],fileobj=devnull,prefactor = 1,div=50):
+    """
+    vals - list of values for which to compute the integral
+    fcn - interior function for the integrator
+    downlim - lower limit (or array thereof) for integrator
+    uplim - upper limit (or array thereof) for integrator
+    tol - tolerance
+    args - additional arguments fed to integrator as a tuple or array of tuples
+    fileobj - location to write full_output
+    prefactor - constant by which to multiply the integral as a float or an array
+    div - maximum number of divisions
+
+    return array of romberg-computed integrals and an array of problem points
+    """
     if isinstance(vals,(list,ndarray))==True:
         problems = []
         results = []
@@ -256,6 +295,18 @@ def rintegrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],fileobj=devnull,pre
 
 
 def dblintegrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],fileobj=devnull,prefactor = 1):
+    """
+    vals - list of values for which to compute the integral
+    fcn - interior function for the integrator
+    downlim - length two array containing two sets of lower limits for the double integrator
+    uplim - length two array containing two sets of upper limits for the double integrator
+    tol - tolerance
+    args - additional arguments fed to integrator as a tuple or array of tuples
+    fileobj - location to write full_output
+    prefactor - constant by which to multiply the integral as a float or an array
+
+    return array of computed integrals and an array of problem points
+    """
     if isinstance(vals,(list,ndarray))==True:
         problems = []
         results = []
@@ -280,6 +331,12 @@ def dblintegrator(vals,fcn,downlim,uplim,tol=1.49e-7,args = [],fileobj=devnull,p
         return prefactor*temp,problems
 
 def fromfileplot(galname,funcname,up,down):
+    """
+    
+    Searches for directories containing galname one step down from current directory.
+    Plots funcname for chosen directory between limits up and down.
+
+    """
     r = arange(down,up,0.01)
     r = 10**r
     success = os.system('ls -d */*{0}* > templist.dat'.format(galname))
@@ -314,6 +371,12 @@ def fromfileplot(galname,funcname,up,down):
         
 
 def fromfileplotall(galname):
+    """
+    
+    Searches for directories containing galname one step down from current directory.
+    Plots all six functions for chosen directory.
+
+    """
     r = arange(-4,4,0.01)
     r = 10**r
     success = os.system('ls -d */*{0}* > templist.dat'.format(galname))

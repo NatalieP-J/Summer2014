@@ -26,6 +26,9 @@ utest = insert(utest,0,-40)
 utest = 10**utest
 
 def displaycheck():
+    """
+    Check if a display is available.
+    """
     os.system('echo $DISPLAY > tempdisplay')
     displays = LoadData('tempdisplay')
     os.system('rm -f tempdisplay')
@@ -36,6 +39,10 @@ def displaycheck():
         return True
 
 def existcheck(directory,dcheck):
+    """
+    Check which functions have already been created and generate a dictionary. 
+    This dictionary tells you which functions are available for loading or plotting.
+    """
     seton = {}
     plottinglist = {}
     gvals = {}
@@ -74,6 +81,10 @@ def existcheck(directory,dcheck):
     return seton,plottinglist
             
 def getrate(model,partial = False):
+    """
+    partial - option to set which function to create
+    Generate rate function for <model> according to seton, and plot if possible.
+    """
     dcheck = displaycheck()
     Menc,psi,Jc2,g,G,f,rate = 0,1,2,3,4,5,6
     if partial == False:

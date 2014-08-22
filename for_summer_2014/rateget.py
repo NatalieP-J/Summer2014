@@ -25,6 +25,9 @@ utest = insert(utest,0,-40)
 utest = 10**utest
 
 def displaycheck():
+    """
+    Checks if a display is available.
+    """
     os.system('echo $DISPLAY > tempdisplay')
     displays = LoadData('tempdisplay')
     os.system('rm -f tempdisplay')
@@ -35,6 +38,11 @@ def displaycheck():
         return True    
 
 def getrate(model,partial = False):
+    """
+    Computes the rate functions in order to find dgdlnrp
+    Takes an input Nuker model - needs rho, drhodr, d2rhodr2, MBH and alpha, beta and gamma
+    """
+    #check if the display is on
     dcheck = displaycheck()
     Menc,psi,Jc2,g,G,f,rate = 0,1,2,3,4,5,6
     if partial == False:
